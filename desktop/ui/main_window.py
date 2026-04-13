@@ -9,9 +9,7 @@ from ui.pantallas.productos import ProductosScreen
 from ui.pantallas.reportes import ReportesScreen
 from ui.pantallas.clientes import ClientesScreen
 from ui.pantallas.caja import CajaScreen
-
-# Ruta del archivo de sesión (igual que en login.py)
-ARCHIVO_SESION = os.path.join(os.path.expanduser("~"), ".juanacash_sesion.json")
+from ui.pantallas.sesiones import SesionesScreen
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -20,14 +18,11 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1280, 720)
         self.usuario_actual = None
         self.cajero_actual = None
-
         central = QWidget()
         self.setCentralWidget(central)
         self.main_layout = QHBoxLayout(central)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
-
-        # Sidebar
         self.sidebar = QWidget()
         self.sidebar.setFixedWidth(210)
         self.sidebar.setStyleSheet("background-color: #16213e;")
@@ -35,18 +30,14 @@ class MainWindow(QMainWindow):
         sidebar_layout = QVBoxLayout(self.sidebar)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
-
         logo = QLabel("💰 Juana Cash")
         logo.setFont(QFont("Arial", 13, QFont.Weight.Bold))
         logo.setStyleSheet("color: #e94560; padding: 20px;")
         sidebar_layout.addWidget(logo)
-
-        # Info cajero
         self.lbl_cajero_sidebar = QLabel("")
         self.lbl_cajero_sidebar.setStyleSheet("color: #a0a0b0; font-size: 11px; padding: 0 20px 10px 20px;")
         self.lbl_cajero_sidebar.setWordWrap(True)
         sidebar_layout.addWidget(self.lbl_cajero_sidebar)
-
         self.btns_menu = {}
         menus = [
             ("🛒  Ventas", "ventas"),
@@ -54,48 +45,24 @@ class MainWindow(QMainWindow):
             ("👥  Clientes", "clientes"),
             ("🏧  Caja", "caja"),
             ("📊  Reportes", "reportes"),
+            ("📋  Sesiones", "sesiones"),
         ]
         for texto, key in menus:
             btn = QPushButton(texto)
             btn.setFixedHeight(48)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background: transparent;
-                    color: #a0a0b0;
-                    text-align: left;
-                    padding-left: 20px;
-                    font-size: 14px;
-                    border: none;
-                }
-                QPushButton:hover { background: #0f3460; color: white; }
-            """)
+            btn.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; text-align: left; padding-left: 20px; font-size: 14px; border: none; } QPushButton:hover { background: #0f3460; color: white; }")
             btn.clicked.connect(lambda _, k=key: self.cambiar_pantalla(k))
             sidebar_layout.addWidget(btn)
             self.btns_menu[key] = btn
-
         sidebar_layout.addStretch()
-
         btn_salir = QPushButton("🚪  Cerrar sesión")
         btn_salir.setFixedHeight(48)
-        btn_salir.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                color: #e94560;
-                text-align: left;
-                padding-left: 20px;
-                font-size: 14px;
-                border: none;
-            }
-        """)
+        btn_salir.setStyleSheet("QPushButton { background: transparent; color: #e94560; text-align: left; padding-left: 20px; font-size: 14px; border: none; }")
         btn_salir.clicked.connect(self.on_logout)
         sidebar_layout.addWidget(btn_salir)
-
         self.main_layout.addWidget(self.sidebar)
-
-        # Stack
         self.stack = QStackedWidget()
         self.main_layout.addWidget(self.stack)
-
         self.login_screen = LoginScreen(self.on_login_exitoso)
         self.turno_screen = TurnoScreen(self.on_turno_seleccionado, {})
         self.ventas_screen = VentasScreen(self.on_logout)
@@ -103,7 +70,7 @@ class MainWindow(QMainWindow):
         self.reportes_screen = ReportesScreen()
         self.clientes_screen = ClientesScreen()
         self.caja_screen = CajaScreen()
-
+        self.sesiones_screen = SesionesScreen()
         self.stack.addWidget(self.login_screen)
         self.stack.addWidget(self.turno_screen)
         self.stack.addWidget(self.ventas_screen)
@@ -111,6 +78,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.reportes_screen)
         self.stack.addWidget(self.clientes_screen)
         self.stack.addWidget(self.caja_screen)
+        self.stack.addWidget(self.sesiones_screen)
         self.stack.setCurrentWidget(self.login_screen)
 
     def cambiar_pantalla(self, key):
@@ -120,6 +88,7 @@ class MainWindow(QMainWindow):
             "reportes": self.reportes_screen,
             "clientes": self.clientes_screen,
             "caja": self.caja_screen,
+            "sesiones": self.sesiones_screen,
         }
         if key in pantallas:
             if key == "productos":
@@ -130,28 +99,24 @@ class MainWindow(QMainWindow):
                 self.clientes_screen.cargar_clientes()
             elif key == "caja":
                 self.caja_screen.actualizar_ventas()
+            elif key == "sesiones":
+                self.sesiones_screen.cargar_sesiones()
             self.stack.setCurrentWidget(pantallas[key])
 
     def on_login_exitoso(self, usuario):
         self.usuario_actual = usuario
-        # Mostrar pantalla de identificación de cajero
         self.turno_screen = TurnoScreen(self.on_turno_seleccionado, usuario)
         self.stack.addWidget(self.turno_screen)
         self.stack.setCurrentWidget(self.turno_screen)
 
     def on_turno_seleccionado(self, cajero):
         if cajero is None:
-            # Volver al login
             self.stack.setCurrentWidget(self.login_screen)
             return
-
         self.cajero_actual = cajero
         nombre = cajero.get("nombre", "Cajero")
         turno = cajero.get("turno", "")
-
-        # Actualizar sidebar
         self.lbl_cajero_sidebar.setText(f"👤 {nombre}\n🕐 {turno[:5]}")
-
         self.ventas_screen.set_usuario(cajero)
         self.caja_screen.set_usuario(cajero)
         self.sidebar.show()
@@ -159,28 +124,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Juana Cash — {nombre} | {turno[:5]}")
 
     def on_logout(self):
-        """Cerrar sesión y limpiar archivo de sesión guardada"""
-        # Borrar archivo de sesión guardada
-        self.borrar_sesion_guardada()
-        
-        # Limpiar variables de sesión
         self.usuario_actual = None
         self.cajero_actual = None
-        
-        # Resetear UI
         self.sidebar.hide()
         self.stack.setCurrentWidget(self.login_screen)
         self.setWindowTitle("Juana Cash - Sistema POS")
-        
-        # Limpiar campos del login para que pida credenciales de nuevo
-        self.login_screen.input_email.clear()
-        self.login_screen.input_password.clear()
-        self.login_screen.check_recordar.setChecked(False)
-    
-    def borrar_sesion_guardada(self):
-        """Elimina el archivo de sesión de forma segura"""
-        try:
-            if os.path.exists(ARCHIVO_SESION):
-                os.remove(ARCHIVO_SESION)
-        except Exception as e:
-            print(f"Error al borrar sesión: {e}")
