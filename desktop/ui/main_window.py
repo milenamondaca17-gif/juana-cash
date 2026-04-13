@@ -10,6 +10,7 @@ from ui.pantallas.reportes import ReportesScreen
 from ui.pantallas.clientes import ClientesScreen
 from ui.pantallas.caja import CajaScreen
 from ui.pantallas.sesiones import SesionesScreen
+from ui.pantallas.usuarios import UsuariosScreen
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -39,6 +40,7 @@ class MainWindow(QMainWindow):
         self.lbl_cajero_sidebar.setWordWrap(True)
         sidebar_layout.addWidget(self.lbl_cajero_sidebar)
         self.btns_menu = {}
+        self.menus_admin = ["usuarios", "sesiones"]
         menus = [
             ("🛒  Ventas", "ventas"),
             ("📦  Productos", "productos"),
@@ -46,6 +48,7 @@ class MainWindow(QMainWindow):
             ("🏧  Caja", "caja"),
             ("📊  Reportes", "reportes"),
             ("📋  Sesiones", "sesiones"),
+            ("👤  Usuarios", "usuarios"),
         ]
         for texto, key in menus:
             btn = QPushButton(texto)
@@ -71,6 +74,7 @@ class MainWindow(QMainWindow):
         self.clientes_screen = ClientesScreen()
         self.caja_screen = CajaScreen()
         self.sesiones_screen = SesionesScreen()
+        self.usuarios_screen = UsuariosScreen()
         self.stack.addWidget(self.login_screen)
         self.stack.addWidget(self.turno_screen)
         self.stack.addWidget(self.ventas_screen)
@@ -79,9 +83,15 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.clientes_screen)
         self.stack.addWidget(self.caja_screen)
         self.stack.addWidget(self.sesiones_screen)
+        self.stack.addWidget(self.usuarios_screen)
         self.stack.setCurrentWidget(self.login_screen)
 
     def cambiar_pantalla(self, key):
+        rol = self.cajero_actual.get("rol", "cajero") if self.cajero_actual else "cajero"
+        if key in self.menus_admin and rol not in ["admin", "encargado"]:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Acceso denegado", "Solo admin o encargado pueden acceder a esta sección")
+            return
         pantallas = {
             "ventas": self.ventas_screen,
             "productos": self.productos_screen,
@@ -89,6 +99,7 @@ class MainWindow(QMainWindow):
             "clientes": self.clientes_screen,
             "caja": self.caja_screen,
             "sesiones": self.sesiones_screen,
+            "usuarios": self.usuarios_screen,
         }
         if key in pantallas:
             if key == "productos":
@@ -101,6 +112,8 @@ class MainWindow(QMainWindow):
                 self.caja_screen.actualizar_ventas()
             elif key == "sesiones":
                 self.sesiones_screen.cargar_sesiones()
+            elif key == "usuarios":
+                self.usuarios_screen.cargar_usuarios()
             self.stack.setCurrentWidget(pantallas[key])
 
     def on_login_exitoso(self, usuario):
@@ -116,12 +129,18 @@ class MainWindow(QMainWindow):
         self.cajero_actual = cajero
         nombre = cajero.get("nombre", "Cajero")
         turno = cajero.get("turno", "")
-        self.lbl_cajero_sidebar.setText(f"👤 {nombre}\n🕐 {turno[:5]}")
+        rol = cajero.get("rol", "cajero")
+        self.lbl_cajero_sidebar.setText(f"👤 {nombre}\n🎭 {rol}\n🕐 {turno[:5]}")
+        for key, btn in self.btns_menu.items():
+            if key in self.menus_admin and rol not in ["admin", "encargado"]:
+                btn.setStyleSheet("QPushButton { background: transparent; color: #555; text-align: left; padding-left: 20px; font-size: 14px; border: none; }")
+            else:
+                btn.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; text-align: left; padding-left: 20px; font-size: 14px; border: none; } QPushButton:hover { background: #0f3460; color: white; }")
         self.ventas_screen.set_usuario(cajero)
         self.caja_screen.set_usuario(cajero)
         self.sidebar.show()
         self.stack.setCurrentWidget(self.ventas_screen)
-        self.setWindowTitle(f"Juana Cash — {nombre} | {turno[:5]}")
+        self.setWindowTitle(f"Juana Cash — {nombre} | {rol} | {turno[:5]}")
 
     def on_logout(self):
         self.usuario_actual = None

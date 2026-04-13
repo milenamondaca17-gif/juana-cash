@@ -90,7 +90,7 @@ class TurnoScreen(QWidget):
         cajero = {
             "nombre": nombre,
             "turno": turno,
-            "rol": "cajero",
+            "rol": self.admin_usuario.get("rol", "cajero"),
             "id": self.admin_usuario.get("id", 1)
         }
         try:

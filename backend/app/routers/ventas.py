@@ -6,8 +6,11 @@ from datetime import datetime
 from ..database import get_db
 from ..models.venta import Venta, ItemVenta, Pago
 from ..models.producto import Producto
+from ..models.usuario import Usuario
+from passlib.context import CryptContext
 
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class ItemVentaSchema(BaseModel):
     producto_id: int
@@ -25,6 +28,11 @@ class VentaCrear(BaseModel):
     items: List[ItemVentaSchema]
     pagos: List[PagoSchema]
     descuento: float = 0
+
+class AnularVentaSchema(BaseModel):
+    motivo: str
+    password_admin: str
+    usuario_id: int
 
 @router.post("/")
 def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
@@ -70,7 +78,19 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
 
 @router.get("/")
 def listar_ventas(db: Session = Depends(get_db)):
-    return db.query(Venta).order_by(Venta.fecha.desc()).limit(50).all()
+    ventas = db.query(Venta).order_by(Venta.fecha.desc()).limit(50).all()
+    resultado = []
+    for v in ventas:
+        metodo = v.pagos[0].metodo if v.pagos else "efectivo"
+        resultado.append({
+            "id": v.id,
+            "numero": v.numero,
+            "total": float(v.total),
+            "estado": v.estado,
+            "metodo_pago": metodo,
+            "fecha": str(v.fecha)
+        })
+    return resultado
 
 @router.get("/{id}")
 def obtener_venta(id: int, db: Session = Depends(get_db)):
@@ -78,3 +98,33 @@ def obtener_venta(id: int, db: Session = Depends(get_db)):
     if not v:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
     return v
+
+@router.post("/{id}/anular")
+def anular_venta(id: int, datos: AnularVentaSchema, db: Session = Depends(get_db)):
+    venta = db.query(Venta).filter(Venta.id == id).first()
+    if not venta:
+        raise HTTPException(status_code=404, detail="Venta no encontrada")
+    if venta.estado == "anulada":
+        raise HTTPException(status_code=400, detail="La venta ya está anulada")
+
+    # Verificar contraseña del admin
+    usuario = db.query(Usuario).filter(
+        Usuario.id == datos.usuario_id,
+        Usuario.rol.in_(["admin", "encargado"]),
+        Usuario.activo == True
+    ).first()
+    if not usuario:
+        raise HTTPException(status_code=403, detail="Usuario no tiene permisos para anular")
+    if not pwd_context.verify(datos.password_admin, usuario.password_hash):
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+
+    # Devolver stock
+    for item in venta.items:
+        producto = db.query(Producto).filter(Producto.id == item.producto_id).first()
+        if producto:
+            producto.stock_actual = float(producto.stock_actual) + float(item.cantidad)
+
+    venta.estado = "anulada"
+    db.commit()
+
+    return {"mensaje": f"Venta {venta.numero} anulada correctamente", "motivo": datos.motivo}
