@@ -16,6 +16,7 @@ class Venta(Base):
     estado      = Column(String(15), default="completada")
     items       = relationship("ItemVenta", back_populates="venta")
     pagos       = relationship("Pago", back_populates="venta")
+    usuario     = relationship("Usuario", foreign_keys=[usuario_id])
 
 class ItemVenta(Base):
     __tablename__ = "items_venta"

@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
 
@@ -15,6 +14,3 @@ class Usuario(Base):
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, default=datetime.now)
     ultimo_acceso = Column(DateTime, nullable=True)
-
-    ventas = relationship("Venta", back_populates="usuario")
-    sesiones = relationship("SesionLog", back_populates="sesiones")

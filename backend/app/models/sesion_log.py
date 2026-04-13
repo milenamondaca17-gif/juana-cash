@@ -14,4 +14,4 @@ class SesionLog(Base):
     detalle = Column(String, nullable=True)
     fecha = Column(DateTime, default=datetime.now)
 
-    usuario = relationship("Usuario", back_populates="sesiones")
+    usuario = relationship("Usuario")
