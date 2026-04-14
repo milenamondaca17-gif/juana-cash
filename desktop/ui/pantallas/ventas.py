@@ -15,6 +15,11 @@ except Exception:
     ticket_para_whatsapp = None
     abrir_whatsapp = None
 
+try:
+    from ui.pantallas.offline_manager import encolar_venta, sincronizar_cola, cantidad_pendientes
+except Exception:
+    encolar_venta = None
+
 API_URL = "http://127.0.0.1:8000"
 
 DEPARTAMENTOS = {
@@ -36,7 +41,7 @@ class CobrarDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Cobrar venta")
         self.setMinimumWidth(460)
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet("background-color: #071120; color: white;")
         self.total_original = total
         self.descuento_pct = 0
         self.total_final = total
@@ -407,10 +412,28 @@ class VentasScreen(QWidget):
             if child.widget():
                 child.widget().deleteLater()
         for i, p in enumerate(self.favoritos):
-            btn = QPushButton(f"{p['nombre']}\
-${float(p['precio_venta']):.2f}")
-            btn.setFixedSize(110, 56)
-            btn.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 8px; font-size: 11px; border: 1px solid #e94560; } QPushButton:hover { background: #e94560; }")
+            nombre = p["nombre"][:16] + ("…" if len(p["nombre"]) > 16 else "")
+            precio = f"${float(p['precio_venta']):,.0f}"
+            btn = QPushButton(f"{nombre}\n{precio}")
+            btn.setFixedSize(130, 60)
+            btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: #0a1628;
+                    color: white;
+                    border-radius: 10px;
+                    font-size: 11px;
+                    border: 1px solid #1e3a5f;
+                    text-align: center;
+                    padding: 4px;
+                }
+                QPushButton:hover {
+                    background: #1e3a5f;
+                    border: 1px solid #e94560;
+                    color: #e94560;
+                }
+                QPushButton:pressed { background: #e94560; color: white; }
+            """)
             btn.clicked.connect(lambda _, prod=p: self.agregar_item(prod))
             row, col = divmod(i, 4)
             self.grid_favoritos.addWidget(btn, row, col)
@@ -422,177 +445,313 @@ ${float(p['precio_venta']):.2f}")
         layout.setContentsMargins(0, 0, 0, 0)
 
         topbar = QFrame()
-        topbar.setFixedHeight(56)
-        topbar.setStyleSheet("background-color: #16213e; border-bottom: 2px solid #e94560;")
+        topbar.setFixedHeight(52)
+        topbar.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #0a1628, stop:1 #0d1b35);
+                border-bottom: 1px solid #1e3a5f;
+            }
+        """)
         top_layout = QHBoxLayout(topbar)
-        top_layout.setContentsMargins(20, 0, 20, 0)
+        top_layout.setContentsMargins(16, 0, 16, 0)
+        top_layout.setSpacing(12)
+
+        lbl_logo = QLabel("💰")
+        lbl_logo.setStyleSheet("font-size: 20px;")
+        top_layout.addWidget(lbl_logo)
+
         titulo = QLabel("JUANA CASH")
-        titulo.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #e94560;")
+        titulo.setFont(QFont("Arial", 15, QFont.Weight.Bold))
+        titulo.setStyleSheet("color: #e94560; letter-spacing: 3px;")
         top_layout.addWidget(titulo)
+
         top_layout.addStretch()
+
         self.lbl_cajero = QLabel("")
-        self.lbl_cajero.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        self.lbl_cajero.setStyleSheet("color: #6b8cba; font-size: 12px; padding: 0 8px;")
         top_layout.addWidget(self.lbl_cajero)
-        btn_logout = QPushButton("Salir")
-        btn_logout.setFixedWidth(80)
-        btn_logout.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 6px; padding: 6px; }")
+
+        btn_logout = QPushButton("Cerrar sesión")
+        btn_logout.setFixedHeight(32)
+        btn_logout.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_logout.setStyleSheet("""
+            QPushButton { background: transparent; color: #e94560; border: 1px solid #e94560;
+                          border-radius: 6px; font-size: 12px; padding: 0 12px; }
+            QPushButton:hover { background: #e94560; color: white; }
+        """)
         btn_logout.clicked.connect(self.on_logout_callback)
         top_layout.addWidget(btn_logout)
         layout.addWidget(topbar)
 
         contenido = QHBoxLayout()
-        contenido.setContentsMargins(12, 12, 12, 12)
+        contenido.setContentsMargins(10, 10, 10, 10)
         contenido.setSpacing(10)
 
+        # ═══════════════════════════════════════════════════
+        # PANEL IZQUIERDO — Búsqueda, favoritos y ticket
+        # ═══════════════════════════════════════════════════
         panel_izq = QVBoxLayout()
         panel_izq.setSpacing(8)
 
-        # Buscador
-        busqueda_layout = QHBoxLayout()
+        # ── Buscador principal ────────────────────────────
+        busq_frame = QFrame()
+        busq_frame.setStyleSheet("QFrame { background: #0d1b35; border-radius: 12px; border: 2px solid #e94560; }")
+        busq_layout = QHBoxLayout(busq_frame)
+        busq_layout.setContentsMargins(4, 4, 4, 4)
+        busq_layout.setSpacing(6)
+
+        lbl_scan = QLabel("🔍")
+        lbl_scan.setStyleSheet("color: #e94560; font-size: 18px; padding: 0 6px;")
+        busq_layout.addWidget(lbl_scan)
+
         self.input_buscar = QLineEdit()
-        self.input_buscar.setPlaceholderText("Codigo de barras, nombre o depto (900-909) - F3 para enfocar...")
-        self.input_buscar.setFixedHeight(46)
-        self.input_buscar.setStyleSheet("QLineEdit { background: #0f3460; border: 2px solid #e94560; border-radius: 8px; padding: 0 16px; color: white; font-size: 14px; }")
+        self.input_buscar.setPlaceholderText("Escaneá o buscá por nombre  —  F3 para enfocar")
+        self.input_buscar.setFixedHeight(44)
+        self.input_buscar.setStyleSheet("""
+            QLineEdit {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 15px;
+                padding: 0 8px;
+            }
+        """)
         self.input_buscar.returnPressed.connect(self.buscar_producto)
-        busqueda_layout.addWidget(self.input_buscar)
-        btn_buscar = QPushButton("Agregar")
-        btn_buscar.setFixedSize(90, 46)
-        btn_buscar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }")
+        busq_layout.addWidget(self.input_buscar)
+
+        btn_buscar = QPushButton("AGREGAR")
+        btn_buscar.setFixedSize(100, 44)
+        btn_buscar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_buscar.setStyleSheet("""
+            QPushButton {
+                background: #e94560;
+                color: white;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+            QPushButton:hover { background: #c73652; }
+        """)
         btn_buscar.clicked.connect(self.buscar_producto)
-        busqueda_layout.addWidget(btn_buscar)
-        panel_izq.addLayout(busqueda_layout)
+        busq_layout.addWidget(btn_buscar)
+        panel_izq.addWidget(busq_frame)
 
-        # Manual
-        manual_frame = QFrame()
-        manual_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; border: 1px solid #27ae60; }")
-        manual_layout = QHBoxLayout(manual_frame)
-        manual_layout.setContentsMargins(10, 5, 10, 5)
-        manual_layout.setSpacing(6)
-        lbl_m = QLabel("Manual:")
-        lbl_m.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold;")
-        lbl_m.setFixedWidth(60)
-        manual_layout.addWidget(lbl_m)
-        self.input_manual_nombre = QLineEdit()
-        self.input_manual_nombre.setPlaceholderText("Nombre del articulo")
-        self.input_manual_nombre.setFixedHeight(34)
-        self.input_manual_nombre.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #27ae60; border-radius: 6px; padding: 0 8px; color: white; font-size: 13px; }")
-        manual_layout.addWidget(self.input_manual_nombre, 3)
-        self.input_manual_precio = QLineEdit()
-        self.input_manual_precio.setPlaceholderText("Precio $")
-        self.input_manual_precio.setFixedSize(90, 34)
-        self.input_manual_precio.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #27ae60; border-radius: 6px; padding: 0 8px; color: white; font-size: 13px; }")
-        manual_layout.addWidget(self.input_manual_precio)
-        self.input_manual_cant = QLineEdit()
-        self.input_manual_cant.setText("1")
-        self.input_manual_cant.setFixedSize(50, 34)
-        self.input_manual_cant.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #27ae60; border-radius: 6px; padding: 0 8px; color: white; font-size: 13px; }")
-        manual_layout.addWidget(self.input_manual_cant)
-        btn_manual = QPushButton("+ Agregar")
-        btn_manual.setFixedSize(85, 34)
-        btn_manual.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 6px; font-size: 12px; font-weight: bold; }")
-        btn_manual.clicked.connect(self.agregar_manual)
-        self.input_manual_precio.returnPressed.connect(self.agregar_manual)
-        manual_layout.addWidget(btn_manual)
-        panel_izq.addWidget(manual_frame)
+        # Mantener inputs manuales ocultos (funcionalidad preservada)
+        self.input_manual_nombre = QLineEdit(); self.input_manual_nombre.hide()
+        self.input_manual_precio = QLineEdit(); self.input_manual_precio.hide()
+        self.input_manual_cant = QLineEdit(); self.input_manual_cant.setText("1"); self.input_manual_cant.hide()
 
-        # Favoritos
+        # ── Favoritos rediseñados ─────────────────────────
         favoritos_frame = QFrame()
-        favoritos_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; border: 1px solid #f39c12; }")
+        favoritos_frame.setStyleSheet("QFrame { background: #0d1b35; border-radius: 12px; border: 1px solid #1e3a5f; }")
         favoritos_main = QVBoxLayout(favoritos_frame)
-        favoritos_main.setContentsMargins(8, 6, 8, 6)
-        favoritos_main.setSpacing(4)
+        favoritos_main.setContentsMargins(10, 8, 10, 8)
+        favoritos_main.setSpacing(6)
+
         fav_header = QHBoxLayout()
-        lbl_fav = QLabel("Favoritos rapidos:")
-        lbl_fav.setStyleSheet("color: #f39c12; font-size: 12px; font-weight: bold;")
+        lbl_fav = QLabel("⚡ Acceso rápido")
+        lbl_fav.setStyleSheet("color: #f39c12; font-size: 12px; font-weight: bold; letter-spacing: 1px;")
         fav_header.addWidget(lbl_fav)
-        btn_reload_fav = QPushButton("Actualizar")
-        btn_reload_fav.setFixedHeight(24)
-        btn_reload_fav.setStyleSheet("QPushButton { background: #0f3460; color: #f39c12; border-radius: 4px; font-size: 11px; padding: 0 8px; }")
+        fav_header.addStretch()
+        btn_reload_fav = QPushButton("↻")
+        btn_reload_fav.setFixedSize(26, 26)
+        btn_reload_fav.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_reload_fav.setStyleSheet("""
+            QPushButton { background: #1e3a5f; color: #f39c12; border-radius: 13px; font-size: 14px; font-weight: bold; border: none; }
+            QPushButton:hover { background: #f39c12; color: white; }
+        """)
         btn_reload_fav.clicked.connect(self.cargar_favoritos)
         fav_header.addWidget(btn_reload_fav)
-        fav_header.addStretch()
         favoritos_main.addLayout(fav_header)
+
         self.grid_favoritos = QGridLayout()
-        self.grid_favoritos.setSpacing(4)
+        self.grid_favoritos.setSpacing(6)
         favoritos_main.addLayout(self.grid_favoritos)
         panel_izq.addWidget(favoritos_frame)
 
-        # Hints
-        hints_layout = QHBoxLayout()
-        lbl_hint = QLabel("F1 Cobrar  |  F2 Cancelar  |  F3 Buscar  |  F4 Repetir ultimo  |  Doble clic para editar")
-        lbl_hint.setStyleSheet("color: #27ae60; font-size: 11px; padding: 2px 4px; font-weight: bold;")
-        hints_layout.addWidget(lbl_hint)
-        btn_precios = QPushButton("Verificar precio")
-        btn_precios.setFixedHeight(28)
-        btn_precios.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 6px; font-size: 11px; padding: 0 10px; border: 1px solid #3498db; }")
-        btn_precios.clicked.connect(self.verificar_precio)
-        hints_layout.addWidget(btn_precios)
-        panel_izq.addLayout(hints_layout)
+        # ── Barra de atajos y verificar precio ───────────
+        atajos_frame = QFrame()
+        atajos_frame.setStyleSheet("QFrame { background: #0a1628; border-radius: 8px; }")
+        atajos_lay = QHBoxLayout(atajos_frame)
+        atajos_lay.setContentsMargins(12, 6, 12, 6)
+        atajos_lay.setSpacing(0)
 
-        # Tabla
+        for texto, color in [("F1 Cobrar", "#e94560"), ("F2 Cancelar", "#e74c3c"),
+                              ("F3 Buscar", "#3498db"), ("F4 Repetir", "#f39c12")]:
+            lbl = QLabel(f"<b style='color:{color}'>{texto.split()[0]}</b>"
+                         f"<span style='color:#555'> {texto.split()[1]}</span>")
+            lbl.setStyleSheet("font-size: 11px; padding: 0 10px;")
+            atajos_lay.addWidget(lbl)
+
+        atajos_lay.addStretch()
+
+        btn_precios = QPushButton("🔎 Verificar precio")
+        btn_precios.setFixedHeight(26)
+        btn_precios.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_precios.setStyleSheet("""
+            QPushButton { background: #1e3a5f; color: #3498db; border-radius: 6px;
+                          font-size: 11px; padding: 0 10px; border: none; }
+            QPushButton:hover { background: #3498db; color: white; }
+        """)
+        btn_precios.clicked.connect(self.verificar_precio)
+        atajos_lay.addWidget(btn_precios)
+        panel_izq.addWidget(atajos_frame)
+
+        # ── Tabla de items ────────────────────────────────
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(6)
-        self.tabla.setHorizontalHeaderLabels(["Producto", "Precio", "Cantidad", "Subtotal", "Ajustar", ""])
+        self.tabla.setHorizontalHeaderLabels(["Producto", "Precio unit.", "Cant.", "Subtotal", "Ajustar", ""])
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tabla.setColumnWidth(4, 90)
-        self.tabla.setColumnWidth(5, 34)
-        self.tabla.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
+        self.tabla.setColumnWidth(1, 110)
+        self.tabla.setColumnWidth(2, 55)
+        self.tabla.setColumnWidth(3, 100)
+        self.tabla.setColumnWidth(4, 85)
+        self.tabla.setColumnWidth(5, 32)
+        self.tabla.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.tabla.verticalHeader().setDefaultSectionSize(36)
+        self.tabla.setShowGrid(False)
+        self.tabla.setStyleSheet("""
+            QTableWidget {
+                background: #0d1b35;
+                border: 1px solid #1e3a5f;
+                border-radius: 12px;
+                gridline-color: transparent;
+                outline: none;
+            }
+            QHeaderView::section {
+                background: #0a1628;
+                color: #6b8cba;
+                padding: 8px;
+                border: none;
+                font-size: 11px;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+            }
+            QTableWidget::item {
+                color: white;
+                padding: 6px 8px;
+                border-bottom: 1px solid #1a2d4a;
+            }
+            QTableWidget::item:selected {
+                background: #1e3a5f;
+            }
+        """)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tabla.cellDoubleClicked.connect(self.editar_item_doble_clic)
         panel_izq.addWidget(self.tabla)
         contenido.addLayout(panel_izq, 3)
 
-        # Panel derecho
+        # ═══════════════════════════════════════════════════
+        # PANEL DERECHO — Total, acciones y subtotales
+        # ═══════════════════════════════════════════════════
         panel_der = QVBoxLayout()
         panel_der.setSpacing(8)
 
+        # ── Frame total y acciones ────────────────────────
         total_frame = QFrame()
-        total_frame.setFixedWidth(260)
-        total_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        total_frame.setFixedWidth(270)
+        total_frame.setStyleSheet("QFrame { background: #0d1b35; border-radius: 16px; border: 1px solid #1e3a5f; }")
         total_layout = QVBoxLayout(total_frame)
-        total_layout.setContentsMargins(16, 16, 16, 16)
-        total_layout.setSpacing(8)
-        lbl_resumen = QLabel("RESUMEN")
-        lbl_resumen.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        lbl_resumen.setStyleSheet("color: #a0a0b0;")
-        total_layout.addWidget(lbl_resumen)
-        total_layout.addWidget(QLabel("TOTAL"))
+        total_layout.setContentsMargins(18, 18, 18, 18)
+        total_layout.setSpacing(10)
+
+        # Total
+        lbl_total_titulo = QLabel("TOTAL A COBRAR")
+        lbl_total_titulo.setStyleSheet("color: #6b8cba; font-size: 10px; letter-spacing: 2px; font-weight: bold;")
+        total_layout.addWidget(lbl_total_titulo)
+
         self.lbl_total = QLabel("$0.00")
-        self.lbl_total.setFont(QFont("Arial", 30, QFont.Weight.Bold))
-        self.lbl_total.setStyleSheet("color: #e94560;")
+        self.lbl_total.setFont(QFont("Arial", 32, QFont.Weight.Bold))
+        self.lbl_total.setStyleSheet("color: #e94560; letter-spacing: -1px;")
         total_layout.addWidget(self.lbl_total)
-        btn_cobrar = QPushButton("COBRAR  [F1]")
-        btn_cobrar.setFixedHeight(50)
-        btn_cobrar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 10px; font-size: 15px; font-weight: bold; } QPushButton:hover { background: #c73652; }")
+
+        # Separador
+        sep0 = QFrame(); sep0.setFixedHeight(1)
+        sep0.setStyleSheet("background: #1e3a5f; border: none;")
+        total_layout.addWidget(sep0)
+
+        # Botón cobrar
+        btn_cobrar = QPushButton("  💳  COBRAR")
+        btn_cobrar.setFixedHeight(54)
+        btn_cobrar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_cobrar.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #e94560, stop:1 #c0392b);
+                color: white;
+                border-radius: 12px;
+                font-size: 16px;
+                font-weight: bold;
+                letter-spacing: 2px;
+                border: none;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff5a7a, stop:1 #e04535);
+            }
+            QPushButton:pressed { background: #a93226; }
+        """)
         btn_cobrar.clicked.connect(self.cobrar)
         total_layout.addWidget(btn_cobrar)
-        btn_repetir = QPushButton("Repetir ultimo [F4]")
+
+        # Botones secundarios en fila
+        fila_btns = QHBoxLayout()
+        fila_btns.setSpacing(6)
+
+        btn_repetir = QPushButton("↩ F4")
         btn_repetir.setFixedHeight(36)
-        btn_repetir.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 8px; font-size: 12px; font-weight: bold; }")
+        btn_repetir.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_repetir.setToolTip("Repetir último producto")
+        btn_repetir.setStyleSheet("""
+            QPushButton { background: #1a2d4a; color: #f39c12; border-radius: 8px;
+                          font-size: 12px; font-weight: bold; border: 1px solid #f39c12; }
+            QPushButton:hover { background: #f39c12; color: white; }
+        """)
         btn_repetir.clicked.connect(self.repetir_ultimo)
-        total_layout.addWidget(btn_repetir)
-        btn_cancelar = QPushButton("Cancelar venta  [F2]")
+        fila_btns.addWidget(btn_repetir)
+
+        btn_cancelar = QPushButton("✕ F2")
         btn_cancelar.setFixedHeight(36)
-        btn_cancelar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; font-size: 12px; }")
+        btn_cancelar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_cancelar.setToolTip("Cancelar venta")
+        btn_cancelar.setStyleSheet("""
+            QPushButton { background: #1a2d4a; color: #a0a0b0; border-radius: 8px;
+                          font-size: 12px; font-weight: bold; border: 1px solid #2a3d5a; }
+            QPushButton:hover { background: #2a3d5a; color: white; }
+        """)
         btn_cancelar.clicked.connect(self.cancelar_venta)
-        total_layout.addWidget(btn_cancelar)
-        btn_informe = QPushButton("Ver informe")
-        btn_informe.setFixedHeight(36)
+        fila_btns.addWidget(btn_cancelar)
+
+        btn_informe = QPushButton("📋")
+        btn_informe.setFixedSize(36, 36)
         btn_informe.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_informe.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 8px; font-size: 12px; }")
+        btn_informe.setToolTip("Ver informe de sesión")
+        btn_informe.setStyleSheet("""
+            QPushButton { background: #1a2d4a; color: #3498db; border-radius: 8px;
+                          font-size: 14px; border: 1px solid #2a3d5a; }
+            QPushButton:hover { background: #3498db; color: white; }
+        """)
         btn_informe.clicked.connect(self.ver_informe)
-        total_layout.addWidget(btn_informe)
+        fila_btns.addWidget(btn_informe)
+        total_layout.addLayout(fila_btns)
 
-        sep = QFrame()
-        sep.setFixedHeight(1)
-        sep.setStyleSheet("background: #0f3460;")
-        total_layout.addWidget(sep)
+        # Separador
+        sep1 = QFrame(); sep1.setFixedHeight(1)
+        sep1.setStyleSheet("background: #1e3a5f; border: none;")
+        total_layout.addWidget(sep1)
 
-        self.btn_cliente = QPushButton("👤 Vincular cliente")
-        self.btn_cliente.setFixedHeight(34)
+        # Botón cliente
+        self.btn_cliente = QPushButton("👤  Vincular cliente")
+        self.btn_cliente.setFixedHeight(36)
         self.btn_cliente.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.btn_cliente.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 8px; font-size: 12px; border: 1px solid #3498db; } QPushButton:hover { background: #3498db; color: white; }")
+        self.btn_cliente.setStyleSheet("""
+            QPushButton { background: #0a1628; color: #3498db; border-radius: 8px;
+                          font-size: 12px; border: 1px solid #1e3a5f; }
+            QPushButton:hover { background: #1e3a5f; color: white; }
+        """)
         self.btn_cliente.clicked.connect(self.buscar_cliente)
         total_layout.addWidget(self.btn_cliente)
 
@@ -604,13 +763,17 @@ ${float(p['precio_venta']):.2f}")
 
         panel_der.addWidget(total_frame)
 
-        depto_label = QLabel("Subtotales por depto.")
-        depto_label.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
-        panel_der.addWidget(depto_label)
+        # ── Subtotales por depto ──────────────────────────
+        depto_header = QHBoxLayout()
+        lbl_depto = QLabel("DESGLOSE")
+        lbl_depto.setStyleSheet("color: #6b8cba; font-size: 10px; letter-spacing: 2px; font-weight: bold;")
+        depto_header.addWidget(lbl_depto)
+        panel_der.addLayout(depto_header)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setFixedWidth(260)
+        scroll.setFixedWidth(270)
+        scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self.depto_container = QWidget()
         self.depto_container.setStyleSheet("background: transparent;")
@@ -1080,12 +1243,13 @@ ${float(p['precio_venta']):.2f}")
             "cantidad": item["cantidad"],
             "precio": item["precio_unitario"],
             "hora": datetime.now().strftime("%H:%M:%S"),
-            "motivo": "Eliminado manualmente",
+            "motivo": "Eliminado con X",
             "venta_cerrada": False,
             "ticket": "-"
         })
         self.items_venta.pop(idx)
         self.actualizar_tabla()
+        self.input_buscar.setFocus()
 
     def guardar_informe(self, ticket, descuento_pct, total_original, total_final, metodo_pago, vuelto=0):
         try:
@@ -1130,34 +1294,67 @@ ${float(p['precio_venta']):.2f}")
 
     def ver_informe(self):
         if not self.log_eliminados and not self.log_ventas and not self.log_modificaciones:
-            QMessageBox.information(self, "Informe", "No hay eventos registrados.")
+            QMessageBox.information(self, "Informe", "No hay eventos registrados en esta sesion.")
+            self.input_buscar.setFocus()
             return
+
+        # Construir texto plano con todos los eventos
+        lineas = []
+        lineas.append("=" * 50)
+        lineas.append("INFORME DE SESION")
+        lineas.append("=" * 50)
+
+        if self.log_eliminados:
+            lineas.append(f"\nPRODUCTOS ELIMINADOS ({len(self.log_eliminados)}):")
+            lineas.append("-" * 40)
+            for d in self.log_eliminados:
+                lineas.append(
+                    f"  {d.get('hora','')}  {d.get('producto','')}  "
+                    f"x{d.get('cantidad','')}  ${float(d.get('precio',0)):,.2f}  "
+                    f"[{d.get('motivo','')}] Ticket:{d.get('ticket','-')}"
+                )
+
+        if self.log_modificaciones:
+            lineas.append(f"\nMODIFICACIONES DE PRECIO ({len(self.log_modificaciones)}):")
+            lineas.append("-" * 40)
+            for d in self.log_modificaciones:
+                lineas.append(
+                    f"  {d.get('hora','')}  {d.get('producto','')}  "
+                    f"${float(d.get('precio_original',0)):,.2f} -> "
+                    f"${float(d.get('precio_nuevo',0)):,.2f}  "
+                    f"Ticket:{d.get('ticket','-')}"
+                )
+
+        if self.log_ventas:
+            lineas.append(f"\nVENTAS CERRADAS ({len(self.log_ventas)}):")
+            lineas.append("-" * 40)
+            for d in self.log_ventas:
+                lineas.append(
+                    f"  {d.get('hora','')}  Ticket:{d.get('ticket','')}  "
+                    f"${d.get('total_final',0):,.2f}  {d.get('metodo_pago','')}  "
+                    f"Desc:{d.get('descuento_pct',0):.1f}%"
+                )
+
+        lineas.append("\n" + "=" * 50)
+        texto = "\n".join(lineas)
+
+        from PyQt6.QtWidgets import QTextEdit
         dialog = QDialog(self)
         dialog.setWindowTitle("Informe de sesion")
-        dialog.setMinimumSize(720, 520)
-        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        dialog.resize(700, 500)
         layout = QVBoxLayout(dialog)
-        estilo = "QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; } QTableWidgetItem { color: white; padding: 6px; }"
-        if self.log_ventas:
-            lbl3 = QLabel("Ventas cerradas")
-            lbl3.setStyleSheet("color: #27ae60; font-size: 13px; font-weight: bold; padding: 4px 0;")
-            layout.addWidget(lbl3)
-            t3 = QTableWidget()
-            t3.setColumnCount(5)
-            t3.setHorizontalHeaderLabels(["Ticket", "Total", "Desc %", "Pago", "Hora"])
-            t3.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            t3.setStyleSheet(estilo)
-            t3.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-            t3.setRowCount(len(self.log_ventas))
-            for i, d in enumerate(self.log_ventas):
-                t3.setItem(i, 0, QTableWidgetItem(d["ticket"]))
-                t3.setItem(i, 1, QTableWidgetItem(f"${d['total_final']:.2f}"))
-                t3.setItem(i, 2, QTableWidgetItem(f"{d['descuento_pct']:.1f}%"))
-                t3.setItem(i, 3, QTableWidgetItem(d.get("metodo_pago", "-")))
-                t3.setItem(i, 4, QTableWidgetItem(d.get("hora", "")))
-            layout.addWidget(t3)
+        txt = QTextEdit()
+        txt.setReadOnly(True)
+        txt.setPlainText(texto)
+        txt.setFont(QFont("Courier New", 10))
+        layout.addWidget(txt)
+        btn = QPushButton("Cerrar")
+        btn.setFixedHeight(36)
+        btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn.clicked.connect(dialog.accept)
+        layout.addWidget(btn)
         dialog.exec()
-
+        self.input_buscar.setFocus()
     def cobrar(self):
         if not self.items_venta:
             QMessageBox.warning(self, "Sin productos", "Agrega productos antes de cobrar")

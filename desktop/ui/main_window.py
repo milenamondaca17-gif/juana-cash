@@ -1,5 +1,6 @@
 import os
 import requests
+from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QStackedWidget, QWidget, QHBoxLayout,
                               QVBoxLayout, QPushButton, QLabel, QMessageBox,
                               QDialog, QTableWidget, QTableWidgetItem, QHeaderView)
@@ -18,6 +19,13 @@ from ui.pantallas.dashboard import DashboardScreen
 from ui.pantallas.stock_avanzado import StockAvanzadoScreen
 from ui.pantallas.precios_masivos import PreciosMasivosScreen
 from ui.pantallas.ia_screen import IAScreen
+from ui.pantallas.config_screen import ConfigScreen
+try:
+    from ui.pantallas.offline_manager import sincronizar_cola, cantidad_pendientes, servidor_disponible
+except Exception:
+    sincronizar_cola = None
+    cantidad_pendientes = lambda: 0
+    servidor_disponible = lambda: True
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -161,6 +169,7 @@ class MainWindow(QMainWindow):
             ("📦  Stock",         "stock"),
             ("💰  Precios",       "precios"),
             ("🤖  IA",            "ia"),
+            ("⚙️  Config",        "config"),
             ("📋  Sesiones",     "sesiones"),
             ("👤  Usuarios",     "usuarios"),
         ]
@@ -201,6 +210,7 @@ class MainWindow(QMainWindow):
         self.stock_screen = StockAvanzadoScreen()
         self.precios_screen = PreciosMasivosScreen()
         self.ia_screen = IAScreen()
+        self.config_screen = ConfigScreen()
 
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
@@ -209,7 +219,8 @@ class MainWindow(QMainWindow):
             self.dashboard_screen,
             self.stock_screen,
             self.precios_screen,
-            self.ia_screen
+            self.ia_screen,
+            self.config_screen
         ]:
             self.stack.addWidget(screen)
 
@@ -233,6 +244,7 @@ class MainWindow(QMainWindow):
             "stock":     self.stock_screen,
             "precios":   self.precios_screen,
             "ia":        self.ia_screen,
+            "config":    self.config_screen,
         }
         if key in pantallas:
             acciones = {
@@ -282,6 +294,20 @@ class MainWindow(QMainWindow):
         self.caja_screen.set_usuario(cajero)
         self.sidebar.show()
         self.stack.setCurrentWidget(self.ventas_screen)
+
+        # Timer de timeout de sesión
+        if not hasattr(self, '_timer_timeout'):
+            self._timer_timeout = QTimer()
+            self._timer_timeout.timeout.connect(self._check_timeout)
+        self._ultimo_movimiento = datetime.now()
+        self._timeout_minutos = 30
+        self._timer_timeout.start(60000)  # verificar cada minuto
+
+        # Timer de sincronización offline
+        if not hasattr(self, '_timer_offline'):
+            self._timer_offline = QTimer()
+            self._timer_offline.timeout.connect(self._sync_offline)
+        self._timer_offline.start(30000)  # cada 30 segundos
         self.setWindowTitle(f"Juana Cash — {nombre} | {rol} | {turno[:5]}")
 
         # Alertas disponibles manualmente desde el menú de clientes
@@ -318,9 +344,59 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def _check_timeout(self):
+        """Cierra sesión automáticamente por inactividad."""
+        if not self.cajero_actual:
+            return
+        try:
+            r = requests.get("http://127.0.0.1:8000/config/", timeout=2)
+            minutos = r.json().get("timeout_minutos", 30)
+        except Exception:
+            minutos = 30
+        desde_ultimo = (datetime.now() - self._ultimo_movimiento).total_seconds() / 60
+        if desde_ultimo >= minutos:
+            self._timer_timeout.stop()
+            QMessageBox.information(self, "⏱ Sesión expirada",
+                f"La sesión se cerró automáticamente por {minutos} minutos de inactividad.")
+            self.on_logout()
+
+    def _sync_offline(self):
+        """Sincroniza ventas offline cuando vuelve la conexión."""
+        if sincronizar_cola is None:
+            return
+        pendientes = cantidad_pendientes()
+        if pendientes > 0:
+            enviadas, fallidas, _ = sincronizar_cola()
+            if enviadas > 0:
+                self.setWindowTitle(self.windowTitle().split(" 📡")[0] +
+                    f" ✅ {enviadas} venta(s) sincronizada(s)")
+                QTimer.singleShot(5000, lambda: self.setWindowTitle(
+                    self.windowTitle().split(" ✅")[0]))
+        # Actualizar indicador en barra de título
+        aun_pendientes = cantidad_pendientes()
+        titulo_base = self.windowTitle().split(" 📡")[0].split(" ✅")[0]
+        if aun_pendientes > 0:
+            self.setWindowTitle(titulo_base + f" 📡 {aun_pendientes} offline")
+        else:
+            self.setWindowTitle(titulo_base)
+
+    def mousePressEvent(self, event):
+        """Resetea el timer de inactividad al hacer click."""
+        self._ultimo_movimiento = datetime.now()
+        super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        """Resetea el timer de inactividad al presionar teclas."""
+        self._ultimo_movimiento = datetime.now()
+        super().keyPressEvent(event)
+
     def on_logout(self):
         self.usuario_actual = None
         self.cajero_actual = None
         self.sidebar.hide()
         self.stack.setCurrentWidget(self.login_screen)
         self.setWindowTitle("Juana Cash - Sistema POS")
+        if hasattr(self, '_timer_timeout'):
+            self._timer_timeout.stop()
+        if hasattr(self, '_timer_offline'):
+            self._timer_offline.stop()
