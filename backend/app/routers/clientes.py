@@ -11,7 +11,6 @@ router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
 class ClienteCrear(BaseModel):
     nombre: str
-    dni: Optional[str] = None
     telefono: Optional[str] = None
     email: Optional[str] = None
     direccion: Optional[str] = None
@@ -171,7 +170,9 @@ def obtener_cliente(id: int, db: Session = Depends(get_db)):
 
 @router.post("/")
 def crear_cliente(datos: ClienteCrear, db: Session = Depends(get_db)):
-    c = Cliente(**datos.dict())
+    campos_modelo = {"nombre", "telefono", "email", "direccion", "fecha_nacimiento", "limite_credito", "notas"}
+    data = {k: v for k, v in datos.dict().items() if k in campos_modelo and v is not None or k == "limite_credito"}
+    c = Cliente(**data)
     db.add(c)
     db.commit()
     db.refresh(c)

@@ -16,6 +16,7 @@ from ui.pantallas.sesiones import SesionesScreen
 from ui.pantallas.usuarios import UsuariosScreen
 from ui.pantallas.dashboard import DashboardScreen
 from ui.pantallas.stock_avanzado import StockAvanzadoScreen
+from ui.pantallas.precios_masivos import PreciosMasivosScreen
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -148,7 +149,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.lbl_cajero_sidebar)
 
         self.btns_menu = {}
-        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock"]
+        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios"]
         menus = [
             ("🛒  Ventas",       "ventas"),
             ("📦  Productos",    "productos"),
@@ -157,6 +158,7 @@ class MainWindow(QMainWindow):
             ("📊  Reportes",     "reportes"),
             ("📈  Dashboard",    "dashboard"),
             ("📦  Stock",         "stock"),
+            ("💰  Precios",       "precios"),
             ("📋  Sesiones",     "sesiones"),
             ("👤  Usuarios",     "usuarios"),
         ]
@@ -195,13 +197,15 @@ class MainWindow(QMainWindow):
         self.usuarios_screen = UsuariosScreen()
         self.dashboard_screen = DashboardScreen()
         self.stock_screen = StockAvanzadoScreen()
+        self.precios_screen = PreciosMasivosScreen()
 
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
             self.productos_screen, self.reportes_screen, self.clientes_screen,
             self.caja_screen, self.sesiones_screen, self.usuarios_screen,
             self.dashboard_screen,
-            self.stock_screen
+            self.stock_screen,
+            self.precios_screen
         ]:
             self.stack.addWidget(screen)
 
@@ -223,6 +227,7 @@ class MainWindow(QMainWindow):
             "usuarios":  self.usuarios_screen,
             "dashboard": self.dashboard_screen,
             "stock":     self.stock_screen,
+            "precios":   self.precios_screen,
         }
         if key in pantallas:
             acciones = {

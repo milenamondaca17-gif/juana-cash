@@ -8,6 +8,12 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence
 from datetime import datetime
 import os
+try:
+    from ui.pantallas.ticket_utils import ticket_para_whatsapp, abrir_whatsapp, formatear_ticket_texto, cargar_config_negocio
+    cargar_config_negocio()
+except Exception:
+    ticket_para_whatsapp = None
+    abrir_whatsapp = None
 
 API_URL = "http://127.0.0.1:8000"
 
