@@ -15,6 +15,7 @@ from ui.pantallas.caja import CajaScreen
 from ui.pantallas.sesiones import SesionesScreen
 from ui.pantallas.usuarios import UsuariosScreen
 from ui.pantallas.dashboard import DashboardScreen
+from ui.pantallas.stock_avanzado import StockAvanzadoScreen
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -147,7 +148,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.lbl_cajero_sidebar)
 
         self.btns_menu = {}
-        self.menus_admin = ["usuarios", "sesiones", "dashboard"]
+        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock"]
         menus = [
             ("🛒  Ventas",       "ventas"),
             ("📦  Productos",    "productos"),
@@ -155,6 +156,7 @@ class MainWindow(QMainWindow):
             ("🧾  Caja",         "caja"),
             ("📊  Reportes",     "reportes"),
             ("📈  Dashboard",    "dashboard"),
+            ("📦  Stock",         "stock"),
             ("📋  Sesiones",     "sesiones"),
             ("👤  Usuarios",     "usuarios"),
         ]
@@ -192,12 +194,14 @@ class MainWindow(QMainWindow):
         self.sesiones_screen = SesionesScreen()
         self.usuarios_screen = UsuariosScreen()
         self.dashboard_screen = DashboardScreen()
+        self.stock_screen = StockAvanzadoScreen()
 
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
             self.productos_screen, self.reportes_screen, self.clientes_screen,
             self.caja_screen, self.sesiones_screen, self.usuarios_screen,
-            self.dashboard_screen
+            self.dashboard_screen,
+            self.stock_screen
         ]:
             self.stack.addWidget(screen)
 
@@ -218,6 +222,7 @@ class MainWindow(QMainWindow):
             "sesiones":  self.sesiones_screen,
             "usuarios":  self.usuarios_screen,
             "dashboard": self.dashboard_screen,
+            "stock":     self.stock_screen,
         }
         if key in pantallas:
             acciones = {
@@ -269,9 +274,7 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.ventas_screen)
         self.setWindowTitle(f"Juana Cash — {nombre} | {rol} | {turno[:5]}")
 
-        # Alertas diferidas para no bloquear el arranque
-        QTimer.singleShot(800, self.verificar_cumpleanos)
-        QTimer.singleShot(1600, self.verificar_deudores)
+        # Alertas disponibles manualmente desde el menú de clientes
 
     def verificar_cumpleanos(self):
         try:
@@ -280,6 +283,11 @@ class MainWindow(QMainWindow):
                 data = r.json()
                 if data:
                     dialog = AlertaCumpleanosDialog(self, data)
+                    dialog.setWindowFlags(
+                        dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint
+                    )
+                    dialog.raise_()
+                    dialog.activateWindow()
                     dialog.exec()
         except Exception:
             pass
@@ -291,6 +299,11 @@ class MainWindow(QMainWindow):
                 data = r.json()
                 if data:
                     dialog = AlertaDeudoresDialog(self, data)
+                    dialog.setWindowFlags(
+                        dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint
+                    )
+                    dialog.raise_()
+                    dialog.activateWindow()
                     dialog.exec()
         except Exception:
             pass

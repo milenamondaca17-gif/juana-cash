@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .models import usuario, producto, venta, cliente, fiado, caja_turno
 from .models import sesion_log, gasto
-from .routers import (auth, productos, ventas, clientes,
+from .routers import (auth, productos, ventas, clientes, stock,
                       reportes, caja, fiados, sesiones, gastos)
 
 Base.metadata.create_all(bind=engine)
@@ -26,6 +26,7 @@ app.include_router(caja.router)
 app.include_router(fiados.router)
 app.include_router(sesiones.router)
 app.include_router(gastos.router)
+app.include_router(stock.router)
 
 @app.get("/")
 def root():
