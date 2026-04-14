@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QLineEdit, QPushButton, QTableWidget,
                               QTableWidgetItem, QMessageBox, QFrame, QHeaderView,
                               QDialog, QDoubleSpinBox, QScrollArea,
-                              QListWidget, QListWidgetItem)
+                              QListWidget, QListWidgetItem, QGridLayout)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence
 from datetime import datetime
@@ -12,30 +12,34 @@ import os
 API_URL = "http://127.0.0.1:8000"
 
 DEPARTAMENTOS = {
-    "900": {"nombre": "Carnicería",  "icono": "🥩", "color": "#e74c3c"},
-    "901": {"nombre": "Verdulería",  "icono": "🥬", "color": "#27ae60"},
-    "902": {"nombre": "Panadería",   "icono": "🍞", "color": "#e67e22"},
-    "903": {"nombre": "Fiambrería",  "icono": "🧀", "color": "#f39c12"},
-    "904": {"nombre": "Lácteos",     "icono": "🥛", "color": "#3498db"},
-    "905": {"nombre": "Limpieza",    "icono": "🧹", "color": "#9b59b6"},
-    "906": {"nombre": "Bebidas",     "icono": "🍺", "color": "#1abc9c"},
-    "907": {"nombre": "Cigarrería",  "icono": "🚬", "color": "#7f8c8d"},
-    "908": {"nombre": "Confitería",  "icono": "🍬", "color": "#e91e8c"},
-    "909": {"nombre": "Varios",      "icono": "📦", "color": "#95a5a6"},
+    "900": {"nombre": "Carnicer\u00eda",  "icono": "\ud83e\udd69", "color": "#e74c3c"},
+    "901": {"nombre": "Verduler\u00eda",  "icono": "\ud83e\udd6c", "color": "#27ae60"},
+    "902": {"nombre": "Panader\u00eda",   "icono": "\ud83c\udf5e", "color": "#e67e22"},
+    "903": {"nombre": "Fiambrer\u00eda",  "icono": "\ud83e\uddc0", "color": "#f39c12"},
+    "904": {"nombre": "L\u00e1cteos",     "icono": "\ud83e\udd5b", "color": "#3498db"},
+    "905": {"nombre": "Limpieza",    "icono": "\ud83e\uddf9", "color": "#9b59b6"},
+    "906": {"nombre": "Bebidas",     "icono": "\ud83c\udf7a", "color": "#1abc9c"},
+    "907": {"nombre": "Cigarrer\u00eda",  "icono": "\ud83d\udeac", "color": "#7f8c8d"},
+    "908": {"nombre": "Confiter\u00eda",  "icono": "\ud83c\udf6c", "color": "#e91e8c"},
+    "909": {"nombre": "Varios",      "icono": "\ud83d\udce6", "color": "#95a5a6"},
 }
 
 
 class CobrarDialog(QDialog):
-    def __init__(self, parent=None, total=0):
+    def __init__(self, parent=None, total=0, cliente=None):
         super().__init__(parent)
-        self.setWindowTitle("💳 Cobrar venta")
-        self.setMinimumWidth(420)
+        self.setWindowTitle("Cobrar venta")
+        self.setMinimumWidth(460)
         self.setStyleSheet("background-color: #1a1a2e; color: white;")
         self.total_original = total
         self.descuento_pct = 0
         self.total_final = total
         self.metodo_pago = "efectivo"
+        self.metodo_secundario = None
+        self.monto_secundario = 0
         self.btns_pago = {}
+        self.cliente = cliente
+        self.descuento_puntos = 0
         self.setup_ui()
 
     def setup_ui(self):
@@ -47,6 +51,25 @@ class CobrarDialog(QDialog):
         lbl_total.setStyleSheet("color: #e94560;")
         lbl_total.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_total)
+
+        if self.cliente and float(self.cliente.get("puntos", 0)) >= 100:
+            puntos = float(self.cliente.get("puntos", 0))
+            bloques = int(puntos // 100)
+            descuento_max = bloques * 1000
+            puntos_frame = QFrame()
+            puntos_frame.setStyleSheet("QFrame { background: #0f3460; border-radius: 8px; border: 1px solid #f39c12; }")
+            puntos_layout = QHBoxLayout(puntos_frame)
+            puntos_layout.setContentsMargins(12, 8, 12, 8)
+            lbl_pts = QLabel(f"⭐ {puntos:.0f} pts → descuento posible: ${descuento_max:,.0f}")
+            lbl_pts.setStyleSheet("color: #f39c12; font-size: 12px;")
+            puntos_layout.addWidget(lbl_pts)
+            self.btn_canjear_pts = QPushButton("Canjear")
+            self.btn_canjear_pts.setFixedHeight(28)
+            self.btn_canjear_pts.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self.btn_canjear_pts.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 6px; font-size: 11px; font-weight: bold; padding: 0 10px; }")
+            self.btn_canjear_pts.clicked.connect(lambda: self.aplicar_descuento_puntos(descuento_max))
+            puntos_layout.addWidget(self.btn_canjear_pts)
+            layout.addWidget(puntos_frame)
 
         desc_frame = QFrame()
         desc_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; }")
@@ -73,35 +96,67 @@ class CobrarDialog(QDialog):
         self.lbl_total_final.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lbl_total_final)
 
-        lbl_metodo = QLabel("Método de pago:")
+        lbl_metodo = QLabel("Metodo de pago principal:")
         lbl_metodo.setStyleSheet("color: #a0a0b0; font-size: 13px; font-weight: bold;")
         layout.addWidget(lbl_metodo)
 
         metodos_layout = QHBoxLayout()
         metodos_layout.setSpacing(8)
         metodos = [
-            ("💵", "Efectivo",      "efectivo",       "#27ae60"),
-            ("💳", "Tarjeta",       "tarjeta",         "#3498db"),
-            ("📱", "QR / MP",       "mercadopago_qr",  "#009ee3"),
-            ("🏦", "Transferencia", "transferencia",   "#9b59b6"),
+            ("Efectivo", "efectivo", "#27ae60"),
+            ("Tarjeta", "tarjeta", "#3498db"),
+            ("QR/MP", "mercadopago_qr", "#009ee3"),
+            ("Transf.", "transferencia", "#9b59b6"),
         ]
-        for icono, nombre, key, color in metodos:
-            btn = QPushButton(f"{icono}\n{nombre}")
-            btn.setFixedSize(82, 64)
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: #16213e;
-                    color: #a0a0b0;
-                    border: 2px solid #333;
-                    border-radius: 10px;
-                    font-size: 12px;
-                }}
-                QPushButton:hover {{ border: 2px solid {color}; color: white; }}
-            """)
+        for nombre, key, color in metodos:
+            btn = QPushButton(nombre)
+            btn.setFixedSize(90, 44)
+            btn.setStyleSheet(f"QPushButton {{ background: #16213e; color: #a0a0b0; border: 2px solid #333; border-radius: 10px; font-size: 12px; }} QPushButton:hover {{ border: 2px solid {color}; color: white; }}")
             btn.clicked.connect(lambda _, k=key, c=color: self.seleccionar_metodo(k, c))
             metodos_layout.addWidget(btn)
             self.btns_pago[key] = (btn, color)
         layout.addLayout(metodos_layout)
+
+        # Cobro mixto
+        mixto_frame = QFrame()
+        mixto_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; border: 1px solid #3498db; }")
+        mixto_layout = QVBoxLayout(mixto_frame)
+        mixto_layout.setContentsMargins(12, 8, 12, 8)
+        mixto_layout.setSpacing(6)
+        lbl_mixto = QLabel("Cobro mixto (opcional):")
+        lbl_mixto.setStyleSheet("color: #3498db; font-size: 12px; font-weight: bold;")
+        mixto_layout.addWidget(lbl_mixto)
+        mixto_row = QHBoxLayout()
+        self.combo_secundario = QPushButton("+ Agregar segundo metodo")
+        self.combo_secundario.setFixedHeight(32)
+        self.combo_secundario.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 6px; font-size: 12px; border: 1px solid #3498db; }")
+        self.combo_secundario.clicked.connect(self.toggle_mixto)
+        mixto_row.addWidget(self.combo_secundario)
+        mixto_layout.addLayout(mixto_row)
+        self.mixto_detalle = QFrame()
+        self.mixto_detalle.hide()
+        mixto_det_layout = QHBoxLayout(self.mixto_detalle)
+        mixto_det_layout.setContentsMargins(0, 4, 0, 0)
+        self.btns_secundario = {}
+        for nombre, key, color in metodos:
+            btn2 = QPushButton(nombre)
+            btn2.setFixedSize(80, 32)
+            btn2.setStyleSheet(f"QPushButton {{ background: #0f3460; color: #a0a0b0; border: 1px solid #333; border-radius: 6px; font-size: 11px; }} QPushButton:hover {{ border: 1px solid {color}; color: white; }}")
+            btn2.clicked.connect(lambda _, k=key, c=color: self.seleccionar_secundario(k, c))
+            mixto_det_layout.addWidget(btn2)
+            self.btns_secundario[key] = (btn2, color)
+        self.input_monto_secundario = QLineEdit()
+        self.input_monto_secundario.setPlaceholderText("Monto $")
+        self.input_monto_secundario.setFixedWidth(100)
+        self.input_monto_secundario.setFixedHeight(32)
+        self.input_monto_secundario.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #3498db; border-radius: 6px; padding: 4px 8px; color: white; font-size: 13px; }")
+        self.input_monto_secundario.textChanged.connect(self.actualizar_vuelto_mixto)
+        mixto_det_layout.addWidget(self.input_monto_secundario)
+        mixto_layout.addWidget(self.mixto_detalle)
+        self.lbl_mixto_resumen = QLabel("")
+        self.lbl_mixto_resumen.setStyleSheet("color: #3498db; font-size: 12px;")
+        mixto_layout.addWidget(self.lbl_mixto_resumen)
+        layout.addWidget(mixto_frame)
 
         self.vuelto_frame = QFrame()
         self.vuelto_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; border: 1px solid #27ae60; }")
@@ -112,23 +167,13 @@ class CobrarDialog(QDialog):
         lbl_entrega.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         vuelto_layout.addWidget(lbl_entrega)
         self.input_entrega = QLineEdit()
-        self.input_entrega.setPlaceholderText("Ingresá el monto recibido...")
+        self.input_entrega.setPlaceholderText("Ingresa el monto recibido...")
         self.input_entrega.setFixedHeight(48)
         self.input_entrega.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.input_entrega.setStyleSheet("""
-            QLineEdit {
-                background: #0f3460;
-                border: 2px solid #27ae60;
-                border-radius: 8px;
-                padding: 0 16px;
-                color: white;
-                font-size: 20px;
-                font-weight: bold;
-            }
-        """)
+        self.input_entrega.setStyleSheet("QLineEdit { background: #0f3460; border: 2px solid #27ae60; border-radius: 8px; padding: 0 16px; color: white; font-size: 20px; font-weight: bold; }")
         self.input_entrega.textChanged.connect(self.calcular_vuelto)
         vuelto_layout.addWidget(self.input_entrega)
-        self.lbl_vuelto = QLabel("Vuelto: —")
+        self.lbl_vuelto = QLabel("Vuelto: -")
         self.lbl_vuelto.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         self.lbl_vuelto.setStyleSheet("color: #27ae60;")
         self.lbl_vuelto.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -141,7 +186,7 @@ class CobrarDialog(QDialog):
         btn_cancelar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
         btn_cancelar.clicked.connect(self.reject)
         btns.addWidget(btn_cancelar)
-        self.btn_cobrar = QPushButton("✅ COBRAR")
+        self.btn_cobrar = QPushButton("COBRAR")
         self.btn_cobrar.setFixedHeight(44)
         self.btn_cobrar.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; font-size: 15px; font-weight: bold; }")
         self.btn_cobrar.clicked.connect(self.accept)
@@ -150,53 +195,80 @@ class CobrarDialog(QDialog):
 
         self.seleccionar_metodo("efectivo", "#27ae60")
 
+    def aplicar_descuento_puntos(self, descuento_monto):
+        self.descuento_puntos = descuento_monto
+        self.total_final = max(0, self.total_original - descuento_monto - (self.total_original * self.descuento_pct / 100))
+        self.lbl_total_final.setText(f"A cobrar: ${self.total_final:.2f}  (−${descuento_monto:,.0f} puntos)")
+        self.lbl_total_final.setStyleSheet("color: #f39c12; font-size: 18px; font-weight: bold;")
+        if hasattr(self, "btn_canjear_pts"):
+            self.btn_canjear_pts.setText("✅ Canjeado")
+            self.btn_canjear_pts.setEnabled(False)
+            self.btn_canjear_pts.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 6px; font-size: 11px; padding: 0 10px; }")
+
+    def toggle_mixto(self):
+        if self.mixto_detalle.isVisible():
+            self.mixto_detalle.hide()
+            self.metodo_secundario = None
+            self.monto_secundario = 0
+            self.lbl_mixto_resumen.setText("")
+            self.combo_secundario.setText("+ Agregar segundo metodo")
+        else:
+            self.mixto_detalle.show()
+            self.combo_secundario.setText("- Quitar cobro mixto")
+
+    def seleccionar_secundario(self, key, color):
+        if key == self.metodo_pago:
+            QMessageBox.warning(self, "Error", "El segundo metodo no puede ser igual al principal")
+            return
+        self.metodo_secundario = key
+        nombres = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+        for k, (btn, c) in self.btns_secundario.items():
+            btn.setStyleSheet(f"QPushButton {{ background: #0f3460; color: #a0a0b0; border: 1px solid #333; border-radius: 6px; font-size: 11px; }}")
+        btn, c = self.btns_secundario[key]
+        btn.setStyleSheet(f"QPushButton {{ background: {color}; color: white; border: 1px solid {color}; border-radius: 6px; font-size: 11px; font-weight: bold; }}")
+        self.actualizar_vuelto_mixto()
+
+    def actualizar_vuelto_mixto(self):
+        if not self.metodo_secundario:
+            return
+        try:
+            self.monto_secundario = float(self.input_monto_secundario.text().replace(",", "."))
+            restante = self.total_final - self.monto_secundario
+            nombres = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+            if restante < 0:
+                self.lbl_mixto_resumen.setText(f"Excede por ${abs(restante):.2f}")
+                self.lbl_mixto_resumen.setStyleSheet("color: #e94560; font-size: 12px;")
+            else:
+                self.lbl_mixto_resumen.setText(f"Restante en {nombres.get(self.metodo_pago, '')}: ${restante:.2f}")
+                self.lbl_mixto_resumen.setStyleSheet("color: #27ae60; font-size: 12px;")
+        except ValueError:
+            self.lbl_mixto_resumen.setText("")
+
     def calcular_vuelto(self):
         try:
             entrega = float(self.input_entrega.text().replace(",", "."))
-            vuelto = entrega - self.total_final
+            base = self.total_final - self.monto_secundario
+            vuelto = entrega - base
             if vuelto < 0:
-                self.lbl_vuelto.setText(f"⚠️ Falta: ${abs(vuelto):.2f}")
+                self.lbl_vuelto.setText(f"Falta: ${abs(vuelto):.2f}")
                 self.lbl_vuelto.setStyleSheet("color: #e94560; font-size: 20px; font-weight: bold;")
             else:
                 self.lbl_vuelto.setText(f"Vuelto: ${vuelto:.2f}")
                 self.lbl_vuelto.setStyleSheet("color: #27ae60; font-size: 22px; font-weight: bold;")
         except ValueError:
-            self.lbl_vuelto.setText("Vuelto: —")
+            self.lbl_vuelto.setText("Vuelto: -")
             self.lbl_vuelto.setStyleSheet("color: #27ae60; font-size: 20px; font-weight: bold;")
 
     def seleccionar_metodo(self, key, color):
         self.metodo_pago = key
-        nombres = {
-            "efectivo": "Efectivo",
-            "tarjeta": "Tarjeta",
-            "mercadopago_qr": "QR / MP",
-            "transferencia": "Transferencia"
-        }
+        nombres = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
         for k, (btn, c) in self.btns_pago.items():
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: #16213e;
-                    color: #a0a0b0;
-                    border: 2px solid #333;
-                    border-radius: 10px;
-                    font-size: 12px;
-                }}
-                QPushButton:hover {{ border: 2px solid {c}; color: white; }}
-            """)
+            btn.setStyleSheet(f"QPushButton {{ background: #16213e; color: #a0a0b0; border: 2px solid #333; border-radius: 10px; font-size: 12px; }} QPushButton:hover {{ border: 2px solid {c}; color: white; }}")
         if key in self.btns_pago:
             btn, c = self.btns_pago[key]
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: {color};
-                    color: white;
-                    border: 2px solid {color};
-                    border-radius: 10px;
-                    font-size: 12px;
-                    font-weight: bold;
-                }}
-            """)
+            btn.setStyleSheet(f"QPushButton {{ background: {color}; color: white; border: 2px solid {color}; border-radius: 10px; font-size: 12px; font-weight: bold; }}")
         self.vuelto_frame.setVisible(key == "efectivo")
-        self.btn_cobrar.setText(f"✅ COBRAR — {nombres.get(key, key)}")
+        self.btn_cobrar.setText(f"COBRAR - {nombres.get(key, key)}")
         self.btn_cobrar.setStyleSheet(f"QPushButton {{ background: {color}; color: white; border-radius: 8px; font-size: 15px; font-weight: bold; }}")
 
     def actualizar_total(self):
@@ -212,7 +284,7 @@ class EditarItemDialog(QDialog):
     def __init__(self, parent=None, item=None):
         super().__init__(parent)
         self.item = item
-        self.setWindowTitle(f"✏️ Editar — {item['nombre']}")
+        self.setWindowTitle(f"Editar - {item['nombre']}")
         self.setMinimumWidth(340)
         self.setStyleSheet("background-color: #1a1a2e; color: white;")
         self.nuevo_precio = item["precio_unitario"]
@@ -222,7 +294,7 @@ class EditarItemDialog(QDialog):
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(14)
-        lbl_titulo = QLabel(f"✏️ {self.item['nombre']}")
+        lbl_titulo = QLabel(f"{self.item['nombre']}")
         lbl_titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         lbl_titulo.setStyleSheet("color: #e94560;")
         lbl_titulo.setWordWrap(True)
@@ -255,7 +327,7 @@ class EditarItemDialog(QDialog):
         btn_cancelar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
         btn_cancelar.clicked.connect(self.reject)
         btns.addWidget(btn_cancelar)
-        btn_guardar = QPushButton("💾 Guardar")
+        btn_guardar = QPushButton("Guardar")
         btn_guardar.setFixedHeight(44)
         btn_guardar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
         btn_guardar.clicked.connect(self.guardar)
@@ -275,7 +347,7 @@ class EditarItemDialog(QDialog):
             self.nuevo_precio = float(self.input_precio.text())
             self.nueva_cantidad = float(self.input_cant.text())
         except ValueError:
-            QMessageBox.warning(self, "Error", "Ingresá valores válidos")
+            QMessageBox.warning(self, "Error", "Ingresa valores validos")
             return
         self.accept()
 
@@ -293,125 +365,6 @@ class MontoDeptoInput(QLineEdit):
         super().keyPressEvent(event)
 
 
-class BuscadorConSugerencias(QLineEdit):
-    def __init__(self, on_seleccionar_callback, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.on_seleccionar_callback = on_seleccionar_callback
-        self.historial = []
-        self.timer = QTimer()
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self.buscar_sugerencias)
-        self.textChanged.connect(self.on_texto_cambiado)
-
-        self.lista = QListWidget(self)
-        self.lista.setWindowFlags(Qt.WindowType.Popup)
-        self.lista.setStyleSheet("""
-            QListWidget {
-                background: #16213e;
-                border: 2px solid #e94560;
-                border-radius: 8px;
-                color: white;
-                font-size: 14px;
-            }
-            QListWidget::item {
-                padding: 10px 16px;
-                border-bottom: 1px solid #0f3460;
-            }
-            QListWidget::item:hover {
-                background: #0f3460;
-                color: #e94560;
-            }
-            QListWidget::item:selected {
-                background: #e94560;
-                color: white;
-            }
-        """)
-        self.lista.itemClicked.connect(self.seleccionar_sugerencia)
-        self.lista.hide()
-
-    def on_texto_cambiado(self, texto):
-        if len(texto) >= 2 and texto not in DEPARTAMENTOS:
-            self.timer.start(300)
-        elif len(texto) == 0:
-            self.mostrar_historial()
-        else:
-            self.lista.hide()
-
-    def mostrar_historial(self):
-        if not self.historial:
-            self.lista.hide()
-            return
-        self.lista.clear()
-        for p in self.historial[-8:]:
-            item = QListWidgetItem(f"🕐 {p['nombre']}  —  ${float(p['precio_venta']):.2f}")
-            item.setData(Qt.ItemDataRole.UserRole, p)
-            self.lista.addItem(item)
-        pos = self.mapToGlobal(self.rect().bottomLeft())
-        self.lista.move(pos)
-        self.lista.resize(self.width(), min(len(self.historial), 8) * 44)
-        self.lista.show()
-        self.lista.raise_()
-
-    def agregar_historial(self, producto):
-        self.historial = [p for p in self.historial if p["id"] != producto["id"]]
-        self.historial.append(producto)
-        if len(self.historial) > 20:
-            self.historial = self.historial[-20:]
-
-    def buscar_sugerencias(self):
-        texto = self.text().strip()
-        if not texto or len(texto) < 2:
-            self.lista.hide()
-            return
-        try:
-            r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=3)
-            if r.status_code == 200:
-                productos = r.json()
-                if productos:
-                    self.lista.clear()
-                    for p in productos[:8]:
-                        item = QListWidgetItem(f"{p['nombre']}  —  ${float(p['precio_venta']):.2f}")
-                        item.setData(Qt.ItemDataRole.UserRole, p)
-                        self.lista.addItem(item)
-                    pos = self.mapToGlobal(self.rect().bottomLeft())
-                    self.lista.move(pos)
-                    self.lista.resize(self.width(), min(len(productos), 8) * 44)
-                    self.lista.show()
-                    self.lista.raise_()
-                else:
-                    self.lista.hide()
-        except Exception:
-            self.lista.hide()
-
-    def seleccionar_sugerencia(self, item):
-        producto = item.data(Qt.ItemDataRole.UserRole)
-        self.lista.hide()
-        self.clear()
-        self.agregar_historial(producto)
-        self.on_seleccionar_callback(producto)
-
-    def keyPressEvent(self, event):
-        if self.lista.isVisible():
-            if event.key() == Qt.Key.Key_Down:
-                self.lista.setFocus()
-                self.lista.setCurrentRow(0)
-                return
-            elif event.key() == Qt.Key.Key_Escape:
-                self.lista.hide()
-                return
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self.lista.hide()
-        super().keyPressEvent(event)
-
-    def focusOutEvent(self, event):
-        QTimer.singleShot(200, self.lista.hide)
-        super().focusOutEvent(event)
-
-    def focusInEvent(self, event):
-        if not self.text():
-            self.mostrar_historial()
-        super().focusInEvent(event)
-
 
 class VentasScreen(QWidget):
     def __init__(self, on_logout_callback):
@@ -419,14 +372,42 @@ class VentasScreen(QWidget):
         self.on_logout_callback = on_logout_callback
         self.usuario = None
         self.items_venta = []
+        self.ultimo_producto = None
         self.log_eliminados = []
         self.log_ventas = []
         self.log_modificaciones = []
+        self.favoritos = []
+        self.cliente_actual = None
         self.setup_ui()
+        self.cargar_favoritos()
 
     def set_usuario(self, usuario):
         self.usuario = usuario
-        self.lbl_cajero.setText(f"👤 {usuario['nombre']}")
+        self.lbl_cajero.setText(f"{usuario['nombre']}")
+
+    def cargar_favoritos(self):
+        try:
+            r = requests.get(f"{API_URL}/productos/", timeout=3)
+            if r.status_code == 200:
+                productos = r.json()
+                self.favoritos = sorted(productos, key=lambda p: float(p.get("stock_actual", 0)), reverse=True)[:8]
+                self.actualizar_botones_favoritos()
+        except Exception:
+            pass
+
+    def actualizar_botones_favoritos(self):
+        while self.grid_favoritos.count():
+            child = self.grid_favoritos.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+        for i, p in enumerate(self.favoritos):
+            btn = QPushButton(f"{p['nombre']}\
+${float(p['precio_venta']):.2f}")
+            btn.setFixedSize(110, 56)
+            btn.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 8px; font-size: 11px; border: 1px solid #e94560; } QPushButton:hover { background: #e94560; }")
+            btn.clicked.connect(lambda _, prod=p: self.agregar_item(prod))
+            row, col = divmod(i, 4)
+            self.grid_favoritos.addWidget(btn, row, col)
 
     def setup_ui(self):
         self.setStyleSheet("background-color: #1a1a2e; color: white;")
@@ -439,12 +420,12 @@ class VentasScreen(QWidget):
         topbar.setStyleSheet("background-color: #16213e; border-bottom: 2px solid #e94560;")
         top_layout = QHBoxLayout(topbar)
         top_layout.setContentsMargins(20, 0, 20, 0)
-        titulo = QLabel("💰 JUANA CASH")
+        titulo = QLabel("JUANA CASH")
         titulo.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         titulo.setStyleSheet("color: #e94560;")
         top_layout.addWidget(titulo)
         top_layout.addStretch()
-        self.lbl_cajero = QLabel("👤 ")
+        self.lbl_cajero = QLabel("")
         self.lbl_cajero.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         top_layout.addWidget(self.lbl_cajero)
         btn_logout = QPushButton("Salir")
@@ -461,10 +442,10 @@ class VentasScreen(QWidget):
         panel_izq = QVBoxLayout()
         panel_izq.setSpacing(8)
 
-        # Buscador con sugerencias e historial
+        # Buscador
         busqueda_layout = QHBoxLayout()
-        self.input_buscar = BuscadorConSugerencias(self.agregar_item)
-        self.input_buscar.setPlaceholderText("🔍 Código de barras, nombre o depto (900-909) — F3 para enfocar...")
+        self.input_buscar = QLineEdit()
+        self.input_buscar.setPlaceholderText("Codigo de barras, nombre o depto (900-909) - F3 para enfocar...")
         self.input_buscar.setFixedHeight(46)
         self.input_buscar.setStyleSheet("QLineEdit { background: #0f3460; border: 2px solid #e94560; border-radius: 8px; padding: 0 16px; color: white; font-size: 14px; }")
         self.input_buscar.returnPressed.connect(self.buscar_producto)
@@ -482,12 +463,12 @@ class VentasScreen(QWidget):
         manual_layout = QHBoxLayout(manual_frame)
         manual_layout.setContentsMargins(10, 5, 10, 5)
         manual_layout.setSpacing(6)
-        lbl_m = QLabel("💲 Manual:")
+        lbl_m = QLabel("Manual:")
         lbl_m.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold;")
-        lbl_m.setFixedWidth(70)
+        lbl_m.setFixedWidth(60)
         manual_layout.addWidget(lbl_m)
         self.input_manual_nombre = QLineEdit()
-        self.input_manual_nombre.setPlaceholderText("Nombre del artículo")
+        self.input_manual_nombre.setPlaceholderText("Nombre del articulo")
         self.input_manual_nombre.setFixedHeight(34)
         self.input_manual_nombre.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #27ae60; border-radius: 6px; padding: 0 8px; color: white; font-size: 13px; }")
         manual_layout.addWidget(self.input_manual_nombre, 3)
@@ -509,10 +490,39 @@ class VentasScreen(QWidget):
         manual_layout.addWidget(btn_manual)
         panel_izq.addWidget(manual_frame)
 
-        # Hint con atajos
-        lbl_hint = QLabel("⌨️  F1 Cobrar  |  F2 Cancelar  |  F3 Buscar  |  Doble clic para editar precio  |  🕐 Clic en buscador para ver historial")
+        # Favoritos
+        favoritos_frame = QFrame()
+        favoritos_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; border: 1px solid #f39c12; }")
+        favoritos_main = QVBoxLayout(favoritos_frame)
+        favoritos_main.setContentsMargins(8, 6, 8, 6)
+        favoritos_main.setSpacing(4)
+        fav_header = QHBoxLayout()
+        lbl_fav = QLabel("Favoritos rapidos:")
+        lbl_fav.setStyleSheet("color: #f39c12; font-size: 12px; font-weight: bold;")
+        fav_header.addWidget(lbl_fav)
+        btn_reload_fav = QPushButton("Actualizar")
+        btn_reload_fav.setFixedHeight(24)
+        btn_reload_fav.setStyleSheet("QPushButton { background: #0f3460; color: #f39c12; border-radius: 4px; font-size: 11px; padding: 0 8px; }")
+        btn_reload_fav.clicked.connect(self.cargar_favoritos)
+        fav_header.addWidget(btn_reload_fav)
+        fav_header.addStretch()
+        favoritos_main.addLayout(fav_header)
+        self.grid_favoritos = QGridLayout()
+        self.grid_favoritos.setSpacing(4)
+        favoritos_main.addLayout(self.grid_favoritos)
+        panel_izq.addWidget(favoritos_frame)
+
+        # Hints
+        hints_layout = QHBoxLayout()
+        lbl_hint = QLabel("F1 Cobrar  |  F2 Cancelar  |  F3 Buscar  |  F4 Repetir ultimo  |  Doble clic para editar")
         lbl_hint.setStyleSheet("color: #27ae60; font-size: 11px; padding: 2px 4px; font-weight: bold;")
-        panel_izq.addWidget(lbl_hint)
+        hints_layout.addWidget(lbl_hint)
+        btn_precios = QPushButton("Verificar precio")
+        btn_precios.setFixedHeight(28)
+        btn_precios.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 6px; font-size: 11px; padding: 0 10px; border: 1px solid #3498db; }")
+        btn_precios.clicked.connect(self.verificar_precio)
+        hints_layout.addWidget(btn_precios)
+        panel_izq.addLayout(hints_layout)
 
         # Tabla
         self.tabla = QTableWidget()
@@ -521,11 +531,7 @@ class VentasScreen(QWidget):
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tabla.setColumnWidth(4, 90)
         self.tabla.setColumnWidth(5, 34)
-        self.tabla.setStyleSheet("""
-            QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
-            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; }
-            QTableWidgetItem { color: white; padding: 6px; }
-        """)
+        self.tabla.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla.cellDoubleClicked.connect(self.editar_item_doble_clic)
         panel_izq.addWidget(self.tabla)
@@ -550,24 +556,49 @@ class VentasScreen(QWidget):
         self.lbl_total.setFont(QFont("Arial", 30, QFont.Weight.Bold))
         self.lbl_total.setStyleSheet("color: #e94560;")
         total_layout.addWidget(self.lbl_total)
-        btn_cobrar = QPushButton("💳 COBRAR  [F1]")
+        btn_cobrar = QPushButton("COBRAR  [F1]")
         btn_cobrar.setFixedHeight(50)
         btn_cobrar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 10px; font-size: 15px; font-weight: bold; } QPushButton:hover { background: #c73652; }")
         btn_cobrar.clicked.connect(self.cobrar)
         total_layout.addWidget(btn_cobrar)
-        btn_cancelar = QPushButton("🗑 Cancelar venta  [F2]")
+        btn_repetir = QPushButton("Repetir ultimo [F4]")
+        btn_repetir.setFixedHeight(36)
+        btn_repetir.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 8px; font-size: 12px; font-weight: bold; }")
+        btn_repetir.clicked.connect(self.repetir_ultimo)
+        total_layout.addWidget(btn_repetir)
+        btn_cancelar = QPushButton("Cancelar venta  [F2]")
         btn_cancelar.setFixedHeight(36)
         btn_cancelar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; font-size: 12px; }")
         btn_cancelar.clicked.connect(self.cancelar_venta)
         total_layout.addWidget(btn_cancelar)
-        btn_informe = QPushButton("📋 Ver informe")
+        btn_informe = QPushButton("Ver informe")
         btn_informe.setFixedHeight(36)
+        btn_informe.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_informe.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 8px; font-size: 12px; }")
         btn_informe.clicked.connect(self.ver_informe)
         total_layout.addWidget(btn_informe)
+
+        sep = QFrame()
+        sep.setFixedHeight(1)
+        sep.setStyleSheet("background: #0f3460;")
+        total_layout.addWidget(sep)
+
+        self.btn_cliente = QPushButton("👤 Vincular cliente")
+        self.btn_cliente.setFixedHeight(34)
+        self.btn_cliente.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.btn_cliente.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 8px; font-size: 12px; border: 1px solid #3498db; } QPushButton:hover { background: #3498db; color: white; }")
+        self.btn_cliente.clicked.connect(self.buscar_cliente)
+        total_layout.addWidget(self.btn_cliente)
+
+        self.lbl_cliente_info = QLabel("")
+        self.lbl_cliente_info.setStyleSheet("color: #f39c12; font-size: 11px; padding: 2px 0;")
+        self.lbl_cliente_info.setWordWrap(True)
+        self.lbl_cliente_info.hide()
+        total_layout.addWidget(self.lbl_cliente_info)
+
         panel_der.addWidget(total_frame)
 
-        depto_label = QLabel("📊 Subtotales por depto.")
+        depto_label = QLabel("Subtotales por depto.")
         depto_label.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
         panel_der.addWidget(depto_label)
 
@@ -586,10 +617,149 @@ class VentasScreen(QWidget):
         contenido.addLayout(panel_der)
         layout.addLayout(contenido)
 
-        # ⌨️ Atajos de teclado
         QShortcut(QKeySequence("F1"), self).activated.connect(self.cobrar)
         QShortcut(QKeySequence("F2"), self).activated.connect(self.cancelar_venta)
         QShortcut(QKeySequence("F3"), self).activated.connect(lambda: self.input_buscar.setFocus())
+        QShortcut(QKeySequence("F4"), self).activated.connect(self.repetir_ultimo)
+
+    def buscar_cliente(self):
+        from PyQt6.QtWidgets import QListWidget, QListWidgetItem
+        dialog = QDialog(self)
+        dialog.setWindowTitle("👤 Vincular cliente")
+        dialog.setMinimumWidth(400)
+        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(10)
+        lbl = QLabel("Buscar cliente:")
+        lbl.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lay.addWidget(lbl)
+        input_b = QLineEdit()
+        input_b.setPlaceholderText("Nombre o teléfono...")
+        input_b.setFixedHeight(44)
+        input_b.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #3498db; border-radius: 8px; padding: 10px; color: white; font-size: 14px; }")
+        lay.addWidget(input_b)
+        lista = QListWidget()
+        lista.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        lista.setStyleSheet("QListWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; color: white; } QListWidget::item { padding: 10px; } QListWidget::item:hover { background: #0f3460; }")
+        lista.setMinimumHeight(200)
+        lay.addWidget(lista)
+        clientes_encontrados = []
+        def buscar():
+            texto = input_b.text().strip()
+            if not texto:
+                return
+            try:
+                r = requests.get(f"{API_URL}/clientes/buscar", params={"q": texto}, timeout=5)
+                if r.status_code == 200:
+                    lista.clear()
+                    clientes_encontrados.clear()
+                    for c in r.json()[:10]:
+                        puntos = float(c.get("puntos", 0))
+                        deuda = float(c.get("deuda_actual", 0))
+                        texto_item = c["nombre"]
+                        if puntos > 0:
+                            texto_item += f"  ⭐ {puntos:.0f} pts"
+                        if deuda > 0:
+                            texto_item += f"  💸 ${deuda:,.0f}"
+                        item = QListWidgetItem(texto_item)
+                        item.setData(Qt.ItemDataRole.UserRole, c)
+                        lista.addItem(item)
+                        clientes_encontrados.append(c)
+            except Exception:
+                pass
+        input_b.returnPressed.connect(buscar)
+        def seleccionar(item):
+            c = item.data(Qt.ItemDataRole.UserRole)
+            self.cliente_actual = c
+            puntos = float(c.get("puntos", 0))
+            texto = f"👤 {c['nombre']}"
+            if puntos >= 100:
+                texto += f"\n⭐ {puntos:.0f} pts (canjeables)"
+            self.lbl_cliente_info.setText(texto)
+            self.lbl_cliente_info.show()
+            self.btn_cliente.setText(f"👤 {c['nombre'][:18]}")
+            self.btn_cliente.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; font-size: 11px; border: 1px solid #27ae60; }")
+            dialog.accept()
+        lista.itemDoubleClicked.connect(seleccionar)
+        btns = QHBoxLayout()
+        btn_sin = QPushButton("Sin cliente")
+        btn_sin.setFixedHeight(38)
+        btn_sin.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_sin.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        def desvincular():
+            self.cliente_actual = None
+            self.lbl_cliente_info.hide()
+            self.btn_cliente.setText("👤 Vincular cliente")
+            self.btn_cliente.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 8px; font-size: 12px; border: 1px solid #3498db; } QPushButton:hover { background: #3498db; color: white; }")
+            dialog.accept()
+        btn_sin.clicked.connect(desvincular)
+        btns.addWidget(btn_sin)
+        btn_ok = QPushButton("Seleccionar")
+        btn_ok.setFixedHeight(38)
+        btn_ok.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_ok.setStyleSheet("QPushButton { background: #3498db; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }")
+        def sel_highlighted():
+            items = lista.selectedItems()
+            if items:
+                seleccionar(items[0])
+        btn_ok.clicked.connect(sel_highlighted)
+        btns.addWidget(btn_ok)
+        lay.addLayout(btns)
+        input_b.setFocus()
+        dialog.exec()
+        self.input_buscar.setFocus()
+
+    def repetir_ultimo(self):
+        if self.ultimo_producto:
+            self.agregar_item(self.ultimo_producto)
+        else:
+            QMessageBox.information(self, "Info", "No hay producto anterior para repetir")
+
+    def verificar_precio(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Verificar precio")
+        dialog.setMinimumWidth(340)
+        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(10)
+        lbl = QLabel("Buscar producto:")
+        lbl.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lay.addWidget(lbl)
+        input_buscar = QLineEdit()
+        input_buscar.setPlaceholderText("Nombre o codigo...")
+        input_buscar.setFixedHeight(44)
+        input_buscar.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #3498db; border-radius: 8px; padding: 10px; color: white; font-size: 14px; }")
+        lay.addWidget(input_buscar)
+        lista = QListWidget()
+        lista.setStyleSheet("QListWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; color: white; } QListWidget::item { padding: 8px; }")
+        lista.setMinimumHeight(200)
+        lay.addWidget(lista)
+        def buscar():
+            texto = input_buscar.text().strip()
+            if not texto:
+                return
+            try:
+                r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
+                if r.status_code == 200:
+                    lista.clear()
+                    for p in r.json()[:10]:
+                        stock = float(p.get("stock_actual", 0))
+                        item = QListWidgetItem(f"{p['nombre']}  |  ${float(p['precio_venta']):.2f}  |  Stock: {stock}")
+                        lista.addItem(item)
+            except Exception:
+                pass
+        input_buscar.returnPressed.connect(buscar)
+        btn_buscar = QPushButton("Buscar")
+        btn_buscar.setFixedHeight(36)
+        btn_buscar.setStyleSheet("QPushButton { background: #3498db; color: white; border-radius: 8px; font-size: 13px; }")
+        btn_buscar.clicked.connect(buscar)
+        lay.addWidget(btn_buscar)
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.setFixedHeight(36)
+        btn_cerrar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_cerrar.clicked.connect(dialog.reject)
+        lay.addWidget(btn_cerrar)
+        dialog.exec()
 
     def actualizar_subtotales_depto(self):
         while self.depto_layout.count():
@@ -599,7 +769,7 @@ class VentasScreen(QWidget):
         subtotales = {}
         for item in self.items_venta:
             nombre = item["nombre"]
-            depto_key = "🛍️ Productos"
+            depto_key = "Productos"
             depto_color = "#e94560"
             for codigo, depto in DEPARTAMENTOS.items():
                 if nombre.startswith(depto["icono"]):
@@ -643,9 +813,8 @@ class VentasScreen(QWidget):
             if r.status_code == 200:
                 productos = r.json()
                 if not productos:
-                    QMessageBox.warning(self, "No encontrado", f"No se encontró: {texto}")
+                    QMessageBox.warning(self, "No encontrado", f"No se encontro: {texto}")
                     return
-                self.input_buscar.agregar_historial(productos[0])
                 self.agregar_item(productos[0])
                 self.input_buscar.clear()
         except Exception:
@@ -674,7 +843,7 @@ class VentasScreen(QWidget):
         lista_layout = QVBoxLayout(lista_frame)
         lista_layout.setContentsMargins(10, 8, 10, 8)
         lista_layout.setSpacing(4)
-        lbl_montos = QLabel("— Sin items aún —")
+        lbl_montos = QLabel("- Sin items aun -")
         lbl_montos.setStyleSheet("color: #555; font-size: 12px;")
         lbl_montos.setWordWrap(True)
         lista_layout.addWidget(lbl_montos)
@@ -687,7 +856,7 @@ class VentasScreen(QWidget):
 
         def actualizar_lista():
             if not montos_temp:
-                lbl_montos.setText("— Sin items aún —")
+                lbl_montos.setText("- Sin items aun -")
                 lbl_montos.setStyleSheet("color: #555; font-size: 12px;")
                 lbl_total_depto.setText("Total: $0.00")
                 return
@@ -703,7 +872,7 @@ class VentasScreen(QWidget):
             try:
                 monto = float(texto_input.replace(",", "."))
             except ValueError:
-                QMessageBox.warning(dialog, "Error", "Ingresá un monto válido")
+                QMessageBox.warning(dialog, "Error", "Ingresa un monto valido")
                 return
             if monto <= 0:
                 return
@@ -718,7 +887,7 @@ class VentasScreen(QWidget):
                 actualizar_lista()
 
         input_monto = MontoDeptoInput(agregar_monto)
-        input_monto.setPlaceholderText("Ingresá el monto y presioná Enter...")
+        input_monto.setPlaceholderText("Ingresa el monto y presiona Enter...")
         input_monto.setFixedHeight(44)
         input_monto.setAlignment(Qt.AlignmentFlag.AlignRight)
         input_monto.setStyleSheet(f"QLineEdit {{ background: #1a1a2e; border: 2px solid {depto['color']}; border-radius: 8px; padding: 0 16px; color: white; font-size: 20px; font-weight: bold; }}")
@@ -734,7 +903,7 @@ class VentasScreen(QWidget):
         btn_add.clicked.connect(agregar_monto)
         input_layout.addWidget(btn_add)
         layout.addWidget(input_frame)
-        btn_borrar = QPushButton("← Borrar último")
+        btn_borrar = QPushButton("<- Borrar ultimo")
         btn_borrar.setFixedHeight(34)
         btn_borrar.setStyleSheet("QPushButton { background: transparent; color: #e94560; border: 1px solid #e94560; border-radius: 6px; font-size: 12px; }")
         btn_borrar.clicked.connect(borrar_ultimo)
@@ -745,7 +914,7 @@ class VentasScreen(QWidget):
         btn_cancelar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
         btn_cancelar.clicked.connect(dialog.reject)
         btns.addWidget(btn_cancelar)
-        btn_confirmar = QPushButton("✅ Agregar al ticket")
+        btn_confirmar = QPushButton("Agregar al ticket")
         btn_confirmar.setFixedHeight(44)
         btn_confirmar.setStyleSheet(f"QPushButton {{ background: {depto['color']}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }}")
         btns.addWidget(btn_confirmar)
@@ -753,7 +922,7 @@ class VentasScreen(QWidget):
 
         def confirmar():
             if not montos_temp:
-                QMessageBox.warning(dialog, "Error", "Ingresá al menos un monto")
+                QMessageBox.warning(dialog, "Error", "Ingresa al menos un monto")
                 return
             total = sum(montos_temp)
             self.items_venta.append({
@@ -777,7 +946,7 @@ class VentasScreen(QWidget):
             precio = float(self.input_manual_precio.text())
             cantidad = float(self.input_manual_cant.text() or 1)
         except ValueError:
-            QMessageBox.warning(self, "Error", "Precio y cantidad deben ser números")
+            QMessageBox.warning(self, "Error", "Precio y cantidad deben ser numeros")
             return
         if not nombre or precio <= 0:
             return
@@ -796,10 +965,14 @@ class VentasScreen(QWidget):
         self.input_manual_nombre.setFocus()
 
     def agregar_item(self, producto):
+        self.ultimo_producto = producto
+        stock = float(producto.get("stock_actual", 0))
         for item in self.items_venta:
             if item["producto_id"] == producto["id"]:
                 item["cantidad"] += 1
                 item["subtotal"] = item["cantidad"] * item["precio_unitario"]
+                if stock > 0 and item["cantidad"] >= stock:
+                    QMessageBox.warning(self, "Stock bajo", f"Atencion: {producto['nombre']} tiene solo {stock} unidades en stock")
                 self.actualizar_tabla()
                 return
         self.items_venta.append({
@@ -810,6 +983,10 @@ class VentasScreen(QWidget):
             "subtotal": float(producto["precio_venta"]),
             "descuento": 0
         })
+        if stock <= 1 and stock > 0:
+            QMessageBox.warning(self, "Stock bajo", f"Ultima unidad de: {producto['nombre']}")
+        elif stock == 0:
+            QMessageBox.warning(self, "Sin stock", f"{producto['nombre']} no tiene stock disponible")
         self.actualizar_tabla()
 
     def editar_item_doble_clic(self, row, col):
@@ -868,7 +1045,7 @@ class VentasScreen(QWidget):
             btn_layout = QHBoxLayout(btn_widget)
             btn_layout.setContentsMargins(2, 1, 2, 1)
             btn_layout.setSpacing(3)
-            btn_menos = QPushButton("−")
+            btn_menos = QPushButton("-")
             btn_menos.setFixedSize(26, 24)
             btn_menos.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 4px; font-size: 14px; font-weight: bold; } QPushButton:hover { background: #e94560; }")
             btn_menos.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, -1))
@@ -879,7 +1056,7 @@ class VentasScreen(QWidget):
             btn_mas.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, 1))
             btn_layout.addWidget(btn_mas)
             self.tabla.setCellWidget(i, 4, btn_widget)
-            btn_del = QPushButton("✕")
+            btn_del = QPushButton("X")
             btn_del.setFixedSize(26, 24)
             btn_del.setStyleSheet("QPushButton { color: #e94560; background: transparent; font-size: 13px; }")
             btn_del.clicked.connect(lambda _, idx=i: self.eliminar_item(idx))
@@ -910,167 +1087,121 @@ class VentasScreen(QWidget):
             os.makedirs(carpeta, exist_ok=True)
             fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
             ruta = os.path.join(carpeta, f"informe_{fecha}.txt")
-            nombres_metodo = {
-                "efectivo": "Efectivo",
-                "tarjeta": "Tarjeta",
-                "mercadopago_qr": "QR / Mercado Pago",
-                "transferencia": "Transferencia"
-            }
             with open(ruta, "w", encoding="utf-8") as f:
-                f.write("=" * 40 + "\n")
-                f.write("JUANA CASH — INFORME DE VENTA\n")
-                f.write("=" * 40 + "\n")
-                f.write(f"Ticket: {ticket}\n")
-                f.write(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
-                f.write(f"Cajero: {self.usuario['nombre'] if self.usuario else 'N/A'}\n")
-                f.write(f"Pago: {nombres_metodo.get(metodo_pago, metodo_pago)}\n")
-                f.write("-" * 40 + "\n")
+                f.write("=" * 40 + "\
+")
+                f.write("JUANA CASH - INFORME DE VENTA\
+")
+                f.write("=" * 40 + "\
+")
+                f.write(f"Ticket: {ticket}\
+")
+                f.write(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\
+")
+                f.write(f"Cajero: {self.usuario['nombre'] if self.usuario else 'N/A'}\
+")
+                f.write(f"Pago: {metodo_pago}\
+")
+                f.write("-" * 40 + "\
+")
                 if descuento_pct > 0:
-                    f.write(f"DESCUENTO: {descuento_pct:.1f}%\n")
-                    f.write(f"Total original: ${total_original:.2f}\n")
-                    f.write(f"Ahorro: ${total_original - total_final:.2f}\n")
-                    f.write(f"Total final: ${total_final:.2f}\n")
+                    f.write(f"DESCUENTO: {descuento_pct:.1f}%\
+")
+                    f.write(f"Total original: ${total_original:.2f}\
+")
+                    f.write(f"Total final: ${total_final:.2f}\
+")
                 else:
-                    f.write(f"Total: ${total_final:.2f}\n")
+                    f.write(f"Total: ${total_final:.2f}\
+")
                 if metodo_pago == "efectivo" and vuelto > 0:
-                    f.write(f"Vuelto entregado: ${vuelto:.2f}\n")
-                if self.log_modificaciones:
-                    f.write("-" * 40 + "\n")
-                    f.write("PRECIOS MODIFICADOS:\n")
-                    for m in self.log_modificaciones:
-                        f.write(f"  {m['hora']} — {m['producto']}: ${m['precio_original']:.2f} → ${m['precio_nuevo']:.2f}\n")
-                if self.log_eliminados:
-                    f.write("-" * 40 + "\n")
-                    f.write("PRODUCTOS ELIMINADOS:\n")
-                    for log in self.log_eliminados:
-                        f.write(f"  {log['hora']} — {log['producto']} x{log['cantidad']} — {log['motivo']}\n")
-                f.write("=" * 40 + "\n")
+                    f.write(f"Vuelto: ${vuelto:.2f}\
+")
+                f.write("=" * 40 + "\
+")
         except Exception as e:
             print(f"Error: {e}")
 
     def ver_informe(self):
         if not self.log_eliminados and not self.log_ventas and not self.log_modificaciones:
-            QMessageBox.information(self, "📋 Informe", "No hay eventos registrados.")
+            QMessageBox.information(self, "Informe", "No hay eventos registrados.")
             return
         dialog = QDialog(self)
-        dialog.setWindowTitle("📋 Informe de sesión")
+        dialog.setWindowTitle("Informe de sesion")
         dialog.setMinimumSize(720, 520)
         dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
         layout = QVBoxLayout(dialog)
-        estilo = """
-            QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
-            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; }
-            QTableWidgetItem { color: white; padding: 6px; }
-        """
-        if self.log_modificaciones:
-            lbl = QLabel("✏️ Precios modificados")
-            lbl.setStyleSheet("color: #f39c12; font-size: 13px; font-weight: bold; padding: 4px 0;")
-            layout.addWidget(lbl)
-            t = QTableWidget()
-            t.setColumnCount(4)
-            t.setHorizontalHeaderLabels(["Producto", "Precio original", "Precio nuevo", "Hora"])
-            t.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            t.setStyleSheet(estilo)
-            t.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-            t.setRowCount(len(self.log_modificaciones))
-            for i, m in enumerate(self.log_modificaciones):
-                t.setItem(i, 0, QTableWidgetItem(m["producto"]))
-                t.setItem(i, 1, QTableWidgetItem(f"${m['precio_original']:.2f}"))
-                nuevo = QTableWidgetItem(f"${m['precio_nuevo']:.2f}")
-                nuevo.setForeground(Qt.GlobalColor.yellow)
-                t.setItem(i, 2, nuevo)
-                t.setItem(i, 3, QTableWidgetItem(m["hora"]))
-            layout.addWidget(t)
-
-        if self.log_eliminados:
-            lbl2 = QLabel("🗑 Productos eliminados")
-            lbl2.setStyleSheet("color: #e94560; font-size: 13px; font-weight: bold; padding: 4px 0;")
-            layout.addWidget(lbl2)
-            t2 = QTableWidget()
-            t2.setColumnCount(5)
-            t2.setHorizontalHeaderLabels(["Producto", "Cant.", "Precio", "Hora", "Estado"])
-            t2.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            t2.setStyleSheet(estilo)
-            t2.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-            t2.setRowCount(len(self.log_eliminados))
-            for i, log in enumerate(self.log_eliminados):
-                t2.setItem(i, 0, QTableWidgetItem(log["producto"]))
-                t2.setItem(i, 1, QTableWidgetItem(str(log["cantidad"])))
-                t2.setItem(i, 2, QTableWidgetItem(f"${log['precio']:.2f}"))
-                t2.setItem(i, 3, QTableWidgetItem(log["hora"]))
-                estado = f"✅ {log['ticket']}" if log["venta_cerrada"] else "⏳ Pendiente"
-                item_e = QTableWidgetItem(estado)
-                item_e.setForeground(Qt.GlobalColor.green if log["venta_cerrada"] else Qt.GlobalColor.yellow)
-                t2.setItem(i, 4, item_e)
-            layout.addWidget(t2)
-
+        estilo = "QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; } QTableWidgetItem { color: white; padding: 6px; }"
         if self.log_ventas:
-            lbl3 = QLabel("💰 Ventas cerradas")
+            lbl3 = QLabel("Ventas cerradas")
             lbl3.setStyleSheet("color: #27ae60; font-size: 13px; font-weight: bold; padding: 4px 0;")
             layout.addWidget(lbl3)
             t3 = QTableWidget()
-            t3.setColumnCount(6)
-            t3.setHorizontalHeaderLabels(["Ticket", "Original", "Desc %", "Total", "Pago", "Vuelto"])
+            t3.setColumnCount(5)
+            t3.setHorizontalHeaderLabels(["Ticket", "Total", "Desc %", "Pago", "Hora"])
             t3.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
             t3.setStyleSheet(estilo)
             t3.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             t3.setRowCount(len(self.log_ventas))
             for i, d in enumerate(self.log_ventas):
                 t3.setItem(i, 0, QTableWidgetItem(d["ticket"]))
-                t3.setItem(i, 1, QTableWidgetItem(f"${d['total_original']:.2f}"))
+                t3.setItem(i, 1, QTableWidgetItem(f"${d['total_final']:.2f}"))
                 t3.setItem(i, 2, QTableWidgetItem(f"{d['descuento_pct']:.1f}%"))
-                t3.setItem(i, 3, QTableWidgetItem(f"${d['total_final']:.2f}"))
-                t3.setItem(i, 4, QTableWidgetItem(d.get("metodo_pago", "-")))
-                vuelto = d.get("vuelto", 0)
-                t3.setItem(i, 5, QTableWidgetItem(f"${vuelto:.2f}" if vuelto > 0 else "-"))
+                t3.setItem(i, 3, QTableWidgetItem(d.get("metodo_pago", "-")))
+                t3.setItem(i, 4, QTableWidgetItem(d.get("hora", "")))
             layout.addWidget(t3)
         dialog.exec()
 
     def cobrar(self):
         if not self.items_venta:
-            QMessageBox.warning(self, "Sin productos", "Agregá productos antes de cobrar")
+            QMessageBox.warning(self, "Sin productos", "Agrega productos antes de cobrar")
             return
         total_original = sum(i["subtotal"] for i in self.items_venta)
-        dialog = CobrarDialog(self, total_original)
+        dialog = CobrarDialog(self, total_original, cliente=self.cliente_actual)
         if not dialog.exec():
             return
         descuento_pct = dialog.descuento_pct
         total_final = dialog.total_final
         metodo_pago = dialog.metodo_pago
+        metodo_secundario = dialog.metodo_secundario
+        monto_secundario = dialog.monto_secundario
         descuento_monto = total_original - total_final
         vuelto = 0
         if metodo_pago == "efectivo":
             try:
                 entrega = float(dialog.input_entrega.text().replace(",", "."))
-                vuelto = max(0, entrega - total_final)
+                vuelto = max(0, entrega - (total_final - monto_secundario))
             except ValueError:
                 pass
+
         items_backend = [i for i in self.items_venta if i["producto_id"] != 0]
         if not items_backend:
             items_backend = [{"producto_id": 1, "cantidad": 1, "precio_unitario": total_final, "descuento": 0}]
+
+        pagos = [{"metodo": metodo_pago, "monto": total_final - monto_secundario}]
+        if metodo_secundario and monto_secundario > 0:
+            pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
+
         try:
             r = requests.post(f"{API_URL}/ventas/", json={
                 "usuario_id": self.usuario.get("id", 1) if self.usuario else 1,
                 "items": items_backend,
-                "pagos": [{"metodo": metodo_pago, "monto": total_final}],
+                "pagos": pagos,
                 "descuento": descuento_monto
             }, timeout=5)
             if r.status_code == 200:
                 datos = r.json()
                 ticket = datos["numero"]
-                nombres_metodo = {
-                    "efectivo": "💵 Efectivo",
-                    "tarjeta": "💳 Tarjeta",
-                    "mercadopago_qr": "📱 QR / MP",
-                    "transferencia": "🏦 Transferencia"
-                }
+                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+                metodo_str = nombres_metodo.get(metodo_pago, metodo_pago)
+                if metodo_secundario:
+                    metodo_str += f" + {nombres_metodo.get(metodo_secundario, metodo_secundario)} (${monto_secundario:.2f})"
                 self.log_ventas.append({
                     "ticket": ticket,
                     "total_original": total_original,
                     "descuento_pct": descuento_pct,
-                    "ahorro": descuento_monto,
                     "total_final": total_final,
-                    "metodo_pago": nombres_metodo.get(metodo_pago, metodo_pago),
+                    "metodo_pago": metodo_str,
                     "vuelto": vuelto,
                     "hora": datetime.now().strftime("%H:%M:%S")
                 })
@@ -1081,27 +1212,49 @@ class VentasScreen(QWidget):
                 for m in self.log_modificaciones:
                     if m["ticket"] == "-":
                         m["ticket"] = ticket
-                self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_pago, vuelto)
-                msg = f"Ticket: {ticket}\nTotal: ${total_final:.2f}\nPago: {nombres_metodo.get(metodo_pago, metodo_pago)}"
+                if self.cliente_actual:
+                    cid = self.cliente_actual["id"]
+                    if dialog.descuento_puntos > 0:
+                        try:
+                            requests.post(f"{API_URL}/clientes/{cid}/canjear-puntos", timeout=3)
+                        except Exception:
+                            pass
+                    try:
+                        requests.post(f"{API_URL}/clientes/{cid}/sumar-puntos", params={"monto": total_final}, timeout=3)
+                    except Exception:
+                        pass
+                self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
+                msg = f"Ticket: {ticket}\
+Total: ${total_final:.2f}\
+Pago: {metodo_str}"
                 if descuento_pct > 0:
-                    msg += f"\nDescuento: {descuento_pct:.1f}% (-${descuento_monto:.2f})"
+                    msg += f"\
+Descuento: {descuento_pct:.1f}%"
                 if metodo_pago == "efectivo" and vuelto > 0:
-                    msg += f"\n💵 Vuelto: ${vuelto:.2f}"
+                    msg += f"\
+Vuelto: ${vuelto:.2f}"
                 try:
                     from ui.pantallas.impresora import imprimir_ticket
-                    exito, txt = imprimir_ticket(
-                        {"numero": ticket, "total": total_final},
-                        self.items_venta
-                    )
-                    QMessageBox.information(self, "✅ Venta registrada", msg + f"\n\n🖨️ {txt}")
+                    exito, txt = imprimir_ticket({"numero": ticket, "total": total_final}, self.items_venta)
+                    QMessageBox.information(self, "Venta registrada", msg + f"\
+\
+{txt}")
                 except Exception:
-                    QMessageBox.information(self, "✅ Venta registrada", msg)
+                    QMessageBox.information(self, "Venta registrada", msg)
                 self.cancelar_venta()
             else:
                 QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
+            QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\
+{str(e)}")
 
+    # \u2705 CORRECTO: cancelar_venta es m\u00e9todo de VentasScreen, NO de cobrar
     def cancelar_venta(self):
         self.items_venta = []
+        self.cliente_actual = None
+        self.lbl_cliente_info.hide()
+        self.btn_cliente.setText("👤 Vincular cliente")
+        self.btn_cliente.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 8px; font-size: 12px; border: 1px solid #3498db; } QPushButton:hover { background: #3498db; color: white; }")
         self.actualizar_tabla()
+        self.input_buscar.clear()
+        self.input_buscar.setFocus()

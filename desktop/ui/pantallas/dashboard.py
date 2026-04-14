@@ -1,0 +1,346 @@
+import requests
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                              QPushButton, QFrame, QScrollArea, QGridLayout,
+                              QSizePolicy)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont, QPainter, QColor, QPen
+from datetime import datetime
+
+API_URL = "http://127.0.0.1:8000"
+
+NOMBRES_METODO = {
+    "efectivo": "💵 Efectivo",
+    "tarjeta": "💳 Tarjeta",
+    "mercadopago_qr": "📱 QR/MP",
+    "transferencia": "🏦 Transf.",
+}
+COLORES_METODO = {
+    "efectivo": "#27ae60",
+    "tarjeta": "#3498db",
+    "mercadopago_qr": "#009ee3",
+    "transferencia": "#9b59b6",
+}
+
+
+class BarraHora(QWidget):
+    """Barra visual para el gráfico de horario pico."""
+    def __init__(self, hora, ventas, max_ventas, parent=None):
+        super().__init__(parent)
+        self.hora = hora
+        self.ventas = ventas
+        self.max_ventas = max_ventas
+        self.setFixedWidth(28)
+        self.setMinimumHeight(80)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w = self.width()
+        h = self.height()
+        if self.max_ventas > 0 and self.ventas > 0:
+            ratio = self.ventas / self.max_ventas
+            bar_h = int((h - 20) * ratio)
+            color = QColor("#e94560") if ratio >= 0.8 else QColor("#f39c12") if ratio >= 0.5 else QColor("#3498db")
+            painter.fillRect(2, h - 20 - bar_h, w - 4, bar_h, color)
+        painter.setPen(QColor("#a0a0b0"))
+        painter.setFont(QFont("Arial", 7))
+        painter.drawText(0, h - 5, w, 15, Qt.AlignmentFlag.AlignCenter, f"{self.hora:02d}")
+
+
+class KPICard(QFrame):
+    def __init__(self, icono, titulo, valor, color, subtitulo="", parent=None):
+        super().__init__(parent)
+        self.setStyleSheet(f"""
+            QFrame {{
+                background: #16213e;
+                border-radius: 12px;
+                border-left: 4px solid {color};
+            }}
+        """)
+        self.setMinimumHeight(100)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(4)
+
+        header = QHBoxLayout()
+        lbl_icon = QLabel(icono)
+        lbl_icon.setStyleSheet("color: white; font-size: 18px; background: transparent; border: none;")
+        header.addWidget(lbl_icon)
+        header.addStretch()
+        self.lbl_titulo = QLabel(titulo)
+        self.lbl_titulo.setStyleSheet(f"color: #a0a0b0; font-size: 11px; background: transparent; border: none;")
+        layout.addLayout(header)
+        layout.addWidget(self.lbl_titulo)
+
+        self.lbl_valor = QLabel(valor)
+        self.lbl_valor.setFont(QFont("Arial", 22, QFont.Weight.Bold))
+        self.lbl_valor.setStyleSheet(f"color: {color}; background: transparent; border: none;")
+        layout.addWidget(self.lbl_valor)
+
+        if subtitulo:
+            self.lbl_sub = QLabel(subtitulo)
+            self.lbl_sub.setStyleSheet("color: #555; font-size: 10px; background: transparent; border: none;")
+            layout.addWidget(self.lbl_sub)
+        else:
+            self.lbl_sub = None
+
+    def actualizar(self, valor, subtitulo=""):
+        self.lbl_valor.setText(valor)
+        if self.lbl_sub and subtitulo:
+            self.lbl_sub.setText(subtitulo)
+
+
+class DashboardScreen(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.datos = None
+        self.setup_ui()
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.cargar_datos)
+        self.timer.start(30000)  # Auto-refresh cada 30 segundos
+
+    def setup_ui(self):
+        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(14)
+
+        # ── Header ────────────────────────────────────────────────────────────
+        header = QHBoxLayout()
+        titulo = QLabel("📊 Dashboard")
+        titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet("color: white;")
+        header.addWidget(titulo)
+        header.addStretch()
+        self.lbl_hora = QLabel("")
+        self.lbl_hora.setStyleSheet("color: #555; font-size: 11px;")
+        header.addWidget(self.lbl_hora)
+        btn_refresh = QPushButton("⟳ Actualizar")
+        btn_refresh.setFixedHeight(34)
+        btn_refresh.setStyleSheet("""
+            QPushButton { background: #0f3460; color: #3498db; border-radius: 8px;
+                          font-size: 12px; padding: 0 14px; border: 1px solid #3498db; }
+            QPushButton:hover { background: #3498db; color: white; }
+        """)
+        btn_refresh.clicked.connect(self.cargar_datos)
+        header.addWidget(btn_refresh)
+        layout.addLayout(header)
+
+        # ── Scroll area ───────────────────────────────────────────────────────
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        contenido = QWidget()
+        contenido.setStyleSheet("background: transparent;")
+        self.contenido_layout = QVBoxLayout(contenido)
+        self.contenido_layout.setSpacing(14)
+        self.contenido_layout.setContentsMargins(0, 0, 0, 0)
+        scroll.setWidget(contenido)
+        layout.addWidget(scroll)
+
+        # ── KPI Cards ─────────────────────────────────────────────────────────
+        self.grid_kpi = QGridLayout()
+        self.grid_kpi.setSpacing(10)
+
+        self.card_total = KPICard("💰", "VENTAS HOY", "$0.00", "#e94560")
+        self.card_tickets = KPICard("🧾", "TICKETS HOY", "0", "#3498db")
+        self.card_promedio = KPICard("📈", "TICKET PROMEDIO", "$0.00", "#27ae60")
+        self.card_metodo = KPICard("💳", "MÉTODO PRINCIPAL", "-", "#f39c12")
+
+        self.grid_kpi.addWidget(self.card_total, 0, 0)
+        self.grid_kpi.addWidget(self.card_tickets, 0, 1)
+        self.grid_kpi.addWidget(self.card_promedio, 0, 2)
+        self.grid_kpi.addWidget(self.card_metodo, 0, 3)
+        self.contenido_layout.addLayout(self.grid_kpi)
+
+        # ── Fila 2: Métodos + Top productos ───────────────────────────────────
+        fila2 = QHBoxLayout()
+        fila2.setSpacing(10)
+
+        # Panel métodos de pago
+        self.panel_metodos = QFrame()
+        self.panel_metodos.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        self.panel_metodos.setMinimumHeight(180)
+        self.metodos_layout = QVBoxLayout(self.panel_metodos)
+        self.metodos_layout.setContentsMargins(16, 14, 16, 14)
+        self.metodos_layout.setSpacing(8)
+        lbl_m = QLabel("💳 Desglose por método")
+        lbl_m.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
+        self.metodos_layout.addWidget(lbl_m)
+        self.metodos_contenido = QVBoxLayout()
+        self.metodos_contenido.setSpacing(6)
+        self.metodos_layout.addLayout(self.metodos_contenido)
+        self.metodos_layout.addStretch()
+        fila2.addWidget(self.panel_metodos, 1)
+
+        # Panel top productos
+        self.panel_top = QFrame()
+        self.panel_top.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        self.panel_top.setMinimumHeight(180)
+        self.top_layout = QVBoxLayout(self.panel_top)
+        self.top_layout.setContentsMargins(16, 14, 16, 14)
+        self.top_layout.setSpacing(6)
+        lbl_t = QLabel("🏆 Top productos del mes")
+        lbl_t.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
+        self.top_layout.addWidget(lbl_t)
+        self.top_contenido = QVBoxLayout()
+        self.top_contenido.setSpacing(4)
+        self.top_layout.addLayout(self.top_contenido)
+        self.top_layout.addStretch()
+        fila2.addWidget(self.panel_top, 1)
+
+        self.contenido_layout.addLayout(fila2)
+
+        # ── Horario pico ──────────────────────────────────────────────────────
+        self.panel_horario = QFrame()
+        self.panel_horario.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        horario_layout = QVBoxLayout(self.panel_horario)
+        horario_layout.setContentsMargins(16, 14, 16, 14)
+        horario_layout.setSpacing(8)
+
+        h_header = QHBoxLayout()
+        lbl_h = QLabel("🕐 Horario pico de hoy")
+        lbl_h.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
+        h_header.addWidget(lbl_h)
+        h_header.addStretch()
+        self.lbl_pico = QLabel("")
+        self.lbl_pico.setStyleSheet("color: #e94560; font-size: 12px; font-weight: bold;")
+        h_header.addWidget(self.lbl_pico)
+        horario_layout.addLayout(h_header)
+
+        self.barras_container = QHBoxLayout()
+        self.barras_container.setSpacing(2)
+        self.barras_container.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        horario_layout.addLayout(self.barras_container)
+
+        leyenda = QLabel("🔴 Pico alto   🟡 Moderado   🔵 Bajo")
+        leyenda.setStyleSheet("color: #555; font-size: 10px;")
+        horario_layout.addWidget(leyenda)
+
+        self.contenido_layout.addWidget(self.panel_horario)
+        self.contenido_layout.addStretch()
+
+    def cargar_datos(self):
+        self.lbl_hora.setText(f"Actualizado: {datetime.now().strftime('%H:%M:%S')}")
+        try:
+            r = requests.get(f"{API_URL}/reportes/dashboard", timeout=5)
+            if r.status_code == 200:
+                self.datos = r.json()
+                self.actualizar_ui()
+        except Exception:
+            self.lbl_hora.setText("⚠️ Sin conexión al servidor")
+
+    def actualizar_ui(self):
+        if not self.datos:
+            return
+        d = self.datos
+
+        # KPIs
+        total = d.get("total_hoy", 0)
+        var = d.get("variacion_pct", 0)
+        signo = "▲" if var >= 0 else "▼"
+        color_var = "#27ae60" if var >= 0 else "#e94560"
+        self.card_total.actualizar(
+            f"${total:,.0f}",
+            f'<span style="color:{color_var}">{signo} {abs(var):.1f}% vs ayer</span>'
+        )
+        self.card_total.lbl_sub.setText(f"{signo} {abs(var):.1f}% vs ayer")
+        self.card_total.lbl_sub.setStyleSheet(f"color: {color_var}; font-size: 11px; background: transparent; border: none;")
+
+        self.card_tickets.actualizar(str(d.get("tickets_hoy", 0)))
+        self.card_promedio.actualizar(f"${d.get('ticket_promedio', 0):,.0f}")
+
+        metodo_principal = d.get("metodo_mas_usado", "efectivo")
+        nombre_mp = NOMBRES_METODO.get(metodo_principal, metodo_principal)
+        color_mp = COLORES_METODO.get(metodo_principal, "#f39c12")
+        self.card_metodo.actualizar(nombre_mp)
+        self.card_metodo.lbl_valor.setStyleSheet(f"color: {color_mp}; font-size: 16px; font-weight: bold; background: transparent; border: none;")
+
+        # Métodos de pago
+        while self.metodos_contenido.count():
+            child = self.metodos_contenido.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        desglose = d.get("desglose_metodos", {})
+        total_metodos = sum(desglose.values()) or 1
+        for metodo, monto in sorted(desglose.items(), key=lambda x: x[1], reverse=True):
+            fila = QFrame()
+            fila.setStyleSheet("QFrame { background: transparent; border: none; }")
+            fila_layout = QVBoxLayout(fila)
+            fila_layout.setContentsMargins(0, 0, 0, 0)
+            fila_layout.setSpacing(2)
+
+            nombre = NOMBRES_METODO.get(metodo, metodo)
+            color = COLORES_METODO.get(metodo, "#95a5a6")
+            pct = (monto / total_metodos) * 100
+
+            top_row = QHBoxLayout()
+            lbl_n = QLabel(nombre)
+            lbl_n.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: bold;")
+            top_row.addWidget(lbl_n)
+            top_row.addStretch()
+            lbl_v = QLabel(f"${monto:,.0f}  ({pct:.0f}%)")
+            lbl_v.setStyleSheet("color: white; font-size: 12px;")
+            top_row.addWidget(lbl_v)
+            fila_layout.addLayout(top_row)
+
+            barra = QFrame()
+            barra.setFixedHeight(6)
+            barra.setStyleSheet(f"QFrame {{ background: #0f3460; border-radius: 3px; border: none; }}")
+            barra_inner = QFrame(barra)
+            barra_inner.setFixedHeight(6)
+            barra_w = max(4, int(pct * 2))
+            barra_inner.setFixedWidth(barra_w)
+            barra_inner.setStyleSheet(f"QFrame {{ background: {color}; border-radius: 3px; border: none; }}")
+            fila_layout.addWidget(barra)
+
+            self.metodos_contenido.addWidget(fila)
+
+        # Top productos
+        while self.top_contenido.count():
+            child = self.top_contenido.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        medallas = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+        for i, prod in enumerate(d.get("top_productos", [])):
+            fila = QHBoxLayout()
+            lbl_med = QLabel(medallas[i] if i < len(medallas) else f"{i+1}.")
+            lbl_med.setFixedWidth(24)
+            lbl_med.setStyleSheet("font-size: 13px;")
+            fila.addWidget(lbl_med)
+            lbl_nombre = QLabel(prod["nombre"][:28] + ("..." if len(prod["nombre"]) > 28 else ""))
+            lbl_nombre.setStyleSheet("color: white; font-size: 12px;")
+            fila.addWidget(lbl_nombre)
+            fila.addStretch()
+            lbl_total = QLabel(f"${prod['total']:,.0f}")
+            lbl_total.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold;")
+            fila.addWidget(lbl_total)
+            w = QWidget()
+            w.setStyleSheet("background: transparent;")
+            w.setLayout(fila)
+            self.top_contenido.addWidget(w)
+
+        # Horario pico
+        while self.barras_container.count():
+            child = self.barras_container.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        horas_data = d.get("horas_hoy", [])
+        max_v = max((h["ventas"] for h in horas_data), default=1) or 1
+        hora_pico = d.get("hora_pico")
+
+        for h in horas_data:
+            barra = BarraHora(h["hora"], h["ventas"], max_v)
+            self.barras_container.addWidget(barra)
+
+        if hora_pico is not None:
+            self.lbl_pico.setText(f"🔥 Pico: {hora_pico:02d}:00 hs")
+        else:
+            self.lbl_pico.setText("")
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.cargar_datos()

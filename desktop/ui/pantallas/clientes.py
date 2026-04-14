@@ -2,11 +2,12 @@ import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
-                              QDialog, QFormLayout, QDoubleSpinBox)
+                              QDialog, QFormLayout, QDoubleSpinBox, QScrollArea)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
+
 
 class ClienteDialog(QDialog):
     def __init__(self, parent=None, cliente=None):
@@ -27,7 +28,7 @@ class ClienteDialog(QDialog):
         layout.addWidget(titulo)
 
         estilo_input = "QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }"
-        estilo_spin = "QDoubleSpinBox { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }"
+        estilo_spin  = "QDoubleSpinBox { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }"
 
         form = QFormLayout()
         form.setSpacing(10)
@@ -75,12 +76,12 @@ class ClienteDialog(QDialog):
 
         if self.cliente:
             self.input_nombre.setText(self.cliente.get("nombre", ""))
-            self.input_telefono.setText(self.cliente.get("telefono", "") or "")
-            self.input_email.setText(self.cliente.get("email", "") or "")
-            self.input_direccion.setText(self.cliente.get("direccion", "") or "")
-            self.input_nacimiento.setText(self.cliente.get("fecha_nacimiento", "") or "")
+            self.input_telefono.setText(self.cliente.get("telefono") or "")
+            self.input_email.setText(self.cliente.get("email") or "")
+            self.input_direccion.setText(self.cliente.get("direccion") or "")
+            self.input_nacimiento.setText(self.cliente.get("fecha_nacimiento") or "")
             self.input_limite.setValue(float(self.cliente.get("limite_credito", 0)))
-            self.input_notas.setText(self.cliente.get("notas", "") or "")
+            self.input_notas.setText(self.cliente.get("notas") or "")
 
         btns = QHBoxLayout()
         btn_cancelar = QPushButton("Cancelar")
@@ -104,14 +105,125 @@ class ClienteDialog(QDialog):
 
     def get_datos(self):
         return {
-            "nombre": self.input_nombre.text().strip(),
-            "telefono": self.input_telefono.text().strip() or None,
-            "email": self.input_email.text().strip() or None,
-            "direccion": self.input_direccion.text().strip() or None,
+            "nombre":           self.input_nombre.text().strip(),
+            "telefono":         self.input_telefono.text().strip() or None,
+            "email":            self.input_email.text().strip() or None,
+            "direccion":        self.input_direccion.text().strip() or None,
             "fecha_nacimiento": self.input_nacimiento.text().strip() or None,
-            "limite_credito": self.input_limite.value(),
-            "notas": self.input_notas.text().strip() or None,
+            "limite_credito":   self.input_limite.value(),
+            "notas":            self.input_notas.text().strip() or None,
         }
+
+
+class HistorialDialog(QDialog):
+    def __init__(self, parent=None, cliente_id=None, nombre=""):
+        super().__init__(parent)
+        self.cliente_id = cliente_id
+        self.setWindowTitle(f"📋 Historial — {nombre}")
+        self.setMinimumSize(620, 500)
+        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setup_ui()
+        self.cargar()
+
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        titulo = QLabel(f"📋 Historial de fiados")
+        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet("color: #3498db;")
+        layout.addWidget(titulo)
+
+        # Resumen
+        self.resumen_frame = QFrame()
+        self.resumen_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; }")
+        resumen_layout = QHBoxLayout(self.resumen_frame)
+        resumen_layout.setContentsMargins(16, 10, 16, 10)
+
+        self.lbl_puntos = QLabel("⭐ 0 puntos")
+        self.lbl_puntos.setStyleSheet("color: #f39c12; font-size: 14px; font-weight: bold;")
+        resumen_layout.addWidget(self.lbl_puntos)
+        resumen_layout.addStretch()
+        self.lbl_deuda = QLabel("💸 Deuda: $0.00")
+        self.lbl_deuda.setStyleSheet("color: #e94560; font-size: 14px; font-weight: bold;")
+        resumen_layout.addWidget(self.lbl_deuda)
+        resumen_layout.addStretch()
+        self.lbl_total_f = QLabel("📊 Total fiado: $0.00")
+        self.lbl_total_f.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        resumen_layout.addWidget(self.lbl_total_f)
+        layout.addWidget(self.resumen_frame)
+
+        # Tabla de historial
+        self.tabla = QTableWidget()
+        self.tabla.setColumnCount(5)
+        self.tabla.setHorizontalHeaderLabels(["Fecha", "Descripción", "Monto", "Estado", "Pagos"])
+        self.tabla.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabla.setColumnWidth(0, 110)
+        self.tabla.setColumnWidth(2, 100)
+        self.tabla.setColumnWidth(3, 90)
+        self.tabla.setColumnWidth(4, 100)
+        self.tabla.setStyleSheet("""
+            QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
+            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; }
+            QTableWidgetItem { color: white; padding: 6px; }
+        """)
+        self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        layout.addWidget(self.tabla)
+
+        self.lbl_vacio = QLabel("Sin registros de fiado para este cliente.")
+        self.lbl_vacio.setStyleSheet("color: #555; font-size: 13px; padding: 20px;")
+        self.lbl_vacio.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_vacio.hide()
+        layout.addWidget(self.lbl_vacio)
+
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.setFixedHeight(40)
+        btn_cerrar.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 8px; font-size: 13px; }")
+        btn_cerrar.clicked.connect(self.accept)
+        layout.addWidget(btn_cerrar)
+
+    def cargar(self):
+        try:
+            r = requests.get(f"{API_URL}/clientes/{self.cliente_id}/historial", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                c = data.get("cliente", {})
+                self.lbl_puntos.setText(f"⭐ {float(c.get('puntos', 0)):.0f} puntos")
+                self.lbl_deuda.setText(f"💸 Deuda: ${float(c.get('deuda_actual', 0)):,.2f}")
+                self.lbl_total_f.setText(f"📊 Total fiado: ${data.get('total_fiado', 0):,.2f}")
+
+                historial = data.get("historial", [])
+                if not historial:
+                    self.tabla.hide()
+                    self.lbl_vacio.show()
+                    return
+
+                self.tabla.setRowCount(len(historial))
+                for i, f in enumerate(historial):
+                    fecha = str(f.get("fecha", ""))[:10]
+                    self.tabla.setItem(i, 0, QTableWidgetItem(fecha))
+                    self.tabla.setItem(i, 1, QTableWidgetItem(f.get("descripcion", "")))
+
+                    item_monto = QTableWidgetItem(f"${float(f.get('monto', 0)):,.2f}")
+                    item_monto.setForeground(Qt.GlobalColor.red)
+                    self.tabla.setItem(i, 2, item_monto)
+
+                    estado = f.get("estado", "pendiente")
+                    item_estado = QTableWidgetItem(estado.capitalize())
+                    if estado == "pagado":
+                        item_estado.setForeground(Qt.GlobalColor.green)
+                    else:
+                        item_estado.setForeground(Qt.GlobalColor.yellow)
+                    self.tabla.setItem(i, 3, item_estado)
+
+                    pagos = f.get("pagos", [])
+                    total_pagado = sum(float(p.get("monto", 0)) for p in pagos)
+                    lbl_pagos = QTableWidgetItem(f"${total_pagado:,.2f} ({len(pagos)} pago{'s' if len(pagos) != 1 else ''})")
+                    lbl_pagos.setForeground(Qt.GlobalColor.green)
+                    self.tabla.setItem(i, 4, lbl_pagos)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo cargar el historial\n{str(e)}")
 
 
 class ClientesScreen(QWidget):
@@ -157,22 +269,30 @@ class ClientesScreen(QWidget):
 
         # Tarjetas resumen
         resumen = QHBoxLayout()
-        self.card_total = self.crear_card("👥 Total clientes", "0", "#3498db")
-        self.card_deudores = self.crear_card("💸 Con deuda", "0", "#e94560")
-        self.card_puntos = self.crear_card("⭐ Con puntos", "0", "#f39c12")
+        self.card_total    = self.crear_card("👥 Total clientes",  "0", "#3498db")
+        self.card_deudores = self.crear_card("💸 Con deuda",       "0", "#e94560")
+        self.card_puntos   = self.crear_card("⭐ Con puntos",      "0", "#f39c12")
         resumen.addWidget(self.card_total[0])
         resumen.addWidget(self.card_deudores[0])
         resumen.addWidget(self.card_puntos[0])
         layout.addLayout(resumen)
 
-        # Tabla
+        # Tabla (9 columnas)
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(8)
+        self.tabla.setColumnCount(9)
         self.tabla.setHorizontalHeaderLabels([
             "Nombre", "Teléfono", "Puntos ⭐", "Deuda 💸",
-            "Límite", "Nacimiento", "Acciones", ""
+            "Límite", "Nacimiento", "Acciones", "Historial", ""
         ])
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tabla.setColumnWidth(1, 110)
+        self.tabla.setColumnWidth(2, 90)
+        self.tabla.setColumnWidth(3, 90)
+        self.tabla.setColumnWidth(4, 90)
+        self.tabla.setColumnWidth(5, 100)
+        self.tabla.setColumnWidth(6, 190)
+        self.tabla.setColumnWidth(7, 90)
+        self.tabla.setColumnWidth(8, 32)
         self.tabla.setStyleSheet("""
             QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
             QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; }
@@ -208,8 +328,8 @@ class ClientesScreen(QWidget):
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def actualizar_resumen(self):
-        total = len(self.clientes)
-        deudores = sum(1 for c in self.clientes if float(c.get("deuda_actual", 0)) > 0)
+        total      = len(self.clientes)
+        deudores   = sum(1 for c in self.clientes if float(c.get("deuda_actual", 0)) > 0)
         con_puntos = sum(1 for c in self.clientes if float(c.get("puntos", 0)) > 0)
         self.card_total[1].setText(str(total))
         self.card_deudores[1].setText(str(deudores))
@@ -231,52 +351,109 @@ class ClientesScreen(QWidget):
             self.tabla.setItem(i, 1, QTableWidgetItem(c.get("telefono") or "-"))
 
             puntos = float(c.get("puntos", 0))
-            item_puntos = QTableWidgetItem(f"⭐ {puntos:.0f}")
-            if puntos > 0:
-                item_puntos.setForeground(Qt.GlobalColor.yellow)
-            self.tabla.setItem(i, 2, item_puntos)
+            item_pts = QTableWidgetItem(f"⭐ {puntos:.0f}")
+            if puntos >= 100:
+                item_pts.setForeground(Qt.GlobalColor.yellow)
+            self.tabla.setItem(i, 2, item_pts)
 
             deuda = float(c.get("deuda_actual", 0))
-            item_deuda = QTableWidgetItem(f"${deuda:.2f}")
+            item_deuda = QTableWidgetItem(f"${deuda:,.2f}")
             if deuda > 0:
                 item_deuda.setForeground(Qt.GlobalColor.red)
             self.tabla.setItem(i, 3, item_deuda)
 
             limite = float(c.get("limite_credito", 0))
-            self.tabla.setItem(i, 4, QTableWidgetItem(f"${limite:.2f}" if limite > 0 else "Sin límite"))
+            self.tabla.setItem(i, 4, QTableWidgetItem(f"${limite:,.2f}" if limite > 0 else "Sin límite"))
             self.tabla.setItem(i, 5, QTableWidgetItem(c.get("fecha_nacimiento") or "-"))
 
-            # Botones
+            # ── Botones de acciones ──────────────────────────────────────────
             btn_w = QWidget()
             btn_l = QHBoxLayout(btn_w)
             btn_l.setContentsMargins(2, 2, 2, 2)
-            btn_l.setSpacing(4)
+            btn_l.setSpacing(3)
 
             btn_edit = QPushButton("✏️")
-            btn_edit.setFixedSize(32, 28)
+            btn_edit.setFixedSize(30, 28)
+            btn_edit.setToolTip("Editar cliente")
             btn_edit.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 4px; }")
             btn_edit.clicked.connect(lambda _, idx=i: self.editar_cliente(idx))
             btn_l.addWidget(btn_edit)
 
-            btn_puntos = QPushButton("⭐")
-            btn_puntos.setFixedSize(32, 28)
-            btn_puntos.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 4px; }")
-            btn_puntos.clicked.connect(lambda _, idx=i: self.ver_puntos(idx))
-            btn_l.addWidget(btn_puntos)
-
             btn_fiado = QPushButton("💸 Fiar")
-            btn_fiado.setFixedSize(56, 28)
+            btn_fiado.setFixedSize(58, 28)
+            btn_fiado.setToolTip("Registrar fiado")
             btn_fiado.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 4px; font-size: 11px; }")
             btn_fiado.clicked.connect(lambda _, idx=i: self.registrar_fiado(idx))
             btn_l.addWidget(btn_fiado)
 
+            # Canjear puntos: activo solo si tiene >= 100
+            btn_canjear = QPushButton("⭐ Canjear")
+            btn_canjear.setFixedSize(74, 28)
+            btn_canjear.setToolTip(f"Canjear puntos (100 pts = $1000 de descuento)")
+            if puntos >= 100:
+                btn_canjear.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 4px; font-size: 11px; font-weight: bold; }")
+                btn_canjear.clicked.connect(lambda _, idx=i: self.canjear_puntos(idx))
+            else:
+                btn_canjear.setStyleSheet("QPushButton { background: #333; color: #666; border-radius: 4px; font-size: 11px; }")
+                btn_canjear.setEnabled(False)
+            btn_l.addWidget(btn_canjear)
+
             self.tabla.setCellWidget(i, 6, btn_w)
 
+            # ── Historial ───────────────────────────────────────────────────
+            btn_hist = QPushButton("📋")
+            btn_hist.setFixedSize(30, 28)
+            btn_hist.setToolTip("Ver historial de fiados")
+            btn_hist.setStyleSheet("QPushButton { background: #3498db; color: white; border-radius: 4px; }")
+            btn_hist.clicked.connect(lambda _, idx=i: self.ver_historial(idx))
+            self.tabla.setCellWidget(i, 7, btn_hist)
+
+            # ── Eliminar ────────────────────────────────────────────────────
             btn_del = QPushButton("🗑")
             btn_del.setFixedSize(28, 28)
             btn_del.setStyleSheet("QPushButton { background: transparent; color: #e94560; border-radius: 4px; }")
             btn_del.clicked.connect(lambda _, cid=c["id"]: self.eliminar_cliente(cid))
-            self.tabla.setCellWidget(i, 7, btn_del)
+            self.tabla.setCellWidget(i, 8, btn_del)
+
+    # ─── Acciones ─────────────────────────────────────────────────────────────
+
+    def ver_historial(self, idx):
+        c = self.get_clientes_visibles()[idx]
+        dialog = HistorialDialog(self, c["id"], c["nombre"])
+        dialog.exec()
+
+    def canjear_puntos(self, idx):
+        c = self.get_clientes_visibles()[idx]
+        puntos = float(c.get("puntos", 0))
+        bloques = int(puntos // 100)
+        descuento = bloques * 1000
+
+        resp = QMessageBox.question(
+            self, "⭐ Canjear puntos",
+            f"Cliente: {c['nombre']}\n"
+            f"Puntos disponibles: {puntos:.0f}\n\n"
+            f"Se van a canjear {bloques * 100:.0f} puntos\n"
+            f"Descuento a aplicar: ${descuento:,.2f}\n\n"
+            f"¿Confirmar canje?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if resp == QMessageBox.StandardButton.Yes:
+            try:
+                r = requests.post(f"{API_URL}/clientes/{c['id']}/canjear-puntos", timeout=5)
+                if r.status_code == 200:
+                    data = r.json()
+                    QMessageBox.information(
+                        self, "✅ Canje exitoso",
+                        f"Descuento generado: ${data['descuento']:,.2f}\n"
+                        f"Puntos usados: {data['puntos_usados']:.0f}\n"
+                        f"Puntos restantes: {data['puntos_restantes']:.0f}"
+                    )
+                    self.cargar_clientes()
+                else:
+                    msg = r.json().get("detail", "Error al canjear")
+                    QMessageBox.warning(self, "Error", msg)
+            except Exception:
+                QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def nuevo_cliente(self):
         dialog = ClienteDialog(self)
@@ -293,15 +470,12 @@ class ClientesScreen(QWidget):
                 QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def editar_cliente(self, idx):
-        clientes_visibles = self.get_clientes_visibles()
-        if idx >= len(clientes_visibles):
-            return
-        cliente = clientes_visibles[idx]
-        dialog = ClienteDialog(self, cliente)
+        c = self.get_clientes_visibles()[idx]
+        dialog = ClienteDialog(self, c)
         if dialog.exec():
             datos = dialog.get_datos()
             try:
-                r = requests.put(f"{API_URL}/clientes/{cliente['id']}", json=datos, timeout=5)
+                r = requests.put(f"{API_URL}/clientes/{c['id']}", json=datos, timeout=5)
                 if r.status_code == 200:
                     self.cargar_clientes()
                 else:
@@ -309,29 +483,15 @@ class ClientesScreen(QWidget):
             except Exception:
                 QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
-    def ver_puntos(self, idx):
-        clientes_visibles = self.get_clientes_visibles()
-        if idx >= len(clientes_visibles):
-            return
-        c = clientes_visibles[idx]
-        puntos = float(c.get("puntos", 0))
-        QMessageBox.information(self, f"⭐ Puntos — {c['nombre']}",
-            f"Puntos acumulados: {puntos:.0f}\n\n"
-            f"Equivalen a: ${puntos * 10:.2f} de descuento\n"
-            f"(cada 100 puntos = $1000 de descuento)")
-
     def registrar_fiado(self, idx):
-        clientes_visibles = self.get_clientes_visibles()
-        if idx >= len(clientes_visibles):
-            return
-        c = clientes_visibles[idx]
-        deuda = float(c.get("deuda_actual", 0))
+        c = self.get_clientes_visibles()[idx]
+        deuda  = float(c.get("deuda_actual", 0))
         limite = float(c.get("limite_credito", 0))
 
         if limite > 0 and deuda >= limite:
             QMessageBox.warning(self, "⚠️ Límite alcanzado",
-                f"{c['nombre']} tiene deuda de ${deuda:.2f}\n"
-                f"Límite de crédito: ${limite:.2f}\n\n"
+                f"{c['nombre']} tiene deuda de ${deuda:,.2f}\n"
+                f"Límite de crédito: ${limite:,.2f}\n\n"
                 f"No se puede fiar más hasta que pague.")
             return
 
@@ -340,8 +500,9 @@ class ClientesScreen(QWidget):
         dialog.setMinimumWidth(320)
         dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
         lay = QVBoxLayout(dialog)
+        lay.setSpacing(10)
 
-        lbl = QLabel(f"Deuda actual: ${deuda:.2f}")
+        lbl = QLabel(f"Deuda actual: ${deuda:,.2f}")
         lbl.setStyleSheet("color: #e94560; font-size: 14px; font-weight: bold;")
         lay.addWidget(lbl)
 
@@ -384,7 +545,7 @@ class ClientesScreen(QWidget):
                 return
             if limite > 0 and (deuda + monto) > limite:
                 QMessageBox.warning(dialog, "⚠️ Límite",
-                    f"Este fiado supera el límite de crédito de ${limite:.2f}")
+                    f"Este fiado supera el límite de crédito de ${limite:,.2f}")
                 return
             try:
                 r = requests.post(f"{API_URL}/fiados/", json={
@@ -395,7 +556,7 @@ class ClientesScreen(QWidget):
                 if r.status_code == 200:
                     self.cargar_clientes()
                     dialog.accept()
-                    QMessageBox.information(self, "✅", f"Fiado registrado: ${monto:.2f}")
+                    QMessageBox.information(self, "✅", f"Fiado registrado: ${monto:,.2f}")
             except Exception:
                 QMessageBox.critical(dialog, "Error", "No se puede conectar")
 
