@@ -79,7 +79,7 @@ def deudores(db: Session = Depends(get_db)):
 @router.get("/buscar")
 def buscar_cliente(q: str, db: Session = Depends(get_db)):
     return db.query(Cliente).filter(
-        (Cliente.nombre.contains(q)) | (Cliente.dni == q) | (Cliente.telefono == q),
+        (Cliente.nombre.contains(q)) | (Cliente.telefono == q),
         Cliente.activo == True
     ).all()
 
