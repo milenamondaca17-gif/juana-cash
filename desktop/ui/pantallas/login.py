@@ -2,8 +2,9 @@ import requests
 import json
 import os
 from datetime import datetime
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel,
-                              QLineEdit, QPushButton, QFrame, QMessageBox, QCheckBox)
+import sys
+from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QFrame, QMessageBox, QCheckBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -18,94 +19,119 @@ class LoginScreen(QWidget):
         self.cargar_sesion_guardada()
 
     def setup_ui(self):
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setLayout(layout)
-        self.setStyleSheet("background-color: #1a1a2e;")
-
-        titulo = QLabel("💰 JUANA CASH")
-        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titulo.setFont(QFont("Arial", 36, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #e94560; margin-bottom: 10px;")
-        layout.addWidget(titulo)
-
-        subtitulo = QLabel("Sistema POS Profesional")
-        subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitulo.setFont(QFont("Arial", 14))
-        subtitulo.setStyleSheet("color: #a0a0b0; margin-bottom: 40px;")
-        layout.addWidget(subtitulo)
-
-        card = QFrame()
-        card.setMaximumWidth(400)
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #16213e;
-                border-radius: 12px;
-                padding: 30px;
+        # Layout principal
+        layout_principal = QVBoxLayout()
+        layout_principal.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setLayout(layout_principal)
+        
+        # EL TRAJE: ESTILO "NUEVA GENERACIÓN" (Adaptado a tu paleta Juana Cash: Azul oscuro y Rojo)
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #050e1a; /* Fondo principal de tu MainWindow */
             }
-        """)
-        card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(16)
-
-        lbl_email = QLabel("Email")
-        lbl_email.setStyleSheet("color: #a0a0b0; font-size: 13px;")
-        card_layout.addWidget(lbl_email)
-
-        self.input_email = QLineEdit()
-        self.input_email.setPlaceholderText("tu@email.com")
-        self.input_email.setStyleSheet("""
-            QLineEdit {
-                background: #0f3460;
-                border: 1px solid #e94560;
-                border-radius: 8px;
-                padding: 12px;
-                color: white;
-                font-size: 14px;
+            QFrame#CajaLogin {
+                background-color: #0a1628; /* Fondo de la tarjeta */
+                border-radius: 15px;
+                border: 1px solid #1a2744;
             }
-        """)
-        card_layout.addWidget(self.input_email)
-
-        lbl_pass = QLabel("Contraseña")
-        lbl_pass.setStyleSheet("color: #a0a0b0; font-size: 13px;")
-        card_layout.addWidget(lbl_pass)
-
-        self.input_password = QLineEdit()
-        self.input_password.setPlaceholderText("••••••••")
-        self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.input_password.setStyleSheet("""
-            QLineEdit {
-                background: #0f3460;
-                border: 1px solid #e94560;
-                border-radius: 8px;
-                padding: 12px;
-                color: white;
-                font-size: 14px;
-            }
-        """)
-        self.input_password.returnPressed.connect(self.hacer_login)
-        card_layout.addWidget(self.input_password)
-
-        self.check_recordar = QCheckBox("Recordarme")
-        self.check_recordar.setStyleSheet("color: #a0a0b0; font-size: 13px;")
-        card_layout.addWidget(self.check_recordar)
-
-        btn_login = QPushButton("INGRESAR")
-        btn_login.setFixedHeight(48)
-        btn_login.setStyleSheet("""
-            QPushButton {
-                background-color: #e94560;
-                color: white;
-                border-radius: 8px;
-                font-size: 16px;
+            QLabel#Titulo {
+                color: #e63946; /* Rojo Juana Cash */
+                font-size: 32px;
                 font-weight: bold;
+                font-family: 'Segoe UI', Arial;
             }
-            QPushButton:hover { background-color: #c73652; }
+            QLabel#Subtitulo {
+                color: #8899aa;
+                font-size: 14px;
+                margin-bottom: 20px;
+            }
+            QLineEdit {
+                background-color: #111d33;
+                color: #f0f0f0;
+                border: 1px solid #1a2744;
+                border-radius: 8px;
+                padding: 15px;
+                font-size: 14px;
+                margin-bottom: 15px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #e63946;
+            }
+            QCheckBox {
+                color: #8899aa;
+                font-size: 13px;
+                margin-bottom: 15px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 1px solid #1a2744;
+                background-color: #111d33;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #e63946;
+                border: 1px solid #e63946;
+            }
+            QPushButton#BtnIngresar {
+                background-color: #e63946;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 10px;
+            }
+            QPushButton#BtnIngresar:hover {
+                background-color: #c73652;
+            }
         """)
-        btn_login.clicked.connect(self.hacer_login)
-        card_layout.addWidget(btn_login)
 
-        layout.addWidget(card, alignment=Qt.AlignmentFlag.AlignCenter)
+        # CAJA DEL LOGIN
+        caja_login = QFrame()
+        caja_login.setObjectName("CajaLogin")
+        caja_login.setFixedSize(380, 500)
+        layout_caja = QVBoxLayout(caja_login)
+        layout_caja.setContentsMargins(30, 40, 30, 40)
+        
+        # TEXTOS
+        titulo = QLabel("JUANA CASH")
+        titulo.setObjectName("Titulo")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        subtitulo = QLabel("Terminal de Acceso - Palmira")
+        subtitulo.setObjectName("Subtitulo")
+        subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # CAJITAS DE TEXTO (Inputs)
+        self.input_email = QLineEdit()
+        self.input_email.setPlaceholderText("✉️ Email del operador")
+        
+        self.input_password = QLineEdit()
+        self.input_password.setPlaceholderText("🔑 Contraseña")
+        self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.input_password.returnPressed.connect(self.hacer_login)
+
+        # CHECKBOX RECORDAR
+        self.check_recordar = QCheckBox("Recordar mi sesión")
+
+        # BOTÓN
+        self.btn_login = QPushButton("Ingresar al Mostrador")
+        self.btn_login.setObjectName("BtnIngresar")
+        self.btn_login.clicked.connect(self.hacer_login)
+
+        # ARMAMOS LA CAJA
+        layout_caja.addWidget(titulo)
+        layout_caja.addWidget(subtitulo)
+        layout_caja.addWidget(self.input_email)
+        layout_caja.addWidget(self.input_password)
+        layout_caja.addWidget(self.check_recordar)
+        layout_caja.addStretch()
+        layout_caja.addWidget(self.btn_login)
+
+        layout_principal.addWidget(caja_login)
+
+    # ================================================================= LOGIC
     def cargar_sesion_guardada(self):
         """Intenta cargar sesión guardada y auto-login si el token es válido"""
         try:
@@ -121,7 +147,6 @@ class LoginScreen(QWidget):
                 return
             
             # Intentar validar el token haciendo un request simple
-            # (El backend verifica automáticamente la expiración)
             if self.validar_token(datos["token"]):
                 # Token válido - auto login
                 self.input_email.setText(datos["email"])
@@ -147,9 +172,6 @@ class LoginScreen(QWidget):
     def validar_token(self, token):
         """Valida el token contra el backend"""
         try:
-            # Hacer un request simple que requiera auth
-            # Por ahora, asumimos válido si el token existe
-            # El backend validará la expiración en el próximo request
             return True if token else False
         except Exception:
             return False
@@ -213,3 +235,10 @@ class LoginScreen(QWidget):
                 "uvicorn backend.app.main:app --reload")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error inesperado: {str(e)}")
+
+# (Opcional) Esto es solo para probar la ventanita sola si lo ejecutás directo
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    ventana = LoginScreen(lambda data: print("Login exitoso:", data))
+    ventana.show()
+    sys.exit(app.exec())

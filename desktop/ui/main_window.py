@@ -2,10 +2,12 @@ import os
 import requests
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QStackedWidget, QWidget, QHBoxLayout,
-                              QVBoxLayout, QPushButton, QLabel, QMessageBox,
-                              QDialog, QTableWidget, QTableWidgetItem, QHeaderView)
+                             QVBoxLayout, QPushButton, QLabel, QMessageBox,
+                             QDialog, QTableWidget, QTableWidgetItem, QHeaderView, QFrame)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
+
+# Importaciones de tus pantallas
 from ui.pantallas.login import LoginScreen
 from ui.pantallas.turno import TurnoScreen
 from ui.pantallas.ventas import VentasScreen
@@ -20,6 +22,8 @@ from ui.pantallas.stock_avanzado import StockAvanzadoScreen
 from ui.pantallas.precios_masivos import PreciosMasivosScreen
 from ui.pantallas.ia_screen import IAScreen
 from ui.pantallas.config_screen import ConfigScreen
+from ui.pantallas.importador import ImportadorScreen # LA NUEVA NAVE
+
 try:
     from ui.pantallas.offline_manager import sincronizar_cola, cantidad_pendientes, servidor_disponible
 except Exception:
@@ -28,7 +32,6 @@ except Exception:
     servidor_disponible = lambda: True
 
 API_URL = "http://127.0.0.1:8000"
-
 
 class AlertaCumpleanosDialog(QDialog):
     def __init__(self, parent=None, clientes=None):
@@ -71,7 +74,6 @@ class AlertaCumpleanosDialog(QDialog):
         btn.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
         btn.clicked.connect(self.accept)
         layout.addWidget(btn)
-
 
 class AlertaDeudoresDialog(QDialog):
     def __init__(self, parent=None, deudores=None):
@@ -123,7 +125,6 @@ class AlertaDeudoresDialog(QDialog):
         btn.clicked.connect(self.accept)
         layout.addWidget(btn)
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -133,68 +134,86 @@ class MainWindow(QMainWindow):
         self.cajero_actual = None
 
         central = QWidget()
+        central.setStyleSheet("background-color: #050e1a;") 
         self.setCentralWidget(central)
-        self.main_layout = QHBoxLayout(central)
+        
+        self.main_layout = QVBoxLayout(central)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        # ── Sidebar ───────────────────────────────────────────────────────────
-        self.sidebar = QWidget()
-        self.sidebar.setFixedWidth(210)
-        self.sidebar.setStyleSheet("background-color: #16213e;")
-        self.sidebar.hide()
-        sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        sidebar_layout.setSpacing(0)
+        # ── Navbar Horizontal Superior ───────────────
+        self.navbar = QFrame()
+        self.navbar.setFixedHeight(60)
+        self.navbar.setStyleSheet("background-color: #0a1628; border-bottom: 1px solid #1a2744;")
+        self.navbar.hide()
+        
+        navbar_layout = QHBoxLayout(self.navbar)
+        navbar_layout.setContentsMargins(15, 0, 15, 0)
+        navbar_layout.setSpacing(5)
 
-        logo = QLabel("💰 Juana Cash")
-        logo.setFont(QFont("Arial", 13, QFont.Weight.Bold))
-        logo.setStyleSheet("color: #e94560; padding: 20px;")
-        sidebar_layout.addWidget(logo)
+        logo = QLabel("JUANA CASH")
+        logo.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        logo.setStyleSheet("color: #e63946; border: none; font-weight: bold;")
+        navbar_layout.addWidget(logo)
 
-        self.lbl_cajero_sidebar = QLabel("")
-        self.lbl_cajero_sidebar.setStyleSheet("color: #a0a0b0; font-size: 11px; padding: 0 20px 10px 20px;")
-        self.lbl_cajero_sidebar.setWordWrap(True)
-        sidebar_layout.addWidget(self.lbl_cajero_sidebar)
+        navbar_layout.addSpacing(30)
 
         self.btns_menu = {}
-        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia"]
+        # Agregamos "importador" a la lista de menús de administrador
+        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador"]
+        
+        # Agregamos el botón a la lista visual
         menus = [
-            ("🛒  Ventas",       "ventas"),
-            ("📦  Productos",    "productos"),
-            ("👥  Clientes",     "clientes"),
-            ("🧾  Caja",         "caja"),
-            ("📊  Reportes",     "reportes"),
-            ("📈  Dashboard",    "dashboard"),
-            ("📦  Stock",         "stock"),
-            ("💰  Precios",       "precios"),
-            ("🤖  IA",            "ia"),
-            ("⚙️  Config",        "config"),
-            ("📋  Sesiones",     "sesiones"),
-            ("👤  Usuarios",     "usuarios"),
+            ("🛒 Ventas",      "ventas"),
+            ("📦 Prod.",        "productos"),
+            ("👥 Client.",      "clientes"),
+            ("🧾 Caja",         "caja"),
+            ("📊 Repor.",       "reportes"),
+            ("📈 Dash",         "dashboard"),
+            ("📋 Stock",        "stock"),
+            ("💰 Prec.",        "precios"),
+            ("🤖 IA",           "ia"),
+            ("⚙️ Config",       "config"),
+            ("📋 Ses.",         "sesiones"),
+            ("👤 Usuar.",       "usuarios"),
+            ("📥 Importar",     "importador"),
         ]
+        
         for texto, key in menus:
             btn = QPushButton(texto)
-            btn.setFixedHeight(48)
+            btn.setFixedHeight(60)
+            btn.setCheckable(True)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet("""
-                QPushButton { background: transparent; color: #a0a0b0; text-align: left;
-                              padding-left: 20px; font-size: 14px; border: none; }
-                QPushButton:hover { background: #0f3460; color: white; }
+                QPushButton { background: transparent; color: #8899aa; font-size: 13px; font-weight: bold; border: none; padding: 0 12px; border-bottom: 3px solid transparent;}
+                QPushButton:hover { color: #f0f0f0; background: #111d33; border-bottom: 3px solid #8899aa;}
+                QPushButton:checked { color: white; background: #111d33; border-bottom: 3px solid #e63946;}
             """)
             btn.clicked.connect(lambda _, k=key: self.cambiar_pantalla(k))
-            sidebar_layout.addWidget(btn)
+            navbar_layout.addWidget(btn)
             self.btns_menu[key] = btn
 
-        sidebar_layout.addStretch()
-        btn_salir = QPushButton("🚪  Cerrar sesión")
-        btn_salir.setFixedHeight(48)
-        btn_salir.setStyleSheet("QPushButton { background: transparent; color: #e94560; text-align: left; padding-left: 20px; font-size: 14px; border: none; }")
+        navbar_layout.addStretch()
+
+        self.lbl_cajero_navbar = QLabel("")
+        self.lbl_cajero_navbar.setStyleSheet("color: #f0f0f0; font-size: 13px; border: none; margin-right: 15px;")
+        navbar_layout.addWidget(self.lbl_cajero_navbar)
+
+        btn_salir = QPushButton("Salir")
+        btn_salir.setFixedHeight(36)
+        btn_salir.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_salir.setStyleSheet("""
+            QPushButton { background: transparent; color: #8899aa; font-size: 13px; font-weight: bold; border: 1px solid #1a2744; border-radius: 6px; padding: 0 15px;}
+            QPushButton:hover { background: #e63946; color: white; border-color: #e63946;}
+        """)
         btn_salir.clicked.connect(self.on_logout)
-        sidebar_layout.addWidget(btn_salir)
-        self.main_layout.addWidget(self.sidebar)
+        navbar_layout.addWidget(btn_salir)
+        
+        self.main_layout.addWidget(self.navbar)
 
         # ── Stack de pantallas ────────────────────────────────────────────────
         self.stack = QStackedWidget()
+        self.stack.setStyleSheet("background-color: transparent;")
         self.main_layout.addWidget(self.stack)
 
         self.login_screen    = LoginScreen(self.on_login_exitoso)
@@ -211,6 +230,7 @@ class MainWindow(QMainWindow):
         self.precios_screen = PreciosMasivosScreen()
         self.ia_screen = IAScreen()
         self.config_screen = ConfigScreen()
+        self.importador_screen = ImportadorScreen() # ACTIVAMOS LA NAVE
 
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
@@ -220,7 +240,8 @@ class MainWindow(QMainWindow):
             self.stock_screen,
             self.precios_screen,
             self.ia_screen,
-            self.config_screen
+            self.config_screen,
+            self.importador_screen # LO METEMOS AL STACK
         ]:
             self.stack.addWidget(screen)
 
@@ -228,10 +249,19 @@ class MainWindow(QMainWindow):
 
     def cambiar_pantalla(self, key):
         rol = self.cajero_actual.get("rol", "cajero") if self.cajero_actual else "cajero"
+        
         if key in self.menus_admin and rol not in ["admin", "encargado"]:
             QMessageBox.warning(self, "Acceso denegado",
                 "Solo admin o encargado pueden acceder a esta sección")
+            for k, btn in self.btns_menu.items():
+                btn.setChecked(btn.property("activo") == True)
             return
+
+        for k, btn in self.btns_menu.items():
+            es_activo = (k == key)
+            btn.setChecked(es_activo)
+            btn.setProperty("activo", es_activo)
+
         pantallas = {
             "ventas":    self.ventas_screen,
             "productos": self.productos_screen,
@@ -245,6 +275,7 @@ class MainWindow(QMainWindow):
             "precios":   self.precios_screen,
             "ia":        self.ia_screen,
             "config":    self.config_screen,
+            "importador": self.importador_screen, # LO CONECTAMOS AL BOTON
         }
         if key in pantallas:
             acciones = {
@@ -275,42 +306,32 @@ class MainWindow(QMainWindow):
         turno  = cajero.get("turno", "")
         rol    = cajero.get("rol", "cajero")
 
-        self.lbl_cajero_sidebar.setText(f"👤 {nombre}\n🎖 {rol}\n🕐 {turno[:5]}")
+        self.lbl_cajero_navbar.setText(f"👤 {nombre} | 🎖 {rol} | 🕐 {turno[:5]}")
 
         for key, btn in self.btns_menu.items():
             if key in self.menus_admin and rol not in ["admin", "encargado"]:
-                btn.setStyleSheet("""
-                    QPushButton { background: transparent; color: #555; text-align: left;
-                                  padding-left: 20px; font-size: 14px; border: none; }
-                """)
+                btn.hide() 
             else:
-                btn.setStyleSheet("""
-                    QPushButton { background: transparent; color: #a0a0b0; text-align: left;
-                                  padding-left: 20px; font-size: 14px; border: none; }
-                    QPushButton:hover { background: #0f3460; color: white; }
-                """)
+                btn.show()
 
         self.ventas_screen.set_usuario(cajero)
         self.caja_screen.set_usuario(cajero)
-        self.sidebar.show()
-        self.stack.setCurrentWidget(self.ventas_screen)
+        
+        self.navbar.show() 
+        self.cambiar_pantalla("ventas") 
 
-        # Timer de timeout de sesión
         if not hasattr(self, '_timer_timeout'):
             self._timer_timeout = QTimer()
             self._timer_timeout.timeout.connect(self._check_timeout)
         self._ultimo_movimiento = datetime.now()
         self._timeout_minutos = 30
-        self._timer_timeout.start(60000)  # verificar cada minuto
+        self._timer_timeout.start(60000)
 
-        # Timer de sincronización offline
         if not hasattr(self, '_timer_offline'):
             self._timer_offline = QTimer()
             self._timer_offline.timeout.connect(self._sync_offline)
-        self._timer_offline.start(30000)  # cada 30 segundos
+        self._timer_offline.start(30000)
         self.setWindowTitle(f"Juana Cash — {nombre} | {rol} | {turno[:5]}")
-
-        # Alertas disponibles manualmente desde el menú de clientes
 
     def verificar_cumpleanos(self):
         try:
@@ -319,9 +340,7 @@ class MainWindow(QMainWindow):
                 data = r.json()
                 if data:
                     dialog = AlertaCumpleanosDialog(self, data)
-                    dialog.setWindowFlags(
-                        dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint
-                    )
+                    dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
                     dialog.raise_()
                     dialog.activateWindow()
                     dialog.exec()
@@ -335,9 +354,7 @@ class MainWindow(QMainWindow):
                 data = r.json()
                 if data:
                     dialog = AlertaDeudoresDialog(self, data)
-                    dialog.setWindowFlags(
-                        dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint
-                    )
+                    dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
                     dialog.raise_()
                     dialog.activateWindow()
                     dialog.exec()
@@ -345,7 +362,6 @@ class MainWindow(QMainWindow):
             pass
 
     def _check_timeout(self):
-        """Cierra sesión automáticamente por inactividad."""
         if not self.cajero_actual:
             return
         try:
@@ -361,18 +377,14 @@ class MainWindow(QMainWindow):
             self.on_logout()
 
     def _sync_offline(self):
-        """Sincroniza ventas offline cuando vuelve la conexión."""
         if sincronizar_cola is None:
             return
         pendientes = cantidad_pendientes()
         if pendientes > 0:
             enviadas, fallidas, _ = sincronizar_cola()
             if enviadas > 0:
-                self.setWindowTitle(self.windowTitle().split(" 📡")[0] +
-                    f" ✅ {enviadas} venta(s) sincronizada(s)")
-                QTimer.singleShot(5000, lambda: self.setWindowTitle(
-                    self.windowTitle().split(" ✅")[0]))
-        # Actualizar indicador en barra de título
+                self.setWindowTitle(self.windowTitle().split(" 📡")[0] + f" ✅ {enviadas} venta(s) sincronizada(s)")
+                QTimer.singleShot(5000, lambda: self.setWindowTitle(self.windowTitle().split(" ✅")[0]))
         aun_pendientes = cantidad_pendientes()
         titulo_base = self.windowTitle().split(" 📡")[0].split(" ✅")[0]
         if aun_pendientes > 0:
@@ -381,19 +393,17 @@ class MainWindow(QMainWindow):
             self.setWindowTitle(titulo_base)
 
     def mousePressEvent(self, event):
-        """Resetea el timer de inactividad al hacer click."""
         self._ultimo_movimiento = datetime.now()
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event):
-        """Resetea el timer de inactividad al presionar teclas."""
         self._ultimo_movimiento = datetime.now()
         super().keyPressEvent(event)
 
     def on_logout(self):
         self.usuario_actual = None
         self.cajero_actual = None
-        self.sidebar.hide()
+        self.navbar.hide() 
         self.stack.setCurrentWidget(self.login_screen)
         self.setWindowTitle("Juana Cash - Sistema POS")
         if hasattr(self, '_timer_timeout'):

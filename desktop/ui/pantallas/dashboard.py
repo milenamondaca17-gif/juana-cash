@@ -1,7 +1,7 @@
 import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QFrame, QScrollArea, QGridLayout,
-                              QSizePolicy)
+                             QPushButton, QFrame, QScrollArea, QGridLayout,
+                             QSizePolicy)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen
 from datetime import datetime
@@ -142,9 +142,10 @@ class DashboardScreen(QWidget):
         self.grid_kpi = QGridLayout()
         self.grid_kpi.setSpacing(10)
 
-        self.card_total = KPICard("💰", "VENTAS HOY", "$0.00", "#e94560")
+        # ACÁ ESTABA EL ERROR: Le agrego el 5to parámetro ("-") para que nazca con el texto creado
+        self.card_total = KPICard("💰", "VENTAS HOY", "$0", "#e94560", "-")
         self.card_tickets = KPICard("🧾", "TICKETS HOY", "0", "#3498db")
-        self.card_promedio = KPICard("📈", "TICKET PROMEDIO", "$0.00", "#27ae60")
+        self.card_promedio = KPICard("📈", "TICKET PROMEDIO", "$0", "#27ae60")
         self.card_metodo = KPICard("💳", "MÉTODO PRINCIPAL", "-", "#f39c12")
 
         self.grid_kpi.addWidget(self.card_total, 0, 0)
@@ -157,7 +158,6 @@ class DashboardScreen(QWidget):
         fila2 = QHBoxLayout()
         fila2.setSpacing(10)
 
-        # Panel métodos de pago
         self.panel_metodos = QFrame()
         self.panel_metodos.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
         self.panel_metodos.setMinimumHeight(180)
@@ -173,7 +173,6 @@ class DashboardScreen(QWidget):
         self.metodos_layout.addStretch()
         fila2.addWidget(self.panel_metodos, 1)
 
-        # Panel top productos
         self.panel_top = QFrame()
         self.panel_top.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
         self.panel_top.setMinimumHeight(180)
@@ -227,30 +226,43 @@ class DashboardScreen(QWidget):
             if r.status_code == 200:
                 self.datos = r.json()
                 self.actualizar_ui()
-        except Exception:
-            self.lbl_hora.setText("⚠️ Sin conexión al servidor")
+            else:
+                self.lbl_hora.setText(f"⚠️ Error del servidor: {r.status_code}")
+        except Exception as e:
+            self.lbl_hora.setText(f"⚠️ Bug: {str(e)[:40]}") 
+            print(f"ERROR: {e}")
 
     def actualizar_ui(self):
-        if not self.datos:
+        if not self.datos or not isinstance(self.datos, dict):
             return
         d = self.datos
 
+        def to_float(val):
+            try: return float(val)
+            except: return 0.0
+
+        def to_int(val):
+            try: return int(val)
+            except: return 0
+
         # KPIs
-        total = d.get("total_hoy", 0)
-        var = d.get("variacion_pct", 0)
+        total = to_float(d.get("total_hoy"))
+        var = to_float(d.get("variacion_pct"))
         signo = "▲" if var >= 0 else "▼"
         color_var = "#27ae60" if var >= 0 else "#e94560"
-        self.card_total.actualizar(
-            f"${total:,.0f}",
-            f'<span style="color:{color_var}">{signo} {abs(var):.1f}% vs ayer</span>'
-        )
-        self.card_total.lbl_sub.setText(f"{signo} {abs(var):.1f}% vs ayer")
-        self.card_total.lbl_sub.setStyleSheet(f"color: {color_var}; font-size: 11px; background: transparent; border: none;")
+        
+        self.card_total.actualizar(f"${total:,.0f}", f"{signo} {abs(var):.1f}% vs ayer")
+        # Protección extra antes de pintar el color
+        if self.card_total.lbl_sub:
+            self.card_total.lbl_sub.setStyleSheet(f"color: {color_var}; font-size: 11px; background: transparent; border: none;")
 
-        self.card_tickets.actualizar(str(d.get("tickets_hoy", 0)))
-        self.card_promedio.actualizar(f"${d.get('ticket_promedio', 0):,.0f}")
+        tickets = to_int(d.get("tickets_hoy"))
+        self.card_tickets.actualizar(str(tickets))
+        
+        promedio = to_float(d.get("ticket_promedio"))
+        self.card_promedio.actualizar(f"${promedio:,.0f}")
 
-        metodo_principal = d.get("metodo_mas_usado", "efectivo")
+        metodo_principal = str(d.get("metodo_mas_usado") or "efectivo")
         nombre_mp = NOMBRES_METODO.get(metodo_principal, metodo_principal)
         color_mp = COLORES_METODO.get(metodo_principal, "#f39c12")
         self.card_metodo.actualizar(nombre_mp)
@@ -262,9 +274,13 @@ class DashboardScreen(QWidget):
             if child.widget():
                 child.widget().deleteLater()
 
-        desglose = d.get("desglose_metodos", {})
-        total_metodos = sum(desglose.values()) or 1
-        for metodo, monto in sorted(desglose.items(), key=lambda x: x[1], reverse=True):
+        desglose = d.get("desglose_metodos")
+        if not isinstance(desglose, dict): 
+            desglose = {}
+            
+        total_metodos = sum(to_float(v) for v in desglose.values()) or 1
+        for metodo, monto in sorted(desglose.items(), key=lambda x: to_float(x[1]), reverse=True):
+            monto_f = to_float(monto)
             fila = QFrame()
             fila.setStyleSheet("QFrame { background: transparent; border: none; }")
             fila_layout = QVBoxLayout(fila)
@@ -273,14 +289,14 @@ class DashboardScreen(QWidget):
 
             nombre = NOMBRES_METODO.get(metodo, metodo)
             color = COLORES_METODO.get(metodo, "#95a5a6")
-            pct = (monto / total_metodos) * 100
+            pct = (monto_f / total_metodos) * 100
 
             top_row = QHBoxLayout()
             lbl_n = QLabel(nombre)
             lbl_n.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: bold;")
             top_row.addWidget(lbl_n)
             top_row.addStretch()
-            lbl_v = QLabel(f"${monto:,.0f}  ({pct:.0f}%)")
+            lbl_v = QLabel(f"${monto_f:,.0f}  ({pct:.0f}%)")
             lbl_v.setStyleSheet("color: white; font-size: 12px;")
             top_row.addWidget(lbl_v)
             fila_layout.addLayout(top_row)
@@ -303,20 +319,30 @@ class DashboardScreen(QWidget):
             if child.widget():
                 child.widget().deleteLater()
 
+        top_prod = d.get("top_productos")
+        if not isinstance(top_prod, list):
+            top_prod = []
+            
         medallas = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
-        for i, prod in enumerate(d.get("top_productos", [])):
+        for i, prod in enumerate(top_prod):
+            if not isinstance(prod, dict): continue
             fila = QHBoxLayout()
             lbl_med = QLabel(medallas[i] if i < len(medallas) else f"{i+1}.")
             lbl_med.setFixedWidth(24)
             lbl_med.setStyleSheet("font-size: 13px;")
             fila.addWidget(lbl_med)
-            lbl_nombre = QLabel(prod["nombre"][:28] + ("..." if len(prod["nombre"]) > 28 else ""))
+            
+            nombre_prod = str(prod.get("nombre", "Desconocido"))
+            lbl_nombre = QLabel(nombre_prod[:28] + ("..." if len(nombre_prod) > 28 else ""))
             lbl_nombre.setStyleSheet("color: white; font-size: 12px;")
             fila.addWidget(lbl_nombre)
             fila.addStretch()
-            lbl_total = QLabel(f"${prod['total']:,.0f}")
+            
+            total_prod = to_float(prod.get("total", 0))
+            lbl_total = QLabel(f"${total_prod:,.0f}")
             lbl_total.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold;")
             fila.addWidget(lbl_total)
+            
             w = QWidget()
             w.setStyleSheet("background: transparent;")
             w.setLayout(fila)
@@ -328,16 +354,20 @@ class DashboardScreen(QWidget):
             if child.widget():
                 child.widget().deleteLater()
 
-        horas_data = d.get("horas_hoy", [])
-        max_v = max((h["ventas"] for h in horas_data), default=1) or 1
+        horas_data = d.get("horas_hoy")
+        if not isinstance(horas_data, list):
+            horas_data = []
+            
+        max_v = max((to_float(h.get("ventas", 0)) for h in horas_data if isinstance(h, dict)), default=1) or 1
         hora_pico = d.get("hora_pico")
 
         for h in horas_data:
-            barra = BarraHora(h["hora"], h["ventas"], max_v)
+            if not isinstance(h, dict): continue
+            barra = BarraHora(to_int(h.get("hora", 0)), to_float(h.get("ventas", 0)), max_v)
             self.barras_container.addWidget(barra)
 
         if hora_pico is not None:
-            self.lbl_pico.setText(f"🔥 Pico: {hora_pico:02d}:00 hs")
+            self.lbl_pico.setText(f"🔥 Pico: {to_int(hora_pico):02d}:00 hs")
         else:
             self.lbl_pico.setText("")
 

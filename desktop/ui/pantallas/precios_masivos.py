@@ -1,14 +1,27 @@
 import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QLineEdit, QFrame, QMessageBox,
-                              QTableWidget, QTableWidgetItem, QHeaderView,
-                              QDialog, QDoubleSpinBox, QSpinBox, QComboBox,
-                              QCheckBox, QProgressBar, QScrollArea)
+                             QPushButton, QLineEdit, QFrame, QMessageBox,
+                             QTableWidget, QTableWidgetItem, QHeaderView,
+                             QDialog, QDoubleSpinBox, QSpinBox, QComboBox,
+                             QCheckBox, QProgressBar, QScrollArea)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
 
 API_URL = "http://127.0.0.1:8000"
 
+# Agregamos la misma lista que usamos en la caja para que no dependa de la base de datos
+DEPARTAMENTOS = {
+    "900": {"nombre": "Carnicería",  "icono": "🥩"},
+    "901": {"nombre": "Verdulería",  "icono": "🥬"},
+    "902": {"nombre": "Panadería",   "icono": "🍞"},
+    "903": {"nombre": "Fiambrería",  "icono": "🧀"},
+    "904": {"nombre": "Lácteos",     "icono": "🥛"},
+    "905": {"nombre": "Limpieza",    "icono": "🧹"},
+    "906": {"nombre": "Bebidas",     "icono": "🍻"},
+    "907": {"nombre": "Cigarrería",  "icono": "🚬"},
+    "908": {"nombre": "Confitería",  "icono": "🍬"},
+    "909": {"nombre": "Varios",      "icono": "📦"},
+}
 
 class PreviewDialog(QDialog):
     """Vista previa de cómo quedarán los precios antes de aplicar."""
@@ -61,7 +74,7 @@ class PreviewDialog(QDialog):
         btn_cancelar.clicked.connect(self.reject)
         btns.addWidget(btn_cancelar)
 
-        self.btn_aplicar = QPushButton("✅ Aplicar a TODOS los productos")
+        self.btn_aplicar = QPushButton("✅ Aplicar a seleccionados")
         self.btn_aplicar.setFixedHeight(40)
         self.btn_aplicar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_aplicar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; padding: 0 16px; }")
@@ -73,6 +86,7 @@ class PreviewDialog(QDialog):
         try:
             params = {"porcentaje": self.porcentaje, "redondeo": self.redondeo}
             if self.categoria_id:
+                # Buscamos por el código interno de la categoría (ej: "900")
                 params["categoria_id"] = self.categoria_id
             r = requests.get(f"{API_URL}/productos/preview-actualizacion",
                              params=params, timeout=5)
@@ -92,7 +106,6 @@ class PreviewDialog(QDialog):
 class PreciosMasivosScreen(QWidget):
     def __init__(self):
         super().__init__()
-        self.categorias = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -162,13 +175,17 @@ class PreciosMasivosScreen(QWidget):
         col_red.addWidget(self.combo_redondeo)
         fila1.addLayout(col_red)
 
-        # Categoría
+        # Categoría (AHORA CARGADA A MANO Y BLINDADA)
         col_cat = QVBoxLayout()
         lbl_cat = QLabel("Aplicar a:")
         lbl_cat.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         col_cat.addWidget(lbl_cat)
         self.combo_cat = QComboBox()
         self.combo_cat.addItem("📦 Todos los productos", None)
+        # Cargamos los departamentos de la lista que hicimos arriba
+        for codigo, datos in DEPARTAMENTOS.items():
+            self.combo_cat.addItem(f"  {datos['icono']} {datos['nombre']}", codigo)
+            
         self.combo_cat.setFixedHeight(44)
         self.combo_cat.setStyleSheet("""
             QComboBox { background: #0f3460; border: 1px solid #9b59b6; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }
@@ -245,18 +262,6 @@ class PreciosMasivosScreen(QWidget):
 
         layout.addStretch()
 
-        # Cargar categorías
-        self.cargar_categorias()
-
-    def cargar_categorias(self):
-        try:
-            r = requests.get(f"{API_URL}/productos/categorias", timeout=5)
-            if r.status_code == 200:
-                self.categorias = r.json()
-                for cat in self.categorias:
-                    self.combo_cat.addItem(f"  {cat['nombre']}", cat["id"])
-        except Exception:
-            pass
 
     def get_redondeo(self):
         idx = self.combo_redondeo.currentIndex()
@@ -298,7 +303,7 @@ class PreciosMasivosScreen(QWidget):
                               json=payload, timeout=15)
             if r.status_code == 200:
                 datos = r.json()
-                n = datos["actualizados"]
+                n = datos.get("actualizados", 0)
                 red_txt = f" (redondeado a ${redondeo})" if redondeo else ""
                 self.lbl_simulacion.setText(
                     f"✅ Se actualizaron {n} productos con +{pct:.1f}%{red_txt}"
@@ -307,18 +312,14 @@ class PreciosMasivosScreen(QWidget):
                 hist = self.lbl_historial.text()
                 if hist == "Sin cambios aplicados aún.":
                     hist = ""
+                cat_nombre = self.combo_cat.currentText().strip()
                 self.lbl_historial.setText(
-                    hist + f"• +{pct:.1f}%{red_txt} → {n} productos\n"
+                    hist + f"• +{pct:.1f}% a {cat_nombre} {red_txt} → {n} productos\n"
                 )
                 self.lbl_historial.setStyleSheet("color: #a0a0b0; font-size: 12px;")
                 QMessageBox.information(self, "✅ Listo",
                     f"Se actualizaron {n} productos con +{pct:.1f}%{red_txt}")
             else:
-                QMessageBox.critical(self, "Error", "No se pudo aplicar la actualización")
+                QMessageBox.critical(self, "Error", "No se pudo aplicar la actualización. Verifica la consola del backend.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        if not self.categorias:
-            self.cargar_categorias()
