@@ -23,6 +23,7 @@ from ui.pantallas.precios_masivos import PreciosMasivosScreen
 from ui.pantallas.ia_screen import IAScreen
 from ui.pantallas.config_screen import ConfigScreen
 from ui.pantallas.importador import ImportadorScreen # LA NUEVA NAVE
+from ui.pantallas.etiquetas.generador_etiquetas import GeneradorEtiquetasScreen # <-- LA FÁBRICA DE ETIQUETAS
 
 try:
     from ui.pantallas.offline_manager import sincronizar_cola, cantidad_pendientes, servidor_disponible
@@ -159,8 +160,8 @@ class MainWindow(QMainWindow):
         navbar_layout.addSpacing(30)
 
         self.btns_menu = {}
-        # Agregamos "importador" a la lista de menús de administrador
-        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador"]
+        # <-- Agregamos "etiquetas" a los accesos de admin
+        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador", "etiquetas"]
         
         # Agregamos el botón a la lista visual
         menus = [
@@ -177,6 +178,7 @@ class MainWindow(QMainWindow):
             ("📋 Ses.",         "sesiones"),
             ("👤 Usuar.",       "usuarios"),
             ("📥 Importar",     "importador"),
+            ("🖨️ Etiq.",        "etiquetas"), # <-- EL BOTÓN DE LA FÁBRICA
         ]
         
         for texto, key in menus:
@@ -230,7 +232,8 @@ class MainWindow(QMainWindow):
         self.precios_screen = PreciosMasivosScreen()
         self.ia_screen = IAScreen()
         self.config_screen = ConfigScreen()
-        self.importador_screen = ImportadorScreen() # ACTIVAMOS LA NAVE
+        self.importador_screen = ImportadorScreen()
+        self.etiquetas_screen = GeneradorEtiquetasScreen() # <-- INICIAMOS LA FÁBRICA
 
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
@@ -241,7 +244,8 @@ class MainWindow(QMainWindow):
             self.precios_screen,
             self.ia_screen,
             self.config_screen,
-            self.importador_screen # LO METEMOS AL STACK
+            self.importador_screen,
+            self.etiquetas_screen # <-- LA SUMAMOS AL STACK
         ]:
             self.stack.addWidget(screen)
 
@@ -275,7 +279,8 @@ class MainWindow(QMainWindow):
             "precios":   self.precios_screen,
             "ia":        self.ia_screen,
             "config":    self.config_screen,
-            "importador": self.importador_screen, # LO CONECTAMOS AL BOTON
+            "importador": self.importador_screen,
+            "etiquetas": self.etiquetas_screen, # <-- CONECTAMOS LA LLAVE
         }
         if key in pantallas:
             acciones = {
