@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QTableWidgetItem, QHeaderView, QMessageBox,
                              QScrollArea, QDateEdit, QLineEdit)
 from PyQt6.QtCore import Qt, QDate
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont, QColor, QBrush
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -80,16 +80,20 @@ class ReportesScreen(QWidget):
         
         layout.addLayout(filtros_lay)
 
-        # ── TARJETAS DE CONTEO ───────────────────────────────────────────────
+        # ── TARJETAS DE CONTEO (CON PC Y CELULAR) ────────────────────────────
         conteo_frame = QFrame()
         conteo_frame.setStyleSheet("background: #16213e; border-radius: 12px;")
         conteo_lay = QHBoxLayout(conteo_frame)
         
         self.card_total = self.crear_mini_card("TOTAL PERÍODO", "$0", "#e94560")
+        self.card_pc = self.crear_mini_card("💻 MOSTRADOR", "$0", "#3B82F6")     # NUEVA TARJETA
+        self.card_celular = self.crear_mini_card("📱 CELULAR", "$0", "#F59E0B") # NUEVA TARJETA
         self.card_tickets = self.crear_mini_card("CANT. TICKETS", "0", "#3498db")
         self.card_promedio = self.crear_mini_card("PROMEDIO", "$0", "#27ae60")
         
         conteo_lay.addWidget(self.card_total[0])
+        conteo_lay.addWidget(self.card_pc[0])
+        conteo_lay.addWidget(self.card_celular[0])
         conteo_lay.addWidget(self.card_tickets[0])
         conteo_lay.addWidget(self.card_promedio[0])
         layout.addWidget(conteo_frame)
@@ -122,8 +126,9 @@ class ReportesScreen(QWidget):
         ventas_vlay = QVBoxLayout()
         ventas_vlay.addWidget(QLabel("📜 HISTORIAL DETALLADO", styleSheet="color: #a0a0b0; font-size: 11px; font-weight: bold;"))
         self.tabla_ventas = QTableWidget()
-        self.tabla_ventas.setColumnCount(4)
-        self.tabla_ventas.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Hora"])
+        
+        self.tabla_ventas.setColumnCount(5) # AHORA SON 5 COLUMNAS
+        self.tabla_ventas.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Hora"]) # SE AGREGA "ORIGEN"
         self.tabla_ventas.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla_ventas.setStyleSheet("background: #16213e; gridline-color: #0f3460; color: white;")
         ventas_vlay.addWidget(self.tabla_ventas)
@@ -141,7 +146,6 @@ class ReportesScreen(QWidget):
         tablas_split.addLayout(top_vlay, 2)
 
         layout.addLayout(tablas_split)
-
     def crear_mini_card(self, titulo, valor, color):
         card = QFrame()
         l = QVBoxLayout(card)
@@ -178,9 +182,25 @@ class ReportesScreen(QWidget):
                 d = r.json()
                 ventas = d.get("ventas", [])
                 
-                # Totales blindados
-                total_periodo = sum(float(v["total"]) for v in ventas)
+                # TOTALES SEPARADOS (NUEVO)
+                total_periodo = 0.0
+                total_pc = 0.0
+                total_celular = 0.0
+                
+                for v in ventas:
+                    monto = float(v.get("total", 0))
+                    total_periodo += monto
+                    
+                    origen = str(v.get("origen", "mostrador")).lower()
+                    if origen == "celular":
+                        total_celular += monto
+                    else:
+                        total_pc += monto
+                
                 self.card_total[1].setText(f"${total_periodo:,.2f}")
+                self.card_pc[1].setText(f"${total_pc:,.2f}")
+                self.card_celular[1].setText(f"${total_celular:,.2f}")
+                
                 self.card_tickets[1].setText(str(len(ventas)))
                 promedio = total_periodo / len(ventas) if ventas else 0
                 self.card_promedio[1].setText(f"${promedio:,.0f}")
@@ -199,7 +219,6 @@ class ReportesScreen(QWidget):
                     m2 = v.get("metodo_secundario")
                     txt_metodo = m1.upper()
                     
-                    # Sumamos al reporte (esto es lo que pedías para que la caja sepa)
                     if m2:
                         txt_metodo = f"MIXTO"
                         monto2 = float(v.get("monto_secundario", 0))
@@ -210,14 +229,26 @@ class ReportesScreen(QWidget):
                         if m1 in totales_metodo: totales_metodo[m1] += float(v["total"])
 
                     self.tabla_ventas.setItem(i, 2, QTableWidgetItem(txt_metodo))
+                    
+                    # COLUMNA ORIGEN (NUEVA)
+                    origen = str(v.get("origen", "mostrador")).lower()
+                    if origen == "celular":
+                        item_origen = QTableWidgetItem("📱 Celular")
+                        item_origen.setForeground(QBrush(QColor("#F59E0B")))
+                    else:
+                        item_origen = QTableWidgetItem("💻 Mostrador")
+                        item_origen.setForeground(QBrush(QColor("#3B82F6")))
+                    
+                    self.tabla_ventas.setItem(i, 3, item_origen)
+                    
                     hora = v["fecha"].split("T")[1][:5] if "T" in v["fecha"] else v["fecha"][-8:-3]
-                    self.tabla_ventas.setItem(i, 3, QTableWidgetItem(hora))
+                    self.tabla_ventas.setItem(i, 4, QTableWidgetItem(hora))
 
                 # Actualizar cards de métodos
                 for k, lbl in self.cards_metodo.items():
                     lbl.setText(f"${totales_metodo[k]:,.0f}")
 
-                # Top Productos (Desde el mismo JSON o llamada aparte)
+                # Top Productos
                 r_top = requests.get(f"{API_URL}/reportes/productos-mas-vendidos", timeout=5)
                 if r_top.status_code == 200:
                     top = r_top.json()
@@ -231,4 +262,4 @@ class ReportesScreen(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.cargar_datos()
+        self.cargar_datos()    

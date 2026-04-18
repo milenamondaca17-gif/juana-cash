@@ -1,244 +1,131 @@
 import requests
 import json
 import os
-from datetime import datetime
-import sys
-from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
-                             QLineEdit, QPushButton, QFrame, QMessageBox, QCheckBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QFrame, QMessageBox, QComboBox)
+from PyQt6.QtCore import Qt, QTimer
 
 API_URL = "http://127.0.0.1:8000"
+# Definimos la ruta del archivo de sesión para que no tire error
 ARCHIVO_SESION = os.path.join(os.path.expanduser("~"), ".juanacash_sesion.json")
 
 class LoginScreen(QWidget):
     def __init__(self, on_login_callback):
         super().__init__()
         self.on_login_callback = on_login_callback
+        self.pin_acumulado = ""
         self.setup_ui()
-        self.cargar_sesion_guardada()
+        
+        # Intentar cargar usuarios cada 3 segundos hasta que el servidor prenda
+        self.timer_reconexion = QTimer()
+        self.timer_reconexion.timeout.connect(self.cargar_usuarios_servidor)
+        self.timer_reconexion.start(3000)
 
     def setup_ui(self):
-        # Layout principal
-        layout_principal = QVBoxLayout()
-        layout_principal.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setLayout(layout_principal)
-        
-        # EL TRAJE: ESTILO "NUEVA GENERACIÓN" (Adaptado a tu paleta Juana Cash: Azul oscuro y Rojo)
         self.setStyleSheet("""
-            QWidget {
-                background-color: #050e1a; /* Fondo principal de tu MainWindow */
-            }
-            QFrame#CajaLogin {
-                background-color: #0a1628; /* Fondo de la tarjeta */
-                border-radius: 15px;
-                border: 1px solid #1a2744;
-            }
-            QLabel#Titulo {
-                color: #e63946; /* Rojo Juana Cash */
-                font-size: 32px;
-                font-weight: bold;
-                font-family: 'Segoe UI', Arial;
-            }
-            QLabel#Subtitulo {
-                color: #8899aa;
-                font-size: 14px;
-                margin-bottom: 20px;
-            }
-            QLineEdit {
-                background-color: #111d33;
-                color: #f0f0f0;
-                border: 1px solid #1a2744;
-                border-radius: 8px;
-                padding: 15px;
-                font-size: 14px;
-                margin-bottom: 15px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #e63946;
-            }
-            QCheckBox {
-                color: #8899aa;
-                font-size: 13px;
-                margin-bottom: 15px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border-radius: 4px;
-                border: 1px solid #1a2744;
-                background-color: #111d33;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #e63946;
-                border: 1px solid #e63946;
-            }
-            QPushButton#BtnIngresar {
-                background-color: #e63946;
-                color: white;
-                font-weight: bold;
-                font-size: 16px;
-                border-radius: 8px;
-                padding: 15px;
-                margin-top: 10px;
-            }
-            QPushButton#BtnIngresar:hover {
-                background-color: #c73652;
-            }
+            QWidget { background-color: #050e1a; }
+            QFrame#CajaLogin { background-color: #0a1628; border-radius: 20px; border: 2px solid #1a2744; }
+            QLabel#Titulo { color: #e63946; font-size: 38px; font-weight: bold; }
+            QLineEdit#PinDisplay { background: #050e1a; color: #e63946; border: none; font-size: 45px; font-weight: bold; text-align: center; }
+            QPushButton.BtnNum { background: #1a2744; color: white; font-size: 24px; font-weight: bold; border-radius: 12px; min-height: 60px; }
+            QPushButton#BtnIngresar { background-color: #34C38F; color: #050e1a; font-weight: bold; font-size: 22px; border-radius: 12px; min-height: 60px; }
         """)
 
-        # CAJA DEL LOGIN
-        caja_login = QFrame()
-        caja_login.setObjectName("CajaLogin")
-        caja_login.setFixedSize(380, 500)
-        layout_caja = QVBoxLayout(caja_login)
-        layout_caja.setContentsMargins(30, 40, 30, 40)
-        
-        # TEXTOS
-        titulo = QLabel("JUANA CASH")
-        titulo.setObjectName("Titulo")
-        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        subtitulo = QLabel("Terminal de Acceso - Palmira")
-        subtitulo.setObjectName("Subtitulo")
-        subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        caja = QFrame(); caja.setObjectName("CajaLogin"); caja.setFixedSize(400, 700)
+        lay_caja = QVBoxLayout(caja)
 
-        # CAJITAS DE TEXTO (Inputs)
-        self.input_email = QLineEdit()
-        self.input_email.setPlaceholderText("✉️ Email del operador")
-        
+        lay_caja.addWidget(QLabel("JUANA CASH", objectName="Titulo", alignment=Qt.AlignmentFlag.AlignCenter))
+        self.lbl_status = QLabel("🔄 Conectando al servidor...")
+        self.lbl_status.setStyleSheet("color: #f39c12; font-size: 12px;")
+        self.lbl_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lay_caja.addWidget(self.lbl_status)
+
+        self.combo_user = QComboBox()
+        self.combo_user.setStyleSheet("background: #111d33; color: white; padding: 10px; font-size: 16px;")
+        lay_caja.addWidget(self.combo_user)
+
         self.input_password = QLineEdit()
-        self.input_password.setPlaceholderText("🔑 Contraseña")
+        self.input_password.setObjectName("PinDisplay")
         self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.input_password.returnPressed.connect(self.hacer_login)
+        self.input_password.setReadOnly(True)
+        lay_caja.addWidget(self.input_password)
 
-        # CHECKBOX RECORDAR
-        self.check_recordar = QCheckBox("Recordar mi sesión")
+        grid = QVBoxLayout()
+        for fila in [["1","2","3"],["4","5","6"],["7","8","9"]]:
+            h = QHBoxLayout()
+            for n in fila:
+                b = QPushButton(n); b.setProperty("class", "BtnNum")
+                b.clicked.connect(lambda _, x=n: self.tecla(x))
+                h.addWidget(b)
+            grid.addLayout(h)
+        
+        f_b = QHBoxLayout()
+        b_l = QPushButton("Borrar"); b_l.clicked.connect(self.limpiar)
+        b_0 = QPushButton("0"); b_0.setProperty("class", "BtnNum"); b_0.clicked.connect(lambda: self.tecla("0"))
+        f_b.addWidget(b_l); f_b.addWidget(b_0)
+        grid.addLayout(f_b)
+        lay_caja.addLayout(grid)
 
-        # BOTÓN
-        self.btn_login = QPushButton("Ingresar al Mostrador")
-        self.btn_login.setObjectName("BtnIngresar")
-        self.btn_login.clicked.connect(self.hacer_login)
+        btn_e = QPushButton("ENTRAR", objectName="BtnIngresar")
+        btn_e.clicked.connect(self.hacer_login)
+        lay_caja.addWidget(btn_e)
+        layout.addWidget(caja)
 
-        # ARMAMOS LA CAJA
-        layout_caja.addWidget(titulo)
-        layout_caja.addWidget(subtitulo)
-        layout_caja.addWidget(self.input_email)
-        layout_caja.addWidget(self.input_password)
-        layout_caja.addWidget(self.check_recordar)
-        layout_caja.addStretch()
-        layout_caja.addWidget(self.btn_login)
+    def tecla(self, n):
+        if len(self.pin_acumulado) < 4:
+            self.pin_acumulado += n
+            self.input_password.setText(self.pin_acumulado)
 
-        layout_principal.addWidget(caja_login)
+    def limpiar(self):
+        self.pin_acumulado = ""; self.input_password.clear()
 
-    # ================================================================= LOGIC
-    def cargar_sesion_guardada(self):
-        """Intenta cargar sesión guardada y auto-login si el token es válido"""
+    def cargar_usuarios_servidor(self):
         try:
-            if not os.path.exists(ARCHIVO_SESION):
-                return
-            
-            with open(ARCHIVO_SESION, "r") as f:
-                datos = json.load(f)
-            
-            # Validar que tenga los campos necesarios
-            if "token" not in datos or "email" not in datos:
-                self.borrar_sesion()
-                return
-            
-            # Intentar validar el token haciendo un request simple
-            if self.validar_token(datos["token"]):
-                # Token válido - auto login
-                self.input_email.setText(datos["email"])
-                self.check_recordar.setChecked(True)
+            r = requests.get(f"{API_URL}/auth/usuarios", timeout=2) 
+            if r.status_code == 200:
+                usuarios = r.json()
+                self.combo_user.clear()
+                for u in usuarios:
+                    self.combo_user.addItem(u["nombre"], u["email"])
                 
-                # Notificar al callback con los datos guardados
-                usuario_data = {
-                    "token": datos["token"],
-                    "nombre": datos.get("nombre", ""),
-                    "rol": datos.get("rol", ""),
-                    "id": datos.get("id")
-                }
-                self.on_login_callback(usuario_data)
-            else:
-                # Token expirado o inválido - borrar sesión
-                self.borrar_sesion()
-                self.input_email.setText(datos["email"])  # Pre-llenar email
-                
-        except Exception as e:
-            # Si hay cualquier error, borrar sesión y continuar
-            self.borrar_sesion()
-
-    def validar_token(self, token):
-        """Valida el token contra el backend"""
-        try:
-            return True if token else False
+                self.lbl_status.setText("✅ Servidor conectado")
+                self.lbl_status.setStyleSheet("color: #27ae60;")
+                self.timer_reconexion.stop()
         except Exception:
-            return False
-
-    def guardar_sesion(self, email, datos_usuario):
-        """Guarda la sesión con el token JWT (NO la contraseña)"""
-        try:
-            sesion = {
-                "email": email,
-                "token": datos_usuario.get("token"),
-                "nombre": datos_usuario.get("nombre"),
-                "rol": datos_usuario.get("rol"),
-                "id": datos_usuario.get("id"),
-                "guardado_en": datetime.now().isoformat()
-            }
-            with open(ARCHIVO_SESION, "w") as f:
-                json.dump(sesion, f, indent=2)
-        except Exception as e:
-            print(f"Error al guardar sesión: {e}")
-
-    def borrar_sesion(self):
-        """Elimina el archivo de sesión de forma segura"""
-        try:
-            if os.path.exists(ARCHIVO_SESION):
-                os.remove(ARCHIVO_SESION)
-        except Exception as e:
-            print(f"Error al borrar sesión: {e}")
+            self.lbl_status.setText("❌ Servidor desconectado (reintentando...)")
 
     def hacer_login(self):
-        email = self.input_email.text().strip()
-        password = self.input_password.text().strip()
+        email = self.combo_user.currentData()
+        nombre = self.combo_user.currentText()
         
-        if not email or not password:
-            QMessageBox.warning(self, "Error", "Completá email y contraseña")
+        # --- EL TRUCO PARA ENTRAR YA MISMO CON TU PIN 1989 ---
+        if self.pin_acumulado == "1989":
+            print(f"Entrando con pase libre: {nombre}")
+            datos_usuario = {
+                "id": 1, 
+                "nombre": nombre, 
+                "rol": "admin", 
+                "email": email,
+                "token": "token_provisorio_lucas"
+            }
+            try:
+                with open(ARCHIVO_SESION, "w") as f:
+                    json.dump(datos_usuario, f)
+            except: pass
+            
+            self.on_login_callback(datos_usuario)
             return
+
+        if not email or not self.pin_acumulado: return
         
         try:
-            response = requests.post(f"{API_URL}/auth/login", json={
-                "email": email, 
-                "password": password
-            }, timeout=5)
-            
-            if response.status_code == 200:
-                datos_usuario = response.json()
-                
-                # Guardar sesión si está marcado "Recordarme"
-                if self.check_recordar.isChecked():
-                    self.guardar_sesion(email, datos_usuario)
-                else:
-                    self.borrar_sesion()
-                
-                # Notificar login exitoso
-                self.on_login_callback(datos_usuario)
+            r = requests.post(f"{API_URL}/auth/login", json={"email": email, "password": self.pin_acumulado}, timeout=5)
+            if r.status_code == 200:
+                self.on_login_callback(r.json())
             else:
-                QMessageBox.warning(self, "Error", "Email o contraseña incorrectos")
-                
-        except requests.exceptions.ConnectionError:
-            QMessageBox.critical(self, "Error de conexión",
-                "No se puede conectar al servidor.\n\n"
-                "Asegurate que el backend esté corriendo:\n"
-                "uvicorn backend.app.main:app --reload")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error inesperado: {str(e)}")
-
-# (Opcional) Esto es solo para probar la ventanita sola si lo ejecutás directo
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ventana = LoginScreen(lambda data: print("Login exitoso:", data))
-    ventana.show()
-    sys.exit(app.exec())
+                QMessageBox.warning(self, "Error", "PIN incorrecto")
+                self.limpiar()
+        except Exception:
+            QMessageBox.critical(self, "Error", "No se pudo conectar para validar")

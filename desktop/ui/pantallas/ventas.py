@@ -373,6 +373,7 @@ class VentasScreen(QWidget):
         self.log_ventas = []
         self.log_modificaciones = []
         self.cliente_actual = None
+        self.tickets_en_espera = [] # NUEVA MEMORIA PARA TICKETS F5
         self.setup_ui()
 
     def set_usuario(self, usuario):
@@ -460,8 +461,9 @@ class VentasScreen(QWidget):
         atajos_lay = QHBoxLayout(atajos_frame)
         atajos_lay.setContentsMargins(12, 6, 12, 6)
         atajos_lay.setSpacing(0)
+        # NUEVO: Agregamos "F5 Pausar" a la lista visual de atajos
         for texto, color in [("F1 Cobrar", ACCENT_TOTAL), ("F2 Cancelar", "#F46A6A"),
-                              ("F3 Buscar", ACCENT_BOTON), ("F4 Repetir", ACCENT_OFERTAS)]:
+                              ("F3 Buscar", ACCENT_BOTON), ("F4 Repetir", ACCENT_OFERTAS), ("F5 Pausar", "#F59E0B")]:
             lbl = QLabel(f"<b style='color:{color}'>{texto.split()[0]}</b><span style='color:{TEXT_MUTED}'> {texto.split()[1]}</span>")
             lbl.setStyleSheet("font-size: 13px; padding: 0 10px;")
             atajos_lay.addWidget(lbl)
@@ -670,6 +672,19 @@ class VentasScreen(QWidget):
         QShortcut(QKeySequence("F2"), self).activated.connect(self.cancelar_venta)
         QShortcut(QKeySequence("F3"), self).activated.connect(lambda: self.input_buscar.setFocus())
         QShortcut(QKeySequence("F4"), self).activated.connect(self.repetir_ultimo)
+        QShortcut(QKeySequence("F5"), self).activated.connect(self.pausar_venta_actual) # NUEVO ATAJO F5
+        
+        # BOTÓN PARA RECUPERAR TICKETS PAUSADOS
+        self.btn_recuperar_pausa = QPushButton("⏳ Recuperar (0)")
+        self.btn_recuperar_pausa.setFixedSize(120, 30)
+        self.btn_recuperar_pausa.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.btn_recuperar_pausa.setStyleSheet(f"background: #F59E0B; color: {BG_MAIN}; border-radius: 6px; font-weight: bold; font-size: 12px;")
+        self.btn_recuperar_pausa.clicked.connect(self.ver_ventas_pausadas)
+        self.btn_recuperar_pausa.hide()
+        # Lo metemos en el layout donde está el botón de "Vincular cliente" (total_layout)
+        # Se agregará al final del bloque __init__ de la UI
+        total_layout.insertWidget(total_layout.count() - 1, self.btn_recuperar_pausa)
+        
     def animar_marquee(self):
         self.offset_marquee -= 2
         ancho_texto = self.texto_ofertas.width()
@@ -1367,4 +1382,112 @@ class VentasScreen(QWidget):
         self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 1px solid {BORDER}; }}")
         self.actualizar_tabla()
         self.input_buscar.clear()
+        self.input_buscar.setFocus()
+        # ==========================================
+    # LÓGICA DE TICKETS EN ESPERA (NUEVO F5)
+    # ==========================================
+    def pausar_venta_actual(self):
+        if not self.items_venta:
+            QMessageBox.information(self, "Aviso", "No hay productos para pausar.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Pausar Venta (F5)")
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: white;")
+        lay = QVBoxLayout(dialog)
+        
+        lay.addWidget(QLabel("Nombre o nota para identificar este ticket:"))
+        input_nombre = QLineEdit()
+        input_nombre.setPlaceholderText(f"Cliente {len(self.tickets_en_espera) + 1}")
+        input_nombre.setStyleSheet(f"background: {BG_PANEL}; border: 1px solid {ACCENT_BOTON}; padding: 8px;")
+        lay.addWidget(input_nombre)
+
+        def confirmar():
+            nombre = input_nombre.text().strip() or f"Cliente {len(self.tickets_en_espera) + 1}"
+            
+            # Guardar la venta actual en la memoria
+            venta_pausada = {
+                "nombre": nombre,
+                "items": list(self.items_venta), # Copia de la lista
+                "cliente": self.cliente_actual
+            }
+            self.tickets_en_espera.append(venta_pausada)
+            
+            # Limpiar la pantalla
+            self.items_venta = []
+            self.cliente_actual = None
+            self.lbl_cliente_info.hide()
+            self.btn_cliente.setText("👤 Vincular cliente")
+            self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 1px solid {BORDER}; }}")
+            self.actualizar_tabla()
+            
+            # Actualizar botón de recuperación
+            self.btn_recuperar_pausa.setText(f"⏳ Recuperar ({len(self.tickets_en_espera)})")
+            self.btn_recuperar_pausa.show()
+            
+            dialog.accept()
+
+        btn = QPushButton("Pausar Ticket")
+        btn.setStyleSheet(f"background: #F59E0B; color: black; font-weight: bold; padding: 10px;")
+        btn.clicked.connect(confirmar)
+        lay.addWidget(btn)
+        
+        input_nombre.returnPressed.connect(confirmar)
+        dialog.exec()
+        self.input_buscar.setFocus()
+
+    def ver_ventas_pausadas(self):
+        if not self.tickets_en_espera: return
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Ventas en Espera")
+        dialog.setMinimumWidth(400)
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: white;")
+        lay = QVBoxLayout(dialog)
+        
+        lista = QListWidget()
+        lista.setStyleSheet(f"QListWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; color: white; }} QListWidget::item {{ padding: 10px; border-bottom: 1px solid {BORDER}; }}")
+        
+        for i, t in enumerate(self.tickets_en_espera):
+            total = sum(item["subtotal"] for item in t["items"])
+            item = QListWidgetItem(f"🛒 {t['nombre']} - {len(t['items'])} prod. - ${total:.2f}")
+            item.setData(Qt.ItemDataRole.UserRole, i)
+            lista.addItem(item)
+            
+        lay.addWidget(lista)
+
+        def recuperar(item):
+            if self.items_venta:
+                # Si hay cosas cargadas, preguntamos si quiere reemplazarlas
+                resp = QMessageBox.question(self, "Atención", "Hay productos cargados. ¿Reemplazarlos por el ticket en espera?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                if resp == QMessageBox.StandardButton.No: return
+
+            idx = item.data(Qt.ItemDataRole.UserRole)
+            ticket_recuperado = self.tickets_en_espera.pop(idx)
+            
+            self.items_venta = ticket_recuperado["items"]
+            self.cliente_actual = ticket_recuperado["cliente"]
+            
+            if self.cliente_actual:
+                self.lbl_cliente_info.setText(f"👤 {self.cliente_actual['nombre']}")
+                self.lbl_cliente_info.show()
+                self.btn_cliente.setText(f"👤 {self.cliente_actual['nombre'][:18]}")
+            
+            self.actualizar_tabla()
+            
+            # Ocultar o actualizar botón
+            if not self.tickets_en_espera:
+                self.btn_recuperar_pausa.hide()
+            else:
+                self.btn_recuperar_pausa.setText(f"⏳ Recuperar ({len(self.tickets_en_espera)})")
+                
+            dialog.accept()
+
+        lista.itemDoubleClicked.connect(recuperar)
+        
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.clicked.connect(dialog.reject)
+        lay.addWidget(btn_cerrar)
+        
+        dialog.exec()
         self.input_buscar.setFocus()            

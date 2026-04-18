@@ -19,6 +19,7 @@ class ProductoDialog(QDialog):
         self.setWindowTitle("✏️ Editar producto" if producto else "➕ Nuevo producto")
         self.setMinimumWidth(440)
         self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.extra_codes_inputs = [] # Lista para rastrear los QLineEdit extras
         self.setup_ui()
 
     def setup_ui(self):
@@ -32,18 +33,36 @@ class ProductoDialog(QDialog):
 
         estilo = "background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px;"
 
-        form = QFormLayout()
-        form.setSpacing(10)
+        self.form = QFormLayout() # Lo hacemos self para acceder desde otros métodos
+        self.form.setSpacing(10)
 
         self.input_nombre = QLineEdit()
         self.input_nombre.setStyleSheet(f"QLineEdit {{ {estilo} }}")
         self.input_nombre.setFixedHeight(40)
-        form.addRow("Nombre *:", self.input_nombre)
+        self.form.addRow("Nombre *:", self.input_nombre)
 
+        # --- SECCIÓN CÓDIGO DE BARRAS CON BOTÓN + ---
+        self.barras_layout = QVBoxLayout()
+        self.barras_layout.setSpacing(5)
+        
+        # Fila principal
+        fila_principal = QHBoxLayout()
         self.input_codigo = QLineEdit()
+        self.input_codigo.setPlaceholderText("Código principal...")
         self.input_codigo.setStyleSheet(f"QLineEdit {{ {estilo} }}")
         self.input_codigo.setFixedHeight(40)
-        form.addRow("Código de barras:", self.input_codigo)
+        
+        btn_add_code = QPushButton("+")
+        btn_add_code.setFixedSize(40, 40)
+        btn_add_code.setStyleSheet("QPushButton { background: #3498db; color: white; border-radius: 8px; font-weight: bold; font-size: 18px; }")
+        btn_add_code.clicked.connect(lambda: self.agregar_campo_codigo(""))
+        
+        fila_principal.addWidget(self.input_codigo)
+        fila_principal.addWidget(btn_add_code)
+        
+        self.barras_layout.addLayout(fila_principal)
+        self.form.addRow("Código barras:", self.barras_layout)
+        # --------------------------------------------
 
         self.combo_categoria = QComboBox()
         self.combo_categoria.addItems(CATEGORIAS)
@@ -53,52 +72,49 @@ class ProductoDialog(QDialog):
             QComboBox::drop-down {{ border: none; }}
             QComboBox QAbstractItemView {{ background: #0f3460; color: white; selection-background-color: #e94560; }}
         """)
-        form.addRow("Categoría:", self.combo_categoria)
+        self.form.addRow("Categoría:", self.combo_categoria)
 
         self.input_precio_compra = QDoubleSpinBox()
         self.input_precio_compra.setRange(0, 9999999)
         self.input_precio_compra.setPrefix("$")
-        self.input_precio_compra.setDecimals(2)
         self.input_precio_compra.setFixedHeight(40)
         self.input_precio_compra.setStyleSheet(f"QDoubleSpinBox {{ {estilo} }}")
-        form.addRow("Precio costo:", self.input_precio_compra)
+        self.form.addRow("Precio costo:", self.input_precio_compra)
 
         self.input_precio_venta = QDoubleSpinBox()
         self.input_precio_venta.setRange(0, 9999999)
         self.input_precio_venta.setPrefix("$")
-        self.input_precio_venta.setDecimals(2)
         self.input_precio_venta.setFixedHeight(40)
         self.input_precio_venta.setStyleSheet(f"QDoubleSpinBox {{ {estilo} }}")
         self.input_precio_venta.valueChanged.connect(self.calcular_margen)
         self.input_precio_compra.valueChanged.connect(self.calcular_margen)
-        form.addRow("Precio venta:", self.input_precio_venta)
+        self.form.addRow("Precio venta:", self.input_precio_venta)
 
         self.lbl_margen = QLabel("Margen: —")
         self.lbl_margen.setStyleSheet("color: #27ae60; font-size: 13px; font-weight: bold;")
-        form.addRow("", self.lbl_margen)
+        self.form.addRow("", self.lbl_margen)
 
         self.input_stock = QDoubleSpinBox()
         self.input_stock.setRange(0, 999999)
-        self.input_stock.setDecimals(2)
         self.input_stock.setFixedHeight(40)
         self.input_stock.setStyleSheet(f"QDoubleSpinBox {{ {estilo} }}")
-        form.addRow("Stock actual:", self.input_stock)
+        self.form.addRow("Stock actual:", self.input_stock)
 
         self.input_stock_minimo = QDoubleSpinBox()
         self.input_stock_minimo.setRange(0, 999999)
-        self.input_stock_minimo.setDecimals(2)
         self.input_stock_minimo.setFixedHeight(40)
         self.input_stock_minimo.setStyleSheet(f"QDoubleSpinBox {{ {estilo} }}")
-        form.addRow("Stock mínimo:", self.input_stock_minimo)
+        self.form.addRow("Stock mínimo:", self.input_stock_minimo)
 
         self.input_unidad = QLineEdit()
         self.input_unidad.setPlaceholderText("unidad, kg, litro...")
         self.input_unidad.setStyleSheet(f"QLineEdit {{ {estilo} }}")
         self.input_unidad.setFixedHeight(40)
-        form.addRow("Unidad:", self.input_unidad)
+        self.form.addRow("Unidad:", self.input_unidad)
 
-        layout.addLayout(form)
+        layout.addLayout(self.form)
 
+        # Llenar datos si es edición
         if self.producto:
             self.input_nombre.setText(self.producto.get("nombre", ""))
             self.input_codigo.setText(self.producto.get("codigo_barras", "") or "")
@@ -107,10 +123,15 @@ class ProductoDialog(QDialog):
             self.input_stock.setValue(float(self.producto.get("stock_actual", 0)))
             self.input_stock_minimo.setValue(float(self.producto.get("stock_minimo", 0)))
             self.input_unidad.setText(self.producto.get("unidad_medida", "") or "")
+            
+            # Cargar códigos extra si existen
+            extras = self.producto.get("codigos_extra", [])
+            for ex in extras:
+                self.agregar_campo_codigo(ex.get("codigo", ""))
+
             cat = self.producto.get("categoria", "General")
             idx = self.combo_categoria.findText(cat)
-            if idx >= 0:
-                self.combo_categoria.setCurrentIndex(idx)
+            if idx >= 0: self.combo_categoria.setCurrentIndex(idx)
 
         btns = QHBoxLayout()
         btn_cancelar = QPushButton("Cancelar")
@@ -125,6 +146,36 @@ class ProductoDialog(QDialog):
         btn_guardar.clicked.connect(self.guardar)
         btns.addWidget(btn_guardar)
         layout.addLayout(btns)
+
+    def agregar_campo_codigo(self, texto=""):
+        fila = QHBoxLayout()
+        nuevo_input = QLineEdit()
+        nuevo_input.setText(texto)
+        nuevo_input.setPlaceholderText("Código extra...")
+        nuevo_input.setStyleSheet("background: #0f3460; border: 1px solid #3498db; border-radius: 8px; padding: 8px; color: white;")
+        nuevo_input.setFixedHeight(35)
+        
+        btn_del = QPushButton("✕")
+        btn_del.setFixedSize(35, 35)
+        btn_del.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; }")
+        
+        fila.addWidget(nuevo_input)
+        fila.addWidget(btn_del)
+        self.barras_layout.addLayout(fila)
+        self.extra_codes_inputs.append((nuevo_input, fila))
+        
+        btn_del.clicked.connect(lambda: self.remover_campo_codigo(nuevo_input, fila))
+
+    def remover_campo_codigo(self, input_widget, layout_obj):
+        for i, (w, l) in enumerate(self.extra_codes_inputs):
+            if w == input_widget:
+                self.extra_codes_inputs.pop(i)
+                input_widget.deleteLater()
+                # Limpiar widgets del layout antes de borrarlo
+                while layout_obj.count():
+                    item = layout_obj.takeAt(0)
+                    if item.widget(): item.widget().deleteLater()
+                break
 
     def calcular_margen(self):
         compra = self.input_precio_compra.value()
@@ -145,9 +196,17 @@ class ProductoDialog(QDialog):
         self.accept()
 
     def get_datos(self):
+        # Recolectamos códigos extra que tengan texto
+        codigos_adicionales = []
+        for inp, _ in self.extra_codes_inputs:
+            txt = inp.text().strip()
+            if txt:
+                codigos_adicionales.append({"codigo": txt})
+
         return {
             "nombre": self.input_nombre.text().strip(),
             "codigo_barras": self.input_codigo.text().strip() or None,
+            "codigos_extra": codigos_adicionales, # <--- MANDAMOS LA LISTA AL BACKEND
             "categoria": self.combo_categoria.currentText(),
             "precio_compra": self.input_precio_compra.value(),
             "precio_venta": self.input_precio_venta.value(),

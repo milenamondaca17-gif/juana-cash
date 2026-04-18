@@ -6,3 +6,4 @@ from .fiado import Fiado, PagoFiado
 from .caja_turno import CajaTurno
 from .sesion_log import SesionLog
 from .gasto import Gasto
+from .auditoria import RegistroBorrados

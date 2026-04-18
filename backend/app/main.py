@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .models import usuario, producto, venta, cliente, fiado, caja_turno
+# Cambiá la línea de los modelos por esta:
+from .models import Usuario, Producto, Venta, Cliente, Fiado, CajaTurno, SesionLog, Gasto
 from .models import sesion_log, gasto
 from .routers import (auth, productos, ventas, clientes, stock, ia, config_sistema,
                       reportes, caja, fiados, sesiones, gastos)

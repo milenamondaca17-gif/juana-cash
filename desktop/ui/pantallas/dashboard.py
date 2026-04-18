@@ -1,7 +1,9 @@
 import requests
+import json
+import os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QFrame, QScrollArea, QGridLayout,
-                             QSizePolicy)
+                             QSizePolicy, QTableWidget, QTableWidgetItem, QHeaderView)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen
 from datetime import datetime
@@ -217,6 +219,54 @@ class DashboardScreen(QWidget):
         horario_layout.addWidget(leyenda)
 
         self.contenido_layout.addWidget(self.panel_horario)
+        # ── SECCIÓN: HISTORIAL DETALLADO DÍA TRAS DÍA ──────────────────
+        self.panel_detallado = QFrame()
+        self.panel_detallado.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        detallado_layout = QVBoxLayout(self.panel_detallado)
+        detallado_layout.setContentsMargins(16, 14, 16, 14)
+
+        header_det = QHBoxLayout()
+        lbl_det = QLabel("📋 Historial de Productos Vendidos")
+        lbl_det.setStyleSheet("color: #a0a0b0; font-size: 14px; font-weight: bold;")
+        header_det.addWidget(lbl_det)
+        header_det.addStretch()
+
+        # Botones de Filtro
+        self.btn_ver_dia = QPushButton("Día")
+        self.btn_ver_sem = QPushButton("Semana")
+        self.btn_ver_mes = QPushButton("Mes")
+        for b in [self.btn_ver_dia, self.btn_ver_sem, self.btn_ver_mes]:
+            b.setFixedSize(70, 25)
+            b.setStyleSheet("""
+                QPushButton { background: #0f3460; color: white; border-radius: 5px; font-size: 10px; border: 1px solid #3498db; }
+                QPushButton:hover { background: #3498db; }
+            """)
+        
+        header_det.addWidget(self.btn_ver_dia)
+        header_det.addWidget(self.btn_ver_sem)
+        header_det.addWidget(self.btn_ver_mes)
+        detallado_layout.addLayout(header_det)
+
+        # La Tabla
+        self.tabla_detallada = QTableWidget()
+        self.tabla_detallada.setColumnCount(4)
+        self.tabla_detallada.setHorizontalHeaderLabels(["Fecha", "Producto", "Cant.", "Total $"])
+        self.tabla_detallada.setStyleSheet("""
+            QTableWidget { background: transparent; color: white; gridline-color: #1a1a2e; border: none; font-size: 11px; }
+            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 5px; border: none; font-weight: bold; }
+        """)
+        self.tabla_detallada.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tabla_detallada.setMinimumHeight(400) # Para que se vea bien grande
+        detallado_layout.addWidget(self.tabla_detallada)
+
+        self.contenido_layout.addWidget(self.panel_detallado)
+        
+        # Conexiones de los botones
+        self.btn_ver_dia.clicked.connect(lambda: self.cargar_ventas_periodo("dia"))
+        self.btn_ver_sem.clicked.connect(lambda: self.cargar_ventas_periodo("semana"))
+        self.btn_ver_mes.clicked.connect(lambda: self.cargar_ventas_periodo("mes"))
+        
+        # Volvemos a poner el stretch al final de todo para que empuje hacia arriba
         self.contenido_layout.addStretch()
 
     def cargar_datos(self):
@@ -374,3 +424,25 @@ class DashboardScreen(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.cargar_datos()
+    def cargar_ventas_periodo(self, periodo):
+        try:
+            # Esta es la ruta que creamos en el servidor
+            r = requests.get(f"{API_URL}/reportes/ventas-periodo?periodo={periodo}", timeout=5)
+            if r.status_code == 200:
+                datos = r.json()
+                self.tabla_detallada.setRowCount(len(datos))
+                for i, fila in enumerate(datos):
+                    # Sacamos los datos con cuidado para que no falle
+                    fecha = str(fila.get("fecha", "-"))
+                    prod = str(fila.get("producto", "Desconocido"))
+                    cant = str(fila.get("cantidad", 0))
+                    total = f"$ {float(fila.get('total', 0)):,.2f}"
+
+                    self.tabla_detallada.setItem(i, 0, QTableWidgetItem(fecha))
+                    self.tabla_detallada.setItem(i, 1, QTableWidgetItem(prod))
+                    self.tabla_detallada.setItem(i, 2, QTableWidgetItem(cant))
+                    self.tabla_detallada.setItem(i, 3, QTableWidgetItem(total))
+            else:
+                print(f"Error en el servidor: {r.status_code}")
+        except Exception as e:
+            print(f"Error cargando la tabla: {e}")    

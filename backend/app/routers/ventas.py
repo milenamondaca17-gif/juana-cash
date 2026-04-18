@@ -71,6 +71,12 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
     for pago in datos.pagos:
         pg = Pago(venta_id=venta.id, metodo=pago.metodo, monto=pago.monto)
         db.add(pg)
+        # NUEVO: Si es fiado, le anotamos la deuda al cliente
+    if pago.metodo.lower() == "fiado" and datos.cliente_id:
+        from ..models.cliente import Cliente
+        cliente = db.query(Cliente).filter(Cliente.id == datos.cliente_id).first()
+        if cliente:
+            cliente.saldo_deudor = float(cliente.saldo_deudor or 0) + float(pago.monto)
 
     db.commit()
     db.refresh(venta)

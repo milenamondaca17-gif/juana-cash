@@ -9,12 +9,22 @@ class Categoria(Base):
     nombre    = Column(String(100), nullable=False)
     padre_id  = Column(Integer, ForeignKey("categorias.id"), nullable=True)
     activo    = Column(Boolean, default=True)
+    
     productos = relationship("Producto", back_populates="categoria")
+
+class CodigoBarra(Base):
+    """Nueva tabla para soportar múltiples códigos para un mismo producto (ej: Clight)"""
+    __tablename__ = "codigos_barra"
+    id          = Column(Integer, primary_key=True, index=True)
+    codigo      = Column(String(50), unique=True, nullable=False, index=True)
+    producto_id = Column(Integer, ForeignKey("productos.id"))
+    
+    producto    = relationship("Producto", back_populates="codigos_extra")
 
 class Producto(Base):
     __tablename__ = "productos"
     id           = Column(Integer, primary_key=True, index=True)
-    codigo_barra = Column(String(50), unique=True, nullable=True)
+    codigo_barra = Column(String(50), unique=True, nullable=True) # Código principal
     nombre       = Column(String(200), nullable=False)
     descripcion  = Column(String(500), nullable=True)
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=True)
@@ -27,5 +37,9 @@ class Producto(Base):
     activo       = Column(Boolean, default=True)
     created_at   = Column(DateTime, server_default=func.now())
     updated_at   = Column(DateTime, server_default=func.now(), onupdate=func.now())
-    categoria    = relationship("Categoria", back_populates="productos")
-    items_venta  = relationship("ItemVenta", back_populates="producto")
+    
+    # Relaciones
+    categoria     = relationship("Categoria", back_populates="productos")
+    items_venta   = relationship("ItemVenta", back_populates="producto")
+    # Relación con los códigos extra
+    codigos_extra = relationship("CodigoBarra", back_populates="producto", cascade="all, delete-orphan")
