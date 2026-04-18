@@ -97,18 +97,19 @@ def historial_cliente(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     fiados = db.query(Fiado).filter(
         Fiado.cliente_id == id
-    ).order_by(Fiado.fecha.desc()).all()
+    ).order_by(Fiado.created_at.desc()).all()
     historial = []
     for f in fiados:
         pagos_f = db.query(PagoFiado).filter(PagoFiado.fiado_id == f.id).all()
         historial.append({
             "id": f.id,
             "monto": float(f.monto),
-            "descripcion": f.descripcion or "Sin descripción",
-            "fecha": str(f.fecha),
-            "estado": getattr(f, "estado", "pendiente"),
+            "saldo": float(f.saldo),
+            "fecha": str(f.created_at),
+            "estado": f.estado or "pendiente",
+            "vencimiento": str(f.vencimiento) if f.vencimiento else None,
             "pagos": [
-                {"monto": float(p.monto), "fecha": str(p.fecha)}
+                {"monto": float(p.monto), "fecha": str(p.fecha), "metodo": p.metodo or "efectivo"}
                 for p in pagos_f
             ]
         })

@@ -37,7 +37,7 @@ def crear_fiado(datos: FiadoCrear, db: Session = Depends(get_db)):
     fiado = Fiado(cliente_id=datos.cliente_id, venta_id=datos.venta_id,
                   monto=datos.monto, saldo=datos.saldo, estado="pendiente")
     db.add(fiado)
-    cliente.saldo_deuda = float(cliente.saldo_deuda or 0) + datos.monto
+    cliente.deuda_actual = float(cliente.deuda_actual or 0) + datos.monto
     db.commit()
     db.refresh(fiado)
     return {"mensaje": "Fiado registrado", "id": fiado.id}
@@ -52,7 +52,7 @@ def pagar_fiado(datos: PagoFiadoCrear, db: Session = Depends(get_db)):
     fiado.estado = "pagado" if fiado.saldo <= 0 else "parcial"
     cliente = db.query(Cliente).filter(Cliente.id == fiado.cliente_id).first()
     if cliente:
-        cliente.saldo_deuda = max(0, float(cliente.saldo_deuda or 0) - datos.monto)
+        cliente.deuda_actual = max(0, float(cliente.deuda_actual or 0) - datos.monto)
     pago = PagoFiado(fiado_id=datos.fiado_id, usuario_id=datos.usuario_id,
                      monto=datos.monto, metodo=datos.metodo, observacion=datos.observacion)
     db.add(pago)

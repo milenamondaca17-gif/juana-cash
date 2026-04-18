@@ -7,7 +7,8 @@ from ..database import get_db
 from ..models.venta import Venta, ItemVenta, Pago
 from ..models.producto import Producto
 from ..models.usuario import Usuario
-from ..models.cliente import Cliente  # Importamos Cliente para actualizar la deuda
+from ..models.cliente import Cliente
+from ..models.fiado import Fiado
 from passlib.context import CryptContext
 
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
@@ -40,6 +41,7 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
     subtotal = sum(i.cantidad * i.precio_unitario - i.descuento for i in datos.items)
     total = subtotal - datos.descuento
 
+    # Número de venta único
     ultima = db.query(Venta).order_by(Venta.id.desc()).first()
     ultimo_num = int(ultima.numero) if ultima and ultima.numero.isdigit() else 0
     numero = f"{ultimo_num + 1:04d}"
@@ -55,7 +57,7 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
     db.add(venta)
     db.flush()
 
-    # Procesamos los productos y descontamos stock
+    # Registrar items y descontar stock
     for item in datos.items:
         iv = ItemVenta(
             venta_id=venta.id,
@@ -68,23 +70,40 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
         db.add(iv)
         p = db.query(Producto).filter(Producto.id == item.producto_id).first()
         if p:
-            p.stock_actual = float(p.stock_actual) - item.cantidad
+            stock_nuevo = float(p.stock_actual) - item.cantidad
+            if stock_nuevo < 0:
+                stock_nuevo = 0
+            p.stock_actual = stock_nuevo
 
-    # Procesamos los pagos (Efectivo, Tarjeta, Fiado, etc.)
+    # Registrar pagos — CORREGIDO: el bloque de fiado va DENTRO del for
     for pago in datos.pagos:
         pg = Pago(venta_id=venta.id, metodo=pago.metodo, monto=pago.monto)
         db.add(pg)
-        
-        # --- Lógica de Fiado (corregida la sangría) ---
+
+        # Si el método es fiado, registrar la deuda al cliente
         if pago.metodo.lower() == "fiado" and datos.cliente_id:
             cliente = db.query(Cliente).filter(Cliente.id == datos.cliente_id).first()
             if cliente:
-                # ACÁ ESTABA EL ERROR: el campo en tu base se llama deuda_actual
+                # Actualizar deuda_actual (campo correcto del modelo)
                 cliente.deuda_actual = float(cliente.deuda_actual or 0) + float(pago.monto)
+
+                # Crear registro en tabla fiados
+                fiado = Fiado(
+                    cliente_id=datos.cliente_id,
+                    venta_id=venta.id,
+                    monto=pago.monto,
+                    saldo=pago.monto,
+                    estado="pendiente"
+                )
+                db.add(fiado)
 
     db.commit()
     db.refresh(venta)
-    return {"mensaje": "Venta registrada", "numero": venta.numero, "total": float(venta.total)}
+    return {
+        "mensaje": "Venta registrada",
+        "numero": venta.numero,
+        "total": float(venta.total)
+    }
 
 @router.get("/")
 def listar_ventas(db: Session = Depends(get_db)):
@@ -134,7 +153,33 @@ def anular_venta(id: int, datos: AnularVentaSchema, db: Session = Depends(get_db
         if producto:
             producto.stock_actual = float(producto.stock_actual) + float(item.cantidad)
 
+    # Revertir deuda del cliente si había fiado
+    for pago in venta.pagos:
+        if pago.metodo.lower() == "fiado" and venta.cliente_id:
+            cliente = db.query(Cliente).filter(Cliente.id == venta.cliente_id).first()
+            if cliente:
+                cliente.deuda_actual = max(0, float(cliente.deuda_actual or 0) - float(pago.monto))
+            # Marcar el fiado como anulado
+            fiado = db.query(Fiado).filter(
+                Fiado.venta_id == venta.id,
+                Fiado.cliente_id == venta.cliente_id
+            ).first()
+            if fiado:
+                fiado.estado = "anulado"
+                fiado.saldo = 0
+
+    # Revertir puntos del cliente si los tiene
+    if venta.cliente_id:
+        cliente = db.query(Cliente).filter(Cliente.id == venta.cliente_id).first()
+        if cliente:
+            puntos_a_quitar = int(float(venta.total) // 100)
+            if puntos_a_quitar > 0:
+                cliente.puntos = max(0, float(cliente.puntos or 0) - puntos_a_quitar)
+
     venta.estado = "anulada"
     db.commit()
 
-    return {"mensaje": f"Venta {venta.numero} anulada correctamente", "motivo": datos.motivo}
+    return {
+        "mensaje": f"Venta {venta.numero} anulada correctamente",
+        "motivo": datos.motivo
+    }
