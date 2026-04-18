@@ -113,10 +113,11 @@ class CobrarDialog(QDialog):
         layout.addWidget(lbl_metodo)
 
         metodos_layout = QHBoxLayout()
-        metodos = [("Efectivo", "efectivo", ACCENT_TOTAL), ("Tarjeta", "tarjeta", ACCENT_BOTON), ("QR/MP", "mercadopago_qr", "#009ee3"), ("Transf.", "transferencia", "#9b59b6")]
+        # Agregamos Fiado a la lista
+        metodos = [("Efectivo", "efectivo", ACCENT_TOTAL), ("Tarjeta", "tarjeta", ACCENT_BOTON), ("QR/MP", "mercadopago_qr", "#009ee3"), ("Transf.", "transferencia", "#9b59b6"), ("Fiado", "fiado", "#e74c3c")]
         for nombre, key, color in metodos:
             btn = QPushButton(nombre)
-            btn.setFixedSize(100, 44)
+            btn.setFixedSize(88, 44) # Achicamos a 88 para que entren los 5 botones
             btn.clicked.connect(lambda _, k=key, c=color: self.seleccionar_metodo(k, c))
             metodos_layout.addWidget(btn)
             self.btns_pago[key] = (btn, color)
@@ -155,7 +156,7 @@ class CobrarDialog(QDialog):
         metodos_sec_layout = QHBoxLayout()
         for nombre, key, color in metodos:
             btn = QPushButton(nombre)
-            btn.setFixedSize(100, 36)
+            btn.setFixedSize(88, 36)
             btn.clicked.connect(lambda _, k=key, c=color: self.seleccionar_metodo_sec(k, c))
             metodos_sec_layout.addWidget(btn)
             self.btns_secundarios[key] = (btn, color)
@@ -193,11 +194,18 @@ class CobrarDialog(QDialog):
         btns.addWidget(btn_cancelar)
         self.btn_cobrar = QPushButton("COBRAR")
         self.btn_cobrar.setFixedHeight(44)
-        self.btn_cobrar.clicked.connect(self.accept)
+        self.btn_cobrar.clicked.connect(self.procesar_cobro) # CAMBIO ACÁ
         btns.addWidget(self.btn_cobrar)
         layout.addLayout(btns)
         
         self.seleccionar_metodo("efectivo", ACCENT_TOTAL)
+
+    def procesar_cobro(self):
+        if self.metodo_pago == "fiado" or self.metodo_secundario == "fiado":
+            if not self.cliente:
+                QMessageBox.warning(self, "Falta Cliente", "Para cobrar con FIADO debes vincular un cliente primero.")
+                return
+        self.accept()
 
     def toggle_mixto(self, state):
         activo = (state == 2)
@@ -1339,11 +1347,19 @@ class VentasScreen(QWidget):
         if metodo_secundario and monto_secundario > 0:
             pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
         try:
-            r = requests.post(f"{API_URL}/ventas/", json={"usuario_id": self.usuario.get("id", 1) if self.usuario else 1, "items": items_backend, "pagos": pagos, "descuento": descuento_monto}, timeout=5)
+            # ACÁ AGREGAMOS EL cliente_id AL JSON QUE VIAJA AL SERVIDOR
+            payload = {
+                "usuario_id": self.usuario.get("id", 1) if self.usuario else 1,
+                "cliente_id": self.cliente_actual["id"] if self.cliente_actual else None,
+                "items": items_backend,
+                "pagos": pagos,
+                "descuento": descuento_monto
+            }
+            r = requests.post(f"{API_URL}/ventas/", json=payload, timeout=5)
             if r.status_code == 200:
                 datos = r.json()
                 ticket = datos["numero"]
-                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf.", "fiado": "Fiado"}
                 metodo_str = nombres_metodo.get(metodo_pago, metodo_pago)
                 if metodo_secundario:
                     metodo_str += f" + {nombres_metodo.get(metodo_secundario, metodo_secundario)} (${monto_secundario:.2f})"

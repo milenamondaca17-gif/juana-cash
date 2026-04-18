@@ -7,6 +7,7 @@ from ..database import get_db
 from ..models.venta import Venta, ItemVenta, Pago
 from ..models.producto import Producto
 from ..models.usuario import Usuario
+from ..models.cliente import Cliente  # Importamos Cliente para actualizar la deuda
 from passlib.context import CryptContext
 
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
@@ -54,6 +55,7 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
     db.add(venta)
     db.flush()
 
+    # Procesamos los productos y descontamos stock
     for item in datos.items:
         iv = ItemVenta(
             venta_id=venta.id,
@@ -68,15 +70,17 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
         if p:
             p.stock_actual = float(p.stock_actual) - item.cantidad
 
+    # Procesamos los pagos (Efectivo, Tarjeta, Fiado, etc.)
     for pago in datos.pagos:
         pg = Pago(venta_id=venta.id, metodo=pago.metodo, monto=pago.monto)
         db.add(pg)
-        # NUEVO: Si es fiado, le anotamos la deuda al cliente
-    if pago.metodo.lower() == "fiado" and datos.cliente_id:
-        from ..models.cliente import Cliente
-        cliente = db.query(Cliente).filter(Cliente.id == datos.cliente_id).first()
-        if cliente:
-            cliente.saldo_deudor = float(cliente.saldo_deudor or 0) + float(pago.monto)
+        
+        # --- Lógica de Fiado (corregida la sangría) ---
+        if pago.metodo.lower() == "fiado" and datos.cliente_id:
+            cliente = db.query(Cliente).filter(Cliente.id == datos.cliente_id).first()
+            if cliente:
+                # ACÁ ESTABA EL ERROR: el campo en tu base se llama deuda_actual
+                cliente.deuda_actual = float(cliente.deuda_actual or 0) + float(pago.monto)
 
     db.commit()
     db.refresh(venta)
