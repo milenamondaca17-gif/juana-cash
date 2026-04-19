@@ -65,9 +65,56 @@ def api_delete(path, timeout=5):
 def main(page: ft.Page):
     page.title       = "Juana Cash"
     page.theme_mode  = ft.ThemeMode.DARK
-    page.bgcolor     = "#0B1120"
+    page.bgcolor     = "#080E1C"
     page.padding     = 0
     page.spacing     = 0
+
+    # ── SPLASH SCREEN ────────────────────────────────────────────────────────
+    import time
+    progress_bar = ft.ProgressBar(value=0, width=float("inf"), height=5,
+                                  color="#27AE60", bgcolor="#0d1f35")
+    lbl_pct    = ft.Text("0%", size=13, weight="bold", color="#1B9FD4", text_align="center")
+    lbl_estado = ft.Text("Iniciando...", size=11, color="#4a7a9a", text_align="center")
+
+    page.add(ft.Container(
+        content=ft.Column([
+            ft.Container(expand=True),
+            ft.Text("$↗", size=60, weight="bold", color="#27AE60", text_align="center"),
+            ft.Container(height=6),
+            ft.Text("JUANA CA$H", size=36, weight="w900", color="white", text_align="center"),
+            ft.Text("GESTIÓN DE CAJA", size=12, weight="bold", color="#27AE60", text_align="center"),
+            ft.Container(height=6),
+            ft.Divider(color="#1B3A5C"),
+            ft.Container(height=18),
+            progress_bar,
+            ft.Container(height=10),
+            ft.Row([lbl_pct], alignment="center"),
+            ft.Container(height=4),
+            ft.Row([lbl_estado], alignment="center"),
+            ft.Container(expand=True),
+            ft.Text("CAMMUS_25  //  DIGITAL CREATOR", size=9, color="#2a4a6a", text_align="center"),
+            ft.Container(height=20),
+        ], horizontal_alignment="center", spacing=0),
+        bgcolor="#080E1C", expand=True, padding=40
+    ))
+    page.update()
+
+    for valor, texto in [(0.1,"Verificando configuración..."),(0.25,"Conectando sistema..."),
+                         (0.45,"Cargando productos..."),(0.65,"Preparando interfaz..."),
+                         (0.85,"Verificando conexión..."),(1.0,"¡Sistema listo!")]:
+        time.sleep(0.28)
+        progress_bar.value = valor
+        lbl_pct.value = f"{int(valor*100)}%"
+        lbl_estado.value = texto
+        if valor == 1.0:
+            lbl_estado.color = "#27AE60"
+        page.update()
+
+    time.sleep(0.5)
+    page.controls.clear()
+    page.bgcolor = "#0B1120"
+    page.update()
+    # ── FIN SPLASH ────────────────────────────────────────────────────────────
 
     carrito        = []
     tickets_espera = []
