@@ -15,6 +15,20 @@ def reporte_por_fechas(db, desde, hasta=None):
         query = query.filter(func.date(Venta.fecha) <= hasta)
     ventas = query.order_by(Venta.fecha.desc()).all()
     total = sum(float(v.total) for v in ventas if v.estado == "completada")
+    def _fmt_fecha(f):
+        """Devuelve siempre 'YYYY-MM-DD HH:MM:SS' sin microsegundos."""
+        if f is None:
+            return ""
+        try:
+            # Si ya es datetime object
+            if hasattr(f, 'strftime'):
+                return f.strftime("%Y-%m-%d %H:%M:%S")
+            # Si es string, limpiar microsegundos y T
+            s = str(f).replace("T", " ")
+            return s[:19]  # tomar solo YYYY-MM-DD HH:MM:SS
+        except Exception:
+            return str(f)[:19]
+
     return {
         "cantidad_ventas": len([v for v in ventas if v.estado == "completada"]),
         "total_vendido": total,
@@ -24,11 +38,14 @@ def reporte_por_fechas(db, desde, hasta=None):
                 "numero": v.numero,
                 "total": float(v.total),
                 "estado": v.estado,
-                "origen": getattr(v, 'origen', 'mostrador'), 
-                "metodo_pago": v.pagos[0].metodo if v.pagos else "efectivo",
+                "origen": (getattr(v, 'origen', None) or 'mostrador'),
+                "metodo_pago": (
+                    v.pagos[0].metodo if v.pagos
+                    else (getattr(v, 'metodo_pago', None) or 'efectivo')
+                ).lower(),
                 "metodo_secundario": v.pagos[1].metodo if v.pagos and len(v.pagos) > 1 else None,
                 "monto_secundario": float(v.pagos[1].monto) if v.pagos and len(v.pagos) > 1 else 0.0,
-                "fecha": str(v.fecha)
+                "fecha": _fmt_fecha(v.fecha)
             }
             for v in ventas
         ]
@@ -76,6 +93,20 @@ def reporte_anio(db: Session = Depends(get_db)):
     datos["hasta"] = str(hoy)
     return datos
 
+@router.get("/rango")
+def reporte_rango(desde: str, hasta: str, db: Session = Depends(get_db)):
+    """Reporte por rango de fechas personalizado. Formato: YYYY-MM-DD"""
+    try:
+        desde_date = date.fromisoformat(desde)
+        hasta_date = date.fromisoformat(hasta)
+    except ValueError:
+        desde_date = date.today()
+        hasta_date = date.today()
+    datos = reporte_por_fechas(db, desde_date, hasta_date)
+    datos["desde"] = str(desde_date)
+    datos["hasta"] = str(hasta_date)
+    return datos
+
 @router.get("/productos-mas-vendidos")
 def productos_mas_vendidos(db: Session = Depends(get_db)):
     resultados = db.query(
@@ -87,6 +118,44 @@ def productos_mas_vendidos(db: Session = Depends(get_db)):
     ).limit(10).all()
     return [
         {"nombre": r.nombre, "cantidad": float(r.total_vendido), "facturado": float(r.total_facturado)}
+        for r in resultados
+    ]
+
+@router.get("/productos-por-fecha")
+def productos_por_fecha(desde: str, hasta: str, db: Session = Depends(get_db)):
+    """Todos los productos vendidos en un rango de fechas, ordenados por cantidad."""
+    try:
+        desde_date = date.fromisoformat(desde)
+        hasta_date = date.fromisoformat(hasta)
+    except ValueError:
+        desde_date = date.today()
+        hasta_date = date.today()
+
+    resultados = db.query(
+        Producto.nombre,
+        Producto.codigo_barra,
+        func.sum(ItemVenta.cantidad).label("total_vendido"),
+        func.sum(ItemVenta.subtotal).label("total_facturado"),
+        func.count(ItemVenta.venta_id).label("cantidad_tickets")
+    ).join(ItemVenta, Producto.id == ItemVenta.producto_id)\
+     .join(Venta, ItemVenta.venta_id == Venta.id)\
+     .filter(
+         func.date(Venta.fecha) >= desde_date,
+         func.date(Venta.fecha) <= hasta_date,
+         Venta.estado == "completada"
+     )\
+     .group_by(Producto.id)\
+     .order_by(func.sum(ItemVenta.cantidad).desc())\
+     .all()
+
+    return [
+        {
+            "nombre":    r.nombre,
+            "codigo":    r.codigo_barra or "",
+            "cantidad":  float(r.total_vendido),
+            "facturado": float(r.total_facturado),
+            "tickets":   int(r.cantidad_tickets)
+        }
         for r in resultados
     ]
 

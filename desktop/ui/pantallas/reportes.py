@@ -134,15 +134,52 @@ class ReportesScreen(QWidget):
         ventas_vlay.addWidget(self.tabla_ventas)
         tablas_split.addLayout(ventas_vlay, 3)
 
-        # Ranking productos
+        # Historial productos con filtro de fechas
         top_vlay = QVBoxLayout()
-        top_vlay.addWidget(QLabel("🏆 TOP PRODUCTOS", styleSheet="color: #f39c12; font-size: 11px; font-weight: bold;"))
+
+        # Cabecera con filtros
+        top_header = QHBoxLayout()
+        top_header.addWidget(QLabel("📦 PRODUCTOS VENDIDOS", styleSheet="color: #f39c12; font-size: 11px; font-weight: bold;"))
+        top_header.addStretch()
+        top_vlay.addLayout(top_header)
+
+        # Filtros de fecha para productos
+        prod_filtros = QHBoxLayout()
+        prod_filtros.addWidget(QLabel("Desde:", styleSheet="color: #a0a0b0; font-size: 11px;"))
+        self.prod_desde = QDateEdit(QDate.currentDate().addDays(-30))
+        self.prod_desde.setCalendarPopup(True)
+        self.prod_desde.setFixedHeight(28)
+        self.prod_desde.setStyleSheet("background: #0f3460; border-radius: 4px; color: white; font-size: 11px; padding: 2px 4px;")
+        prod_filtros.addWidget(self.prod_desde)
+
+        prod_filtros.addWidget(QLabel("Hasta:", styleSheet="color: #a0a0b0; font-size: 11px;"))
+        self.prod_hasta = QDateEdit(QDate.currentDate())
+        self.prod_hasta.setCalendarPopup(True)
+        self.prod_hasta.setFixedHeight(28)
+        self.prod_hasta.setStyleSheet("background: #0f3460; border-radius: 4px; color: white; font-size: 11px; padding: 2px 4px;")
+        prod_filtros.addWidget(self.prod_hasta)
+
+        btn_prod = QPushButton("Filtrar")
+        btn_prod.setFixedSize(60, 28)
+        btn_prod.setStyleSheet("background: #e94560; border-radius: 4px; font-weight: bold; color: white; font-size: 11px;")
+        btn_prod.clicked.connect(self.cargar_productos_por_fecha)
+        prod_filtros.addWidget(btn_prod)
+        top_vlay.addLayout(prod_filtros)
+
         self.tabla_top = QTableWidget()
-        self.tabla_top.setColumnCount(2)
-        self.tabla_top.setHorizontalHeaderLabels(["Producto", "Vendido"])
-        self.tabla_top.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tabla_top.setStyleSheet("background: #16213e; color: white;")
+        self.tabla_top.setColumnCount(4)
+        self.tabla_top.setHorizontalHeaderLabels(["Producto", "Cant.", "Tickets", "Total $"])
+        self.tabla_top.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tabla_top.setColumnWidth(1, 60)
+        self.tabla_top.setColumnWidth(2, 60)
+        self.tabla_top.setColumnWidth(3, 90)
+        self.tabla_top.setStyleSheet("background: #16213e; color: white; gridline-color: #0f3460;")
         top_vlay.addWidget(self.tabla_top)
+
+        self.lbl_prod_total = QLabel("")
+        self.lbl_prod_total.setStyleSheet("color: #27ae60; font-size: 11px; font-weight: bold;")
+        top_vlay.addWidget(self.lbl_prod_total)
+
         tablas_split.addLayout(top_vlay, 2)
 
         layout.addLayout(tablas_split)
@@ -248,17 +285,57 @@ class ReportesScreen(QWidget):
                 for k, lbl in self.cards_metodo.items():
                     lbl.setText(f"${totales_metodo[k]:,.0f}")
 
-                # Top Productos
-                r_top = requests.get(f"{API_URL}/reportes/productos-mas-vendidos", timeout=5)
-                if r_top.status_code == 200:
-                    top = r_top.json()
-                    self.tabla_top.setRowCount(len(top))
-                    for i, p in enumerate(top):
-                        self.tabla_top.setItem(i, 0, QTableWidgetItem(p["nombre"]))
-                        self.tabla_top.setItem(i, 1, QTableWidgetItem(f"${p['facturado']:,.0f}"))
+                # Top Productos — sincronizar fechas con el período seleccionado
+                if self.periodo_actual == "hoy":
+                    hoy = QDate.currentDate()
+                    self.prod_desde.setDate(hoy)
+                    self.prod_hasta.setDate(hoy)
+                elif self.periodo_actual == "semana":
+                    self.prod_desde.setDate(QDate.currentDate().addDays(-7))
+                    self.prod_hasta.setDate(QDate.currentDate())
+                elif self.periodo_actual == "mes":
+                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), QDate.currentDate().month(), 1))
+                    self.prod_hasta.setDate(QDate.currentDate())
+                elif self.periodo_actual == "anio":
+                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), 1, 1))
+                    self.prod_hasta.setDate(QDate.currentDate())
+                elif self.periodo_actual == "rango":
+                    self.prod_desde.setDate(self.fecha_desde.date())
+                    self.prod_hasta.setDate(self.fecha_hasta.date())
+                self.cargar_productos_por_fecha()
 
         except Exception as e:
             print(f"Error en reportes: {e}")
+
+    def cargar_productos_por_fecha(self):
+        desde = self.prod_desde.date().toString("yyyy-MM-dd")
+        hasta = self.prod_hasta.date().toString("yyyy-MM-dd")
+        try:
+            r = requests.get(f"{API_URL}/reportes/productos-por-fecha",
+                params={"desde": desde, "hasta": hasta}, timeout=8)
+            if r.status_code == 200:
+                productos = r.json()
+                self.tabla_top.setRowCount(len(productos))
+                total_monto = 0.0
+                total_cant  = 0.0
+                for i, p in enumerate(productos):
+                    self.tabla_top.setItem(i, 0, QTableWidgetItem(p["nombre"]))
+                    item_cant = QTableWidgetItem(f"{float(p['cantidad']):g}")
+                    item_cant.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.tabla_top.setItem(i, 1, item_cant)
+                    item_tick = QTableWidgetItem(str(p["tickets"]))
+                    item_tick.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.tabla_top.setItem(i, 2, item_tick)
+                    self.tabla_top.setItem(i, 3, QTableWidgetItem(f"${float(p['facturado']):,.0f}"))
+                    total_cant  += float(p["cantidad"])
+                    total_monto += float(p["facturado"])
+                self.lbl_prod_total.setText(
+                    f"{len(productos)} productos · {total_cant:,.0f} unid. · ${total_monto:,.0f} total")
+            else:
+                self.tabla_top.setRowCount(0)
+                self.lbl_prod_total.setText("Sin datos")
+        except Exception as e:
+            print(f"Error productos: {e}")
 
     def showEvent(self, event):
         super().showEvent(event)

@@ -6,6 +6,7 @@ from .models import Usuario, Producto, Venta, Cliente, Fiado, CajaTurno, SesionL
 from .models import sesion_log, gasto
 from .routers import (auth, productos, ventas, clientes, stock, ia, config_sistema,
                       reportes, caja, fiados, sesiones, gastos)
+from .routers import ofertas_api
 
 Base.metadata.create_all(bind=engine)
 
@@ -30,6 +31,7 @@ app.include_router(gastos.router)
 app.include_router(stock.router)
 app.include_router(ia.router)
 app.include_router(config_sistema.router)
+app.include_router(ofertas_api.router)
 
 @app.get("/")
 def root():

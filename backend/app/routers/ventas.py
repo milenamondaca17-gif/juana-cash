@@ -30,6 +30,7 @@ class VentaCrear(BaseModel):
     items: List[ItemVentaSchema]
     pagos: List[PagoSchema]
     descuento: float = 0
+    origen: str = "mostrador"  # mostrador | celular | delivery
 
 class AnularVentaSchema(BaseModel):
     motivo: str
@@ -52,7 +53,9 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
         cliente_id=datos.cliente_id,
         subtotal=subtotal,
         descuento=datos.descuento,
-        total=total
+        total=total,
+        origen=datos.origen,
+        fecha=datetime.now()  # Hora local, no UTC
     )
     db.add(venta)
     db.flush()

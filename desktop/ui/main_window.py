@@ -24,6 +24,7 @@ from ui.pantallas.ia_screen import IAScreen
 from ui.pantallas.config_screen import ConfigScreen
 from ui.pantallas.importador import ImportadorScreen # LA NUEVA NAVE
 from ui.pantallas.etiquetas.generador_etiquetas import GeneradorEtiquetasScreen # <-- LA FÁBRICA DE ETIQUETAS
+from ui.pantallas.ofertas import OfertasScreen # <-- PANTALLA DE OFERTAS
 
 try:
     from ui.pantallas.offline_manager import sincronizar_cola, cantidad_pendientes, servidor_disponible
@@ -161,7 +162,7 @@ class MainWindow(QMainWindow):
 
         self.btns_menu = {}
         # <-- Agregamos "etiquetas" a los accesos de admin
-        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador", "etiquetas"]
+        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador", "etiquetas", "ofertas"]
         
         # Agregamos el botón a la lista visual
         menus = [
@@ -178,7 +179,8 @@ class MainWindow(QMainWindow):
             ("📋 Ses.",         "sesiones"),
             ("👤 Usuar.",       "usuarios"),
             ("📥 Importar",     "importador"),
-            ("🖨️ Etiq.",        "etiquetas"), # <-- EL BOTÓN DE LA FÁBRICA
+            ("🖨️ Etiq.",        "etiquetas"),
+            ("🏷️ Ofertas",      "ofertas"),
         ]
         
         for texto, key in menus:
@@ -233,7 +235,14 @@ class MainWindow(QMainWindow):
         self.ia_screen = IAScreen()
         self.config_screen = ConfigScreen()
         self.importador_screen = ImportadorScreen()
-        self.etiquetas_screen = GeneradorEtiquetasScreen() # <-- INICIAMOS LA FÁBRICA
+        self.etiquetas_screen = GeneradorEtiquetasScreen()
+        self.ofertas_screen = OfertasScreen()
+
+        # Cuando se agrega/borra una oferta, el rotador se actualiza automáticamente
+        self.ofertas_screen.oferta_cambiada.connect(
+            lambda: self.ventas_screen.rotador_ofertas.cargar()
+            if hasattr(self.ventas_screen, 'rotador_ofertas') else None
+        )
 
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
@@ -245,7 +254,8 @@ class MainWindow(QMainWindow):
             self.ia_screen,
             self.config_screen,
             self.importador_screen,
-            self.etiquetas_screen # <-- LA SUMAMOS AL STACK
+            self.etiquetas_screen,
+            self.ofertas_screen,
         ]:
             self.stack.addWidget(screen)
 
@@ -280,7 +290,8 @@ class MainWindow(QMainWindow):
             "ia":        self.ia_screen,
             "config":    self.config_screen,
             "importador": self.importador_screen,
-            "etiquetas": self.etiquetas_screen, # <-- CONECTAMOS LA LLAVE
+            "etiquetas": self.etiquetas_screen,
+            "ofertas":   self.ofertas_screen,
         }
         if key in pantallas:
             acciones = {
@@ -321,6 +332,13 @@ class MainWindow(QMainWindow):
 
         self.ventas_screen.set_usuario(cajero)
         self.caja_screen.set_usuario(cajero)
+
+        # Timer para detectar ventas nuevas del celular
+        if not hasattr(self, '_timer_celular'):
+            self._timer_celular = QTimer()
+            self._timer_celular.timeout.connect(self._chequear_ventas_celular)
+        self._ultima_venta_celular = None
+        self._timer_celular.start(15000)  # cada 15 segundos
         
         self.navbar.show() 
         self.cambiar_pantalla("ventas") 
@@ -405,6 +423,33 @@ class MainWindow(QMainWindow):
         self._ultimo_movimiento = datetime.now()
         super().keyPressEvent(event)
 
+    def _chequear_ventas_celular(self):
+        """Detecta ventas nuevas del celular y notifica al cajero."""
+        try:
+            r = requests.get(f"{API_URL}/reportes/hoy", timeout=3)
+            if r.status_code != 200:
+                return
+            ventas = r.json().get("ventas", [])
+            # Buscar ventas de celular
+            ventas_celular = [v for v in ventas if v.get("origen") == "celular" and v.get("estado") == "completada"]
+            if not ventas_celular:
+                return
+            ultima = ventas_celular[0]  # La más reciente (ya viene ordenada)
+            clave  = ultima.get("numero")
+            if clave == self._ultima_venta_celular:
+                return  # Ya notificamos esta
+            self._ultima_venta_celular = clave
+            total  = float(ultima.get("total", 0))
+            metodo = ultima.get("metodo_pago", "efectivo")
+            # Notificación visual en la barra de título
+            self.setWindowTitle(self.windowTitle().split(" 📲")[0] + f" 📲 Celular: ${total:,.0f} ({metodo})")
+            QTimer.singleShot(8000, lambda: self.setWindowTitle(self.windowTitle().split(" 📲")[0]))
+            # Si está en la pantalla de caja, actualizar tabla
+            if hasattr(self.caja_screen, 'actualizar_ventas'):
+                self.caja_screen.actualizar_ventas()
+        except Exception:
+            pass
+
     def on_logout(self):
         self.usuario_actual = None
         self.cajero_actual = None
@@ -413,5 +458,5 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Juana Cash - Sistema POS")
         if hasattr(self, '_timer_timeout'):
             self._timer_timeout.stop()
-        if hasattr(self, '_timer_offline'):
-            self._timer_offline.stop()
+        if hasattr(self, '_timer_celular'):
+            self._timer_celular.stop()

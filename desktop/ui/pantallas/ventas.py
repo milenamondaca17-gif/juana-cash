@@ -21,6 +21,11 @@ try:
 except Exception:
     encolar_venta = None
 
+try:
+    from ui.pantallas.ofertas import OfertasRotator
+except Exception:
+    OfertasRotator = None
+
 API_URL = "http://127.0.0.1:8000"
 
 DEPARTAMENTOS = {
@@ -113,11 +118,21 @@ class CobrarDialog(QDialog):
         layout.addWidget(lbl_metodo)
 
         metodos_layout = QHBoxLayout()
-        metodos = [("Efectivo", "efectivo", ACCENT_TOTAL), ("Tarjeta", "tarjeta", ACCENT_BOTON), ("QR/MP", "mercadopago_qr", "#009ee3"), ("Transf.", "transferencia", "#9b59b6")]
+        metodos = [
+            ("Efectivo", "efectivo",      ACCENT_TOTAL),
+            ("Tarjeta",  "tarjeta",       ACCENT_BOTON),
+            ("QR/MP",    "mercadopago_qr","#009ee3"),
+            ("Transf.",  "transferencia", "#9b59b6"),
+            ("Fiado",    "fiado",         "#e74c3c"),
+        ]
         for nombre, key, color in metodos:
             btn = QPushButton(nombre)
-            btn.setFixedSize(100, 44)
+            btn.setFixedSize(85, 44)
             btn.clicked.connect(lambda _, k=key, c=color: self.seleccionar_metodo(k, c))
+            if key == "fiado" and not self.cliente:
+                btn.setEnabled(False)
+                btn.setToolTip("Vincula un cliente antes de usar Fiado")
+                btn.setStyleSheet("background: #2a2a2a; color: #555; border: 1px solid #333; border-radius: 8px;")
             metodos_layout.addWidget(btn)
             self.btns_pago[key] = (btn, color)
         layout.addLayout(metodos_layout)
@@ -155,8 +170,12 @@ class CobrarDialog(QDialog):
         metodos_sec_layout = QHBoxLayout()
         for nombre, key, color in metodos:
             btn = QPushButton(nombre)
-            btn.setFixedSize(100, 36)
+            btn.setFixedSize(85, 36)
             btn.clicked.connect(lambda _, k=key, c=color: self.seleccionar_metodo_sec(k, c))
+            if key == "fiado" and not self.cliente:
+                btn.setEnabled(False)
+                btn.setToolTip("Vincula un cliente antes de usar Fiado")
+                btn.setStyleSheet("background: #2a2a2a; color: #555; border: 1px solid #333; border-radius: 8px;")
             metodos_sec_layout.addWidget(btn)
             self.btns_secundarios[key] = (btn, color)
         sec_lay.addLayout(metodos_sec_layout)
@@ -373,11 +392,32 @@ class VentasScreen(QWidget):
         self.log_ventas = []
         self.log_modificaciones = []
         self.cliente_actual = None
-        self.tickets_en_espera = [] # NUEVA MEMORIA PARA TICKETS F5
+        self.tickets_en_espera = []
+        # Cache local de productos — se carga al inicio, búsqueda sin red
+        self.productos_cache = []        # lista completa
+        self.productos_codigo = {}       # codigo_barra → producto (lookup O(1))
         self.setup_ui()
 
     def set_usuario(self, usuario):
         self.usuario = usuario
+        # Cargar cache de productos en hilo separado al iniciar
+        import threading
+        threading.Thread(target=self._cargar_cache_productos, daemon=True).start()
+
+    def _cargar_cache_productos(self):
+        """Carga todos los productos una sola vez. Búsquedas sin red."""
+        try:
+            r = requests.get(f"{API_URL}/productos/", timeout=10)
+            if r.status_code == 200:
+                productos = r.json()
+                self.productos_cache = productos
+                self.productos_codigo = {
+                    str(p["codigo_barra"]): p
+                    for p in productos
+                    if p.get("codigo_barra")
+                }
+        except Exception:
+            pass
 
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
@@ -462,8 +502,12 @@ class VentasScreen(QWidget):
         atajos_lay.setContentsMargins(12, 6, 12, 6)
         atajos_lay.setSpacing(0)
         # NUEVO: Agregamos "F5 Pausar" a la lista visual de atajos
-        for texto, color in [("F1 Cobrar", ACCENT_TOTAL), ("F2 Cancelar", "#F46A6A"),
-                              ("F3 Buscar", ACCENT_BOTON), ("F4 Repetir", ACCENT_OFERTAS), ("F5 Pausar", "#F59E0B")]:
+        for texto, color in [
+            ("F3 Precios",   "#1abc9c"),
+            ("F5 Pausar",    "#F59E0B"),
+            ("F6 Buscar",    ACCENT_BOTON),
+            ("F9 Cobrar",    ACCENT_TOTAL),
+        ]:
             lbl = QLabel(f"<b style='color:{color}'>{texto.split()[0]}</b><span style='color:{TEXT_MUTED}'> {texto.split()[1]}</span>")
             lbl.setStyleSheet("font-size: 13px; padding: 0 10px;")
             atajos_lay.addWidget(lbl)
@@ -580,99 +624,29 @@ class VentasScreen(QWidget):
 
         panel_der.addWidget(total_frame)
 
-        lbl_desglose = QLabel("DESGLOSE")
-        lbl_desglose.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px; letter-spacing: 2px; font-weight: bold;")
-        panel_der.addWidget(lbl_desglose)
-        
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("border: none; background: transparent;")
-        self.depto_container = QWidget()
-        self.depto_container.setStyleSheet("background: transparent;")
-        self.depto_layout = QVBoxLayout(self.depto_container)
-        self.depto_layout.setContentsMargins(0, 0, 0, 0)
-        self.depto_layout.setSpacing(4)
-        scroll.setWidget(self.depto_container)
-        panel_der.addWidget(scroll)
-        panel_der.addStretch()
-
-        # --- IMÁGENES AL FONDO DEL PANEL (TAMAÑO XL) ---
-        logos_layout = QHBoxLayout()
-        logos_layout.setContentsMargins(0, 15, 0, 10)
-        
-        self.lbl_escudo_abajo = QLabel()
-        self.lbl_escudo_abajo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ruta_base = os.path.dirname(__file__)
-        rutas_escudo = [os.path.join(ruta_base, "escudo.jpg"), os.path.join(ruta_base, "escudo.jpeg"), os.path.join(ruta_base, "escudo.png")]
-        for r in rutas_escudo:
-            if os.path.exists(r):
-                # Tamaño gigante para el escudo
-                self.lbl_escudo_abajo.setPixmap(QPixmap(r).scaled(250, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                break
-                
-        self.lbl_logo_abajo = QLabel()
-        self.lbl_logo_abajo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # Agregamos "san valentin.jpg" a la lista para que la encuentre sí o sí
-        rutas_logo = [os.path.join(ruta_base, "logo.jpg"), os.path.join(ruta_base, "logo.jpeg"), os.path.join(ruta_base, "logo.png"), os.path.join(ruta_base, "san valentin.jpg")]
-        logo_encontrado = False
-        for r in rutas_logo:
-            if os.path.exists(r):
-                # Tamaño gigante para el logo del negocio
-                self.lbl_logo_abajo.setPixmap(QPixmap(r).scaled(350, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                logo_encontrado = True
-                break
-                
-        if not logo_encontrado:
-            self.lbl_logo_abajo.setText("EL CUERVO STORE")
-            self.lbl_logo_abajo.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 24px; font-weight: bold;")
-            self.lbl_logo_abajo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            
-        # El stretch reparte el espacio (el logo toma un poco más de ancho que el escudo)
-        logos_layout.addWidget(self.lbl_escudo_abajo, stretch=1)
-        logos_layout.addWidget(self.lbl_logo_abajo, stretch=2)
-        
-        panel_der.addLayout(logos_layout)
-        # -------------------------------------------------------
-        logos_layout = QHBoxLayout()
-        logos_layout.setContentsMargins(0, 10, 0, 10)
-        
-        self.lbl_escudo_abajo = QLabel()
-        ruta_base = os.path.dirname(__file__)
-        rutas_escudo = [os.path.join(ruta_base, "escudo.jpg"), os.path.join(ruta_base, "escudo.jpeg"), os.path.join(ruta_base, "escudo.png")]
-        for r in rutas_escudo:
-            if os.path.exists(r):
-                self.lbl_escudo_abajo.setPixmap(QPixmap(r).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                break
-                
-        self.lbl_logo_abajo = QLabel()
-        rutas_logo = [os.path.join(ruta_base, "logo.jpg"), os.path.join(ruta_base, "logo.jpeg"), os.path.join(ruta_base, "logo.png")]
-        logo_encontrado = False
-        for r in rutas_logo:
-            if os.path.exists(r):
-                self.lbl_logo_abajo.setPixmap(QPixmap(r).scaled(200, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                logo_encontrado = True
-                break
-                
-        if not logo_encontrado:
-            self.lbl_logo_abajo.setText("EL CUERVO STORE")
-            self.lbl_logo_abajo.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 20px; font-weight: bold;")
-            
-        logos_layout.addStretch()
-        logos_layout.addWidget(self.lbl_escudo_abajo)
-        logos_layout.addWidget(self.lbl_logo_abajo)
-        logos_layout.addStretch()
-        
-        panel_der.addLayout(logos_layout)
-        # -------------------------------------------------------
+        # ── Rotador de Ofertas (reemplaza el desglose) ──
+        if OfertasRotator:
+            self.rotador_ofertas = OfertasRotator()
+            panel_der.addWidget(self.rotador_ofertas, 1)
+        else:
+            lbl_sin = QLabel("Ofertas no disponibles")
+            lbl_sin.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
+            panel_der.addWidget(lbl_sin)
 
         contenido.addLayout(panel_der, 1)
         layout.addLayout(contenido)
 
-        QShortcut(QKeySequence("F1"), self).activated.connect(self.cobrar)
-        QShortcut(QKeySequence("F2"), self).activated.connect(self.cancelar_venta)
-        QShortcut(QKeySequence("F3"), self).activated.connect(lambda: self.input_buscar.setFocus())
-        QShortcut(QKeySequence("F4"), self).activated.connect(self.repetir_ultimo)
-        QShortcut(QKeySequence("F5"), self).activated.connect(self.pausar_venta_actual) # NUEVO ATAJO F5
+        QShortcut(QKeySequence("F3"), self).activated.connect(self.verificar_precio)
+        QShortcut(QKeySequence("F5"), self).activated.connect(self.pausar_venta_actual)
+        QShortcut(QKeySequence("F6"), self).activated.connect(self.abrir_busqueda_avanzada)
+        QShortcut(QKeySequence("F9"), self).activated.connect(self.cobrar)
+
+        # ── Foco automático para lectora de barras ──
+        # Cada 600ms verifica si el foco está en otro lado y lo devuelve
+        # Solo actúa si no hay un dialog abierto y no se está editando nada
+        self._timer_foco = QTimer()
+        self._timer_foco.timeout.connect(self._restaurar_foco_lectora)
+        self._timer_foco.start(600)
         
         # BOTÓN PARA RECUPERAR TICKETS PAUSADOS
         self.btn_recuperar_pausa = QPushButton("⏳ Recuperar (0)")
@@ -786,47 +760,86 @@ class VentasScreen(QWidget):
         else: QMessageBox.information(self, "Info", "No hay producto anterior para repetir")
 
     def verificar_precio(self):
+        """F3 — Buscador de precios. Solo consulta, no agrega al ticket."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("Verificar precio")
-        dialog.setMinimumWidth(340)
-        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: white;")
+        dialog.setWindowTitle("🔎 F3 — Verificar precio")
+        dialog.setMinimumWidth(480)
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
         lay = QVBoxLayout(dialog)
         lay.setSpacing(10)
-        lbl = QLabel("Buscar producto:")
-        lbl.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px;")
-        lay.addWidget(lbl)
-        input_buscar = QLineEdit()
-        input_buscar.setPlaceholderText("Nombre o codigo...")
-        input_buscar.setFixedHeight(44)
-        input_buscar.setStyleSheet(f"QLineEdit {{ background: {BG_PANEL}; border: 1px solid {ACCENT_BOTON}; border-radius: 8px; padding: 10px; color: white; font-size: 14px; }}")
-        lay.addWidget(input_buscar)
-        lista = QListWidget()
-        lista.setStyleSheet(f"QListWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 8px; color: white; }} QListWidget::item {{ padding: 8px; }}")
-        lista.setMinimumHeight(200)
-        lay.addWidget(lista)
+        lay.setContentsMargins(16, 16, 16, 16)
+
+        input_b = QLineEdit()
+        input_b.setPlaceholderText("Nombre o código de barras...")
+        input_b.setFixedHeight(48)
+        input_b.setStyleSheet(f"QLineEdit {{ background: {BG_PANEL}; border: 2px solid #1abc9c; border-radius: 10px; padding: 10px; color: white; font-size: 16px; }}")
+        lay.addWidget(input_b)
+
+        resultado_frame = QFrame()
+        resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid {BORDER}; }}")
+        resultado_frame.setMinimumHeight(120)
+        res_lay = QVBoxLayout(resultado_frame)
+        res_lay.setContentsMargins(16, 14, 16, 14)
+        lbl_nombre = QLabel("—")
+        lbl_nombre.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        lbl_nombre.setStyleSheet(f"color: {TEXT_MAIN};")
+        lbl_precio = QLabel("")
+        lbl_precio.setFont(QFont("Arial", 32, QFont.Weight.Bold))
+        lbl_precio.setStyleSheet("color: #1abc9c;")
+        lbl_stock  = QLabel("")
+        lbl_stock.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px;")
+        lbl_codigo = QLabel("")
+        lbl_codigo.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
+        res_lay.addWidget(lbl_nombre)
+        res_lay.addWidget(lbl_precio)
+        res_lay.addWidget(lbl_stock)
+        res_lay.addWidget(lbl_codigo)
+        lay.addWidget(resultado_frame)
+
         def buscar():
-            texto = input_buscar.text().strip()
+            texto = input_b.text().strip()
             if not texto: return
-            try:
-                r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
-                if r.status_code == 200:
-                    lista.clear()
-                    for p in r.json()[:10]:
-                        stock = float(p.get("stock_actual", 0))
-                        item = QListWidgetItem(f"{p['nombre']}  |  ${float(p['precio_venta']):.2f}  |  Stock: {stock}")
-                        lista.addItem(item)
-            except Exception: pass
-        input_buscar.returnPressed.connect(buscar)
-        btn_buscar = QPushButton("Buscar")
-        btn_buscar.setFixedHeight(36)
-        btn_buscar.setStyleSheet(f"QPushButton {{ background: {ACCENT_BOTON}; color: white; border-radius: 8px; font-size: 13px; }}")
-        btn_buscar.clicked.connect(buscar)
-        lay.addWidget(btn_buscar)
+            p = None
+            if self.productos_cache:
+                if texto in self.productos_codigo:
+                    p = self.productos_codigo[texto]
+                else:
+                    matches = [x for x in self.productos_cache if texto.lower() in x["nombre"].lower()]
+                    if matches: p = matches[0]
+            if not p:
+                try:
+                    r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
+                    if r.status_code == 200 and r.json():
+                        p = r.json()[0]
+                except Exception:
+                    pass
+            if p:
+                stock = float(p.get("stock_actual", 0))
+                lbl_nombre.setText(p["nombre"])
+                lbl_precio.setText(f"${float(p['precio_venta']):,.2f}")
+                color_stock = "#27ae60" if stock > 5 else ("#f39c12" if stock > 0 else "#e74c3c")
+                lbl_stock.setText(f"Stock: {stock:g} unidades")
+                lbl_stock.setStyleSheet(f"color: {color_stock}; font-size: 13px;")
+                lbl_codigo.setText(f"Código: {p.get('codigo_barra') or 'sin código'}")
+                resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid #1abc9c; }}")
+            else:
+                lbl_nombre.setText("No encontrado")
+                lbl_precio.setText("")
+                lbl_stock.setText("")
+                lbl_codigo.setText("")
+                resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid #e74c3c; }}")
+
+        input_b.returnPressed.connect(buscar)
+
         btn_cerrar = QPushButton("Cerrar")
-        btn_cerrar.setFixedHeight(36)
-        btn_cerrar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px; }}")
-        btn_cerrar.clicked.connect(dialog.reject)
+        btn_cerrar.setFixedHeight(40)
+        btn_cerrar.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+        btn_cerrar.clicked.connect(dialog.accept)
+        lay.addWidget(btn_cerrar)
+
+        input_b.setFocus()
         dialog.exec()
+        self.input_buscar.setFocus()
 
     def actualizar_subtotales_depto(self):
         while self.depto_layout.count():
@@ -867,23 +880,103 @@ class VentasScreen(QWidget):
 
     def buscar_producto(self):
         texto = self.input_buscar.text().strip()
-        if not texto: return
+        if not texto:
+            return
+
+        # Código de departamento especial
         if texto in DEPARTAMENTOS:
             depto = DEPARTAMENTOS[texto]
             self.input_buscar.clear()
             self.abrir_ingreso_departamento(depto)
             return
+
+        # 1. Buscar en cache local — sin red, instantáneo
+        if self.productos_cache:
+            # Coincidencia exacta por código de barras primero
+            if texto in self.productos_codigo:
+                self.agregar_item(self.productos_codigo[texto])
+                self.input_buscar.clear()
+                return
+
+            # Búsqueda por nombre (contiene, sin distinción de mayúsculas)
+            texto_lower = texto.lower()
+            resultados = [
+                p for p in self.productos_cache
+                if texto_lower in p["nombre"].lower()
+                and p.get("activo", True)
+            ]
+
+            if not resultados:
+                QMessageBox.warning(self, "No encontrado", f"No se encontró: {texto}")
+                return
+
+            if len(resultados) == 1:
+                self.agregar_item(resultados[0])
+                self.input_buscar.clear()
+                return
+
+            # Múltiples resultados — selector rápido
+            self._mostrar_selector_rapido(resultados)
+            return
+
+        # 2. Fallback a API si el cache todavía no cargó
         try:
             r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
             if r.status_code == 200:
                 productos = r.json()
                 if not productos:
-                    QMessageBox.warning(self, "No encontrado", f"No se encontro: {texto}")
+                    QMessageBox.warning(self, "No encontrado", f"No se encontró: {texto}")
                     return
                 self.agregar_item(productos[0])
                 self.input_buscar.clear()
         except Exception:
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
+
+    def _mostrar_selector_rapido(self, productos):
+        """Muestra lista rápida cuando hay múltiples coincidencias de nombre."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Seleccionar producto")
+        dialog.setMinimumWidth(500)
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(8)
+        lay.setContentsMargins(12, 12, 12, 12)
+
+        lista = QListWidget()
+        lista.setStyleSheet(f"""
+            QListWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 8px; font-size: 15px; }}
+            QListWidget::item {{ color: {TEXT_MAIN}; padding: 10px; border-bottom: 1px solid {BORDER}; }}
+            QListWidget::item:selected {{ background: {ACCENT_BOTON}; }}
+        """)
+        for p in productos[:20]:
+            stock = float(p.get("stock_actual", 0))
+            texto_item = f"{p['nombre']}   ${float(p['precio_venta']):,.0f}"
+            if stock <= 0:
+                texto_item += "  ⚠️ sin stock"
+            item = QListWidgetItem(texto_item)
+            item.setData(Qt.ItemDataRole.UserRole, p)
+            lista.addItem(item)
+        lay.addWidget(lista)
+
+        def seleccionar(item):
+            p = item.data(Qt.ItemDataRole.UserRole)
+            self.agregar_item(p)
+            self.input_buscar.clear()
+            dialog.accept()
+
+        lista.itemDoubleClicked.connect(seleccionar)
+        lista.itemActivated.connect(seleccionar)
+
+        btn = QPushButton("✅ Agregar seleccionado")
+        btn.setFixedHeight(40)
+        btn.setStyleSheet(f"background: {ACCENT_BOTON}; color: white; border-radius: 8px; font-weight: bold;")
+        btn.clicked.connect(lambda: seleccionar(lista.currentItem()) if lista.currentItem() else None)
+        lay.addWidget(btn)
+
+        lista.setCurrentRow(0)
+        lista.setFocus()
+        dialog.exec()
+        self.input_buscar.setFocus()
 
     def abrir_ingreso_departamento(self, depto):
         dialog = QDialog(self)
@@ -1231,7 +1324,6 @@ class VentasScreen(QWidget):
             total += item["subtotal"]
             
         self.lbl_total.setText(f"${total:.2f}")
-        self.actualizar_subtotales_depto()
 
     def eliminar_item(self, idx):
         if idx >= len(self.items_venta): return
@@ -1381,6 +1473,230 @@ class VentasScreen(QWidget):
                 self.cancelar_venta()
             else: QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
         except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
+
+    def abrir_busqueda_avanzada(self):
+        """F6 — Buscador de artículos. Enter agrega directo al ticket."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("🛒 F6 — Buscar y agregar")
+        dialog.setMinimumSize(560, 460)
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(8)
+        lay.setContentsMargins(14, 14, 14, 14)
+
+        input_b = QLineEdit()
+        input_b.setPlaceholderText("Nombre o código → Enter busca → Enter de nuevo agrega")
+        input_b.setFixedHeight(48)
+        input_b.setStyleSheet(f"QLineEdit {{ background: {BG_PANEL}; border: 2px solid {ACCENT_BOTON}; border-radius: 10px; padding: 10px; color: white; font-size: 15px; }}")
+        lay.addWidget(input_b)
+
+        tabla_b = QTableWidget(0, 4)
+        tabla_b.setHorizontalHeaderLabels(["Código", "Nombre", "Precio", "Stock"])
+        tabla_b.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        tabla_b.setColumnWidth(0, 100)
+        tabla_b.setColumnWidth(2, 100)
+        tabla_b.setColumnWidth(3, 70)
+        tabla_b.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        tabla_b.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        tabla_b.verticalHeader().setDefaultSectionSize(44)
+        tabla_b.setStyleSheet(f"""
+            QTableWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 10px; font-size: 14px; }}
+            QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 8px; border: none; font-size: 12px; }}
+            QTableWidget::item {{ color: {TEXT_MAIN}; padding: 6px; border-bottom: 1px solid {BORDER}; }}
+            QTableWidget::item:selected {{ background: {ACCENT_BOTON}; }}
+        """)
+        lay.addWidget(tabla_b)
+
+        lbl_hint = QLabel("↵ Enter en el buscador busca  ·  ↵ Enter en la tabla agrega al ticket")
+        lbl_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
+        lay.addWidget(lbl_hint)
+
+        productos_encontrados = []
+
+        def poblar_tabla(productos):
+            productos_encontrados.clear()
+            productos_encontrados.extend(productos[:30])
+            tabla_b.setRowCount(len(productos_encontrados))
+            for i, p in enumerate(productos_encontrados):
+                tabla_b.setItem(i, 0, QTableWidgetItem(p.get("codigo_barra") or ""))
+                tabla_b.setItem(i, 1, QTableWidgetItem(p["nombre"]))
+                tabla_b.setItem(i, 2, QTableWidgetItem(f"${float(p['precio_venta']):,.0f}"))
+                stock = float(p.get("stock_actual", 0))
+                item_s = QTableWidgetItem(f"{stock:g}")
+                if stock <= 0:
+                    item_s.setForeground(Qt.GlobalColor.red)
+                elif stock <= float(p.get("stock_minimo", 0)):
+                    item_s.setForeground(Qt.GlobalColor.yellow)
+                tabla_b.setItem(i, 3, item_s)
+            if productos_encontrados:
+                tabla_b.setCurrentRow(0)
+
+        def buscar():
+            texto = input_b.text().strip()
+            if not texto: return
+            if self.productos_cache:
+                if texto in self.productos_codigo:
+                    # Coincidencia exacta de código → agrega de una
+                    self.agregar_item(self.productos_codigo[texto])
+                    input_b.clear()
+                    dialog.accept()
+                    return
+                texto_lower = texto.lower()
+                resultados = [p for p in self.productos_cache
+                              if texto_lower in p["nombre"].lower() and p.get("activo", True)]
+            else:
+                try:
+                    r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
+                    resultados = r.json() if r.status_code == 200 else []
+                except Exception:
+                    resultados = []
+
+            if len(resultados) == 1:
+                # Un solo resultado → agrega directo
+                self.agregar_item(resultados[0])
+                input_b.clear()
+                dialog.accept()
+                return
+
+            poblar_tabla(resultados)
+            if resultados:
+                tabla_b.setFocus()  # Mover foco a tabla para poder navegar con teclado
+
+        def agregar_fila(row=None):
+            if row is None:
+                row = tabla_b.currentRow()
+            if 0 <= row < len(productos_encontrados):
+                self.agregar_item(productos_encontrados[row])
+                input_b.clear()
+                tabla_b.setRowCount(0)
+                productos_encontrados.clear()
+                input_b.setFocus()
+
+        def tabla_key_enter():
+            agregar_fila()
+
+        input_b.returnPressed.connect(buscar)
+        tabla_b.cellDoubleClicked.connect(lambda row, _: agregar_fila(row))
+        tabla_b.itemActivated.connect(lambda item: agregar_fila(tabla_b.row(item)))
+
+        btn_row = QHBoxLayout()
+        btn_c = QPushButton("Cerrar")
+        btn_c.setFixedHeight(40)
+        btn_c.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+        btn_c.clicked.connect(dialog.reject)
+        btn_row.addWidget(btn_c)
+        btn_a = QPushButton("✅  Agregar  (Enter)")
+        btn_a.setFixedHeight(40)
+        btn_a.setStyleSheet(f"background: {ACCENT_BOTON}; color: white; border-radius: 8px; font-weight: bold; font-size: 14px;")
+        btn_a.clicked.connect(lambda: agregar_fila())
+        btn_row.addWidget(btn_a)
+        lay.addLayout(btn_row)
+
+        input_b.setFocus()
+        dialog.exec()
+        self.input_buscar.setFocus()
+        dialog.setWindowTitle("🔍 F6 — Buscar producto")
+        dialog.setMinimumSize(600, 500)
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(10)
+        lay.setContentsMargins(16, 16, 16, 16)
+
+        input_b = QLineEdit()
+        input_b.setPlaceholderText("Nombre o código de barras...")
+        input_b.setFixedHeight(48)
+        input_b.setStyleSheet(f"QLineEdit {{ background: {BG_PANEL}; border: 2px solid {ACCENT_BOTON}; border-radius: 10px; padding: 10px; color: white; font-size: 16px; }}")
+        lay.addWidget(input_b)
+
+        tabla_b = QTableWidget(0, 4)
+        tabla_b.setHorizontalHeaderLabels(["Código", "Nombre", "Precio", "Stock"])
+        tabla_b.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        tabla_b.setColumnWidth(0, 100)
+        tabla_b.setColumnWidth(2, 100)
+        tabla_b.setColumnWidth(3, 80)
+        tabla_b.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        tabla_b.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        tabla_b.setStyleSheet(f"""
+            QTableWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 10px; font-size: 14px; }}
+            QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 8px; border: none; }}
+            QTableWidget::item {{ color: {TEXT_MAIN}; padding: 6px; border-bottom: 1px solid {BORDER}; }}
+            QTableWidget::item:selected {{ background: {ACCENT_BOTON}; }}
+        """)
+        lay.addWidget(tabla_b)
+
+        lbl_hint = QLabel("↵ Enter o doble clic para agregar al ticket")
+        lbl_hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
+        lay.addWidget(lbl_hint)
+
+        productos_encontrados = []
+
+        def buscar():
+            texto = input_b.text().strip()
+            if not texto: return
+            # Buscar en cache local — sin red
+            if self.productos_cache:
+                texto_lower = texto.lower()
+                if texto in self.productos_codigo:
+                    productos = [self.productos_codigo[texto]]
+                else:
+                    productos = [p for p in self.productos_cache
+                                 if texto_lower in p["nombre"].lower() and p.get("activo", True)]
+            else:
+                # Fallback API
+                try:
+                    r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
+                    productos = r.json() if r.status_code == 200 else []
+                except Exception:
+                    productos = []
+            productos_encontrados.clear()
+            productos_encontrados.extend(productos)
+            tabla_b.setRowCount(len(productos))
+            for i, p in enumerate(productos):
+                tabla_b.setItem(i, 0, QTableWidgetItem(p.get("codigo_barra") or ""))
+                tabla_b.setItem(i, 1, QTableWidgetItem(p["nombre"]))
+                tabla_b.setItem(i, 2, QTableWidgetItem(f"${float(p['precio_venta']):,.0f}"))
+                stock = float(p.get("stock_actual", 0))
+                item_stock = QTableWidgetItem(f"{stock:g}")
+                if stock <= 0:
+                    item_stock.setForeground(Qt.GlobalColor.red)
+                elif stock <= float(p.get("stock_minimo", 0)):
+                    item_stock.setForeground(Qt.GlobalColor.yellow)
+                tabla_b.setItem(i, 3, item_stock)
+
+        def agregar_seleccionado():
+            row = tabla_b.currentRow()
+            if row >= 0 and row < len(productos_encontrados):
+                self.agregar_item(productos_encontrados[row])
+                dialog.accept()
+
+        input_b.returnPressed.connect(buscar)
+        tabla_b.cellDoubleClicked.connect(lambda: agregar_seleccionado())
+
+        btn_row = QHBoxLayout()
+        btn_c = QPushButton("Cerrar")
+        btn_c.setFixedHeight(40)
+        btn_c.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+        btn_c.clicked.connect(dialog.reject)
+        btn_row.addWidget(btn_c)
+        btn_a = QPushButton("✅ Agregar seleccionado")
+        btn_a.setFixedHeight(40)
+        btn_a.setStyleSheet(f"background: {ACCENT_BOTON}; color: white; border-radius: 8px; font-weight: bold;")
+        btn_a.clicked.connect(agregar_seleccionado)
+        btn_row.addWidget(btn_a)
+        lay.addLayout(btn_row)
+
+        input_b.setFocus()
+        dialog.exec()
+        self.input_buscar.setFocus()
+
+    def _restaurar_foco_lectora(self):
+        """Devuelve el foco al buscador automáticamente para que la lectora siempre funcione."""
+        from PyQt6.QtWidgets import QApplication
+        widget_activo = QApplication.focusWidget()
+        # Si el foco está en la tabla, un botón o en ningún lado — volver al buscador
+        # No interrumpir si está en un QLineEdit (puede ser que esté escribiendo algo)
+        if widget_activo is None or isinstance(widget_activo, (QPushButton, QTableWidget)):
+            self.input_buscar.setFocus()
 
     def cancelar_venta(self):
         self.items_venta = []
