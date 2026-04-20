@@ -1,5 +1,11 @@
 import csv
+import os
 import requests
+try:
+    import openpyxl
+    TIENE_EXCEL = True
+except ImportError:
+    TIENE_EXCEL = False
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QFileDialog, QTableWidget,
                              QTableWidgetItem, QHeaderView, QFrame,
@@ -35,7 +41,7 @@ class ImportadorScreen(QWidget):
         titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         layout.addWidget(titulo)
 
-        desc = QLabel("Subí tu archivo de Excel (CSV). El sistema usará IA para detectar qué es el Nombre, el Precio y el Código de Barras.")
+        desc = QLabel("Subí tu archivo de Excel (.xlsx) o CSV. El sistema detecta automáticamente qué es el Nombre, el Precio y el Código de Barras.")
         desc.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         layout.addWidget(desc)
 
@@ -64,11 +70,14 @@ class ImportadorScreen(QWidget):
         layout.addWidget(lbl_prev)
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(3)
-        self.tabla.setHorizontalHeaderLabels(["Nombre del Producto", "Precio Detectado", "Código Detectado"])
-        self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tabla.setColumnWidth(1, 150)
-        self.tabla.setColumnWidth(2, 200)
+        self.tabla.setColumnCount(6)
+        self.tabla.setHorizontalHeaderLabels(["Código", "Producto", "P. Costo", "P. Venta", "Stock", "Departamento"])
+        self.tabla.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabla.setColumnWidth(0, 130)
+        self.tabla.setColumnWidth(2, 100)
+        self.tabla.setColumnWidth(3, 100)
+        self.tabla.setColumnWidth(4, 80)
+        self.tabla.setColumnWidth(5, 140)
         self.tabla.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tabla.setStyleSheet(f"""
             QTableWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 8px; gridline-color: {BORDER}; }}
@@ -112,7 +121,7 @@ class ImportadorScreen(QWidget):
         layout.addWidget(panel_accion)
 
     def seleccionar_archivo(self):
-        ruta, _ = QFileDialog.getOpenFileName(self, "Buscar archivo de Eleventas", "", "Archivos CSV/TXT (*.csv *.txt)")
+        ruta, _ = QFileDialog.getOpenFileName(self, "Buscar archivo de productos", "", "Archivos soportados (*.csv *.txt *.xlsx *.xls);;Excel (*.xlsx *.xls);;CSV/TXT (*.csv *.txt)")
         if ruta:
             self.ruta_archivo = ruta
             self.lbl_archivo.setText(f"📄 {ruta.split('/')[-1]}")
@@ -138,65 +147,174 @@ class ImportadorScreen(QWidget):
         except ValueError:
             return False, 0.0
 
+    def _limpiar_precio(self, texto):
+        """Limpia un texto de precio en cualquier formato:
+        $23,500.00 → 23500.0
+        $23.500,00 → 23500.0  (formato argentino)
+        23500 → 23500.0
+        None → 0.0
+        """
+        if texto is None:
+            return 0.0
+        # Si ya es número (openpyxl devuelve float/int directo)
+        if isinstance(texto, (int, float)):
+            return float(texto)
+        texto = str(texto).replace("$", "").replace(" ", "").strip()
+        if not texto or texto.lower() == "none":
+            return 0.0
+        # Detectar formato: si tiene punto Y coma, hay que decidir cuál es decimal
+        tiene_coma = "," in texto
+        tiene_punto = "." in texto
+        if tiene_coma and tiene_punto:
+            # "$23,500.00" (US) o "$23.500,00" (AR)
+            pos_coma = texto.rfind(",")
+            pos_punto = texto.rfind(".")
+            if pos_coma > pos_punto:
+                # Formato argentino: 23.500,00 → punto es miles, coma es decimal
+                texto = texto.replace(".", "").replace(",", ".")
+            else:
+                # Formato US: 23,500.00 → coma es miles, punto es decimal
+                texto = texto.replace(",", "")
+        elif tiene_coma:
+            # Solo coma: puede ser "1,00" decimal o "1,000" miles
+            partes = texto.split(",")
+            if len(partes[-1]) == 2:
+                # "1.200,00" → coma es decimal
+                texto = texto.replace(",", ".")
+            else:
+                # "1,000" → coma es miles
+                texto = texto.replace(",", "")
+        # punto solo → ya es formato correcto
+        try:
+            return float(texto)
+        except ValueError:
+            return 0.0
+
+    def _detectar_columnas(self, encabezados):
+        """Detecta qué columna es cada cosa por el nombre del encabezado."""
+        mapa = {"codigo": -1, "nombre": -1, "p_costo": -1, "p_venta": -1, "stock": -1, "depto": -1}
+        for i, h in enumerate(encabezados):
+            h = str(h).lower().strip()
+            if "prod" in h or h == "nombre" or h == "descripcion" or h == "articulo":
+                mapa["nombre"] = i
+            elif "costo" in h or "compra" in h:
+                mapa["p_costo"] = i
+            elif "venta" in h or "precio" in h and mapa["p_venta"] == -1:
+                mapa["p_venta"] = i
+            elif "mayor" in h:
+                pass  # ignorar mayoreo por ahora
+            elif h in ("codigo", "código", "cod", "barras", "codigo_barra", "ean", "upc", "sku"):
+                mapa["codigo"] = i
+            elif "exist" in h or "stock" in h or "cant" in h or "inventario" in h:
+                mapa["stock"] = i
+            elif "depart" in h or "categ" in h or "rubro" in h or "familia" in h:
+                mapa["depto"] = i
+        # Si no detectó precio de venta pero hay una columna "precio", tomarla
+        if mapa["p_venta"] == -1:
+            for i, h in enumerate(encabezados):
+                h = str(h).lower().strip()
+                if "precio" in h and i != mapa["p_costo"]:
+                    mapa["p_venta"] = i
+                    break
+        return mapa
+
     def leer_archivo(self):
         self.datos_extraidos = []
         try:
-            with open(self.ruta_archivo, 'r', encoding='utf-8', errors='ignore') as f:
-                lineas = f.readlines()
-                if not lineas:
-                    return
+            ext = os.path.splitext(self.ruta_archivo)[1].lower()
 
-                separador = ';' if ';' in lineas[0] else ',' if ',' in lineas[0] else '\t'
-                lector = csv.reader(lineas, delimiter=separador)
-                
-                # Omitimos la primera fila asumiendo que son títulos
-                next(lector, None)
-                
-                for fila in lector:
-                    if not fila: continue
-                    
-                    nombre = ""
-                    precio = 0.0
+            if ext in (".xlsx", ".xls"):
+                encabezados, filas = self._leer_excel()
+            else:
+                encabezados, filas = self._leer_csv()
+
+            if not encabezados or not filas:
+                QMessageBox.warning(self, "Aviso", "El archivo está vacío o no tiene datos.")
+                return
+
+            mapa = self._detectar_columnas(encabezados)
+
+            if mapa["nombre"] == -1 or mapa["p_venta"] == -1:
+                QMessageBox.warning(self, "Aviso",
+                    f"No se detectaron las columnas obligatorias.\n\n"
+                    f"Encabezados encontrados: {', '.join(str(h) for h in encabezados)}\n\n"
+                    f"Se necesita al menos: Producto y Precio de Venta")
+                return
+
+            for fila in filas:
+                if not fila or len(fila) <= max(v for v in mapa.values() if v >= 0):
+                    continue
+
+                nombre = str(fila[mapa["nombre"]]).strip() if mapa["nombre"] >= 0 else ""
+                p_venta = self._limpiar_precio(fila[mapa["p_venta"]]) if mapa["p_venta"] >= 0 else 0
+                p_costo = self._limpiar_precio(fila[mapa["p_costo"]]) if mapa["p_costo"] >= 0 else 0
+                codigo = str(fila[mapa["codigo"]]).strip() if mapa["codigo"] >= 0 else ""
+                stock = self._limpiar_precio(fila[mapa["stock"]]) if mapa["stock"] >= 0 else 0
+                depto = str(fila[mapa["depto"]]).strip() if mapa["depto"] >= 0 else ""
+
+                # Limpiar código (sacar .0 si viene de Excel como número)
+                if codigo.endswith(".0"):
+                    codigo = codigo[:-2]
+                if codigo.lower() in ("none", "0", ""):
                     codigo = ""
-                    
-                    # Analizamos cada celda de la fila usando la pista de Lucas
-                    for celda in fila:
-                        celda_str = str(celda).strip()
-                        if not celda_str: continue
-                        
-                        if self.es_codigo_barras(celda_str):
-                            codigo = celda_str
-                        else:
-                            es_num, valor_num = self.es_precio(celda_str)
-                            if es_num:
-                                precio = valor_num
-                            else:
-                                # Si no es código y no es precio, asumimos que es el nombre (o parte de él)
-                                nombre += celda_str + " "
-                                
-                    nombre = nombre.strip()
-                    
-                    # Si al menos encontró un nombre y un precio, lo agregamos
-                    if nombre and precio > 0:
-                        self.datos_extraidos.append({"nombre": nombre, "precio": precio, "codigo": codigo})
+
+                if nombre and nombre.lower() not in ("none", "") and p_venta > 0:
+                    self.datos_extraidos.append({
+                        "nombre": nombre,
+                        "precio": p_venta,
+                        "costo": p_costo,
+                        "codigo": codigo,
+                        "stock": stock,
+                        "depto": depto
+                    })
 
             self.datos_extraidos.sort(key=lambda x: x["nombre"].lower())
             self.mostrar_vista_previa()
-            
+
         except Exception as e:
             QMessageBox.critical(self, "Error de lectura", f"No se pudo leer el archivo.\n\nDetalle: {e}")
+
+    def _leer_csv(self):
+        """Lee un archivo CSV/TXT y devuelve (encabezados, filas)."""
+        with open(self.ruta_archivo, 'r', encoding='utf-8', errors='ignore') as f:
+            lineas = f.readlines()
+            if not lineas:
+                return [], []
+            separador = ';' if ';' in lineas[0] else ',' if ',' in lineas[0] else '\t'
+            lector = csv.reader(lineas, delimiter=separador)
+            encabezados = next(lector, [])
+            return encabezados, list(lector)
+
+    def _leer_excel(self):
+        """Lee un archivo .xlsx y devuelve (encabezados, filas)."""
+        if not TIENE_EXCEL:
+            QMessageBox.warning(self, "Falta librería",
+                "Para leer Excel necesitás instalar openpyxl.\n\n"
+                "Pegá en la terminal:\npip install openpyxl")
+            return [], []
+        wb = openpyxl.load_workbook(self.ruta_archivo, read_only=True, data_only=True)
+        ws = wb.active
+        filas_raw = []
+        for row in ws.iter_rows(values_only=True):
+            filas_raw.append([c if c is not None else "" for c in row])
+        wb.close()
+        if not filas_raw:
+            return [], []
+        return filas_raw[0], filas_raw[1:]
 
     def mostrar_vista_previa(self):
         self.tabla.setRowCount(len(self.datos_extraidos))
         for i, item in enumerate(self.datos_extraidos):
-            self.tabla.setItem(i, 0, QTableWidgetItem(item["nombre"]))
-            self.tabla.setItem(i, 1, QTableWidgetItem(f"${item['precio']:.2f}"))
-            
-            item_cod = QTableWidgetItem(item["codigo"] if item["codigo"] else "Sin código")
+            item_cod = QTableWidgetItem(item["codigo"] if item["codigo"] else "-")
             if not item["codigo"]:
                 item_cod.setForeground(QColor("#888888"))
-            self.tabla.setItem(i, 2, item_cod)
-            
+            self.tabla.setItem(i, 0, item_cod)
+            self.tabla.setItem(i, 1, QTableWidgetItem(item["nombre"]))
+            self.tabla.setItem(i, 2, QTableWidgetItem(f"${item['costo']:,.0f}" if item["costo"] else "-"))
+            self.tabla.setItem(i, 3, QTableWidgetItem(f"${item['precio']:,.0f}"))
+            self.tabla.setItem(i, 4, QTableWidgetItem(f"{int(item['stock'])}" if item["stock"] else "0"))
+            self.tabla.setItem(i, 5, QTableWidgetItem(item["depto"] if item["depto"] else "-"))
+
         if self.datos_extraidos:
             self.btn_importar.setEnabled(True)
             self.btn_importar.setText(f"🚀 IMPORTAR {len(self.datos_extraidos)} PRODUCTOS")
@@ -208,7 +326,8 @@ class ImportadorScreen(QWidget):
             return
             
         respuesta = QMessageBox.question(self, "Confirmar", 
-            f"¿Estás seguro de importar {len(self.datos_extraidos)} productos nuevos?\n\nEl sistema usará la detección automática para Precio y Código.",
+            f"¿Importar {len(self.datos_extraidos)} productos?\n\n"
+            f"Se cargarán con nombre, código, precio de venta, precio de costo y stock.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             
         if respuesta == QMessageBox.StandardButton.Yes:
@@ -218,25 +337,30 @@ class ImportadorScreen(QWidget):
             self.barra_progreso.setValue(0)
             
             exitos = 0
+            errores = 0
             for i, item in enumerate(self.datos_extraidos):
                 payload = {
                     "nombre": item["nombre"],
                     "precio_venta": item["precio"],
-                    "precio_compra": 0,
-                    "stock_actual": 0,
-                    "categoria_id": 1, 
-                    "codigo_barras": item["codigo"]
+                    "precio_costo": item.get("costo", 0) or 0,
+                    "stock_actual": item.get("stock", 0) or 0,
+                    "codigo_barra": item["codigo"] if item["codigo"] else None
                 }
                 try:
-                    r = requests.post(f"{API_URL}/productos/", json=payload, timeout=2)
+                    r = requests.post(f"{API_URL}/productos/", json=payload, timeout=3)
                     if r.status_code in (200, 201):
                         exitos += 1
+                    else:
+                        errores += 1
                 except:
-                    pass
+                    errores += 1
                     
                 self.barra_progreso.setValue(i + 1)
-                
-            QMessageBox.information(self, "Migración Completada", f"¡Éxito total, Lucas!\n\nSe importaron {exitos} productos a EL CUERVO STORE.")
+            
+            msg = f"Se importaron {exitos} de {len(self.datos_extraidos)} productos."
+            if errores:
+                msg += f"\n\n{errores} productos no se pudieron importar (posible código duplicado)."
+            QMessageBox.information(self, "Importación Completada", msg)
             self.datos_extraidos = []
             self.tabla.setRowCount(0)
             self.lbl_archivo.setText("Ningún archivo seleccionado...")

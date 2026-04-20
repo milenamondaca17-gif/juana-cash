@@ -117,7 +117,7 @@ class ProductoDialog(QDialog):
         # Llenar datos si es edición
         if self.producto:
             self.input_nombre.setText(self.producto.get("nombre", ""))
-            self.input_codigo.setText(self.producto.get("codigo_barras", "") or "")
+            self.input_codigo.setText(self.producto.get("codigo_barra", "") or "")
             self.input_precio_compra.setValue(float(self.producto.get("precio_compra", 0)))
             self.input_precio_venta.setValue(float(self.producto.get("precio_venta", 0)))
             self.input_stock.setValue(float(self.producto.get("stock_actual", 0)))
@@ -205,7 +205,7 @@ class ProductoDialog(QDialog):
 
         return {
             "nombre": self.input_nombre.text().strip(),
-            "codigo_barras": self.input_codigo.text().strip() or None,
+            "codigo_barra": self.input_codigo.text().strip() or None,
             "codigos_extra": codigos_adicionales, # <--- MANDAMOS LA LISTA AL BACKEND
             "categoria": self.combo_categoria.currentText(),
             "precio_compra": self.input_precio_compra.value(),
@@ -336,14 +336,14 @@ class ProductosScreen(QWidget):
             return
         filtrados = [p for p in self.productos
                      if texto.lower() in p["nombre"].lower()
-                     or texto in (p.get("codigo_barras") or "")]
+                     or texto in (p.get("codigo_barra") or "")]
         self.mostrar_productos(filtrados)
 
     def mostrar_productos(self, productos):
         self.tabla.setRowCount(len(productos))
         for i, p in enumerate(productos):
             self.tabla.setItem(i, 0, QTableWidgetItem(p["nombre"]))
-            self.tabla.setItem(i, 1, QTableWidgetItem(p.get("codigo_barras") or "-"))
+            self.tabla.setItem(i, 1, QTableWidgetItem(p.get("codigo_barra") or "-"))
             self.tabla.setItem(i, 2, QTableWidgetItem(p.get("categoria") or "-"))
 
             costo = float(p.get("precio_compra", 0))
@@ -524,4 +524,4 @@ class ProductosScreen(QWidget):
             return self.productos
         return [p for p in self.productos
                 if texto.lower() in p["nombre"].lower()
-                or texto in (p.get("codigo_barras") or "")]
+                or texto in (p.get("codigo_barra") or "")]

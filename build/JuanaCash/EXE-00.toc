@@ -1,6 +1,6 @@
 ('C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
  'CASH$\\build\\JuanaCash\\JuanaCash.exe',
- True,
+ False,
  False,
  True,
  ['C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\juana_cash.ico'],
@@ -87,9 +87,9 @@
  [],
  False,
  False,
- 1776594534,
- [('run.exe',
+ 1776657929,
+ [('runw.exe',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\run.exe',
+   'CASH$\\venv\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\runw.exe',
    'EXECUTABLE')],
  'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\python313.dll')

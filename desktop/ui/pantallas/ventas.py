@@ -1,5 +1,6 @@
 import requests
 import os
+import json
 from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QPushButton, QTableWidget,
@@ -50,6 +51,34 @@ ACCENT_TOTAL = "#34C38F"
 ACCENT_BOTON = "#556EE6"
 
 from PyQt6.QtWidgets import QCheckBox
+
+# ─── AUDITORÍA PERSISTENTE ────────────────────────────────────────────────────
+AUDITORIA_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets", "auditoria.json")
+
+def _leer_auditoria():
+    try:
+        os.makedirs(os.path.dirname(AUDITORIA_PATH), exist_ok=True)
+        if os.path.exists(AUDITORIA_PATH):
+            with open(AUDITORIA_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return []
+
+def _guardar_evento(evento):
+    """Agrega un evento al historial persistente."""
+    try:
+        registros = _leer_auditoria()
+        evento["fecha"] = datetime.now().strftime("%Y-%m-%d")
+        evento["hora"] = datetime.now().strftime("%H:%M:%S")
+        registros.append(evento)
+        if len(registros) > 5000:
+            registros = registros[-5000:]
+        os.makedirs(os.path.dirname(AUDITORIA_PATH), exist_ok=True)
+        with open(AUDITORIA_PATH, "w", encoding="utf-8") as f:
+            json.dump(registros, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
 class CobrarDialog(QDialog):
     def __init__(self, parent=None, total=0, cliente=None):
@@ -951,16 +980,22 @@ class VentasScreen(QWidget):
             QListWidget::item:selected {{ background: {ACCENT_BOTON}; }}
         """)
         for p in productos[:20]:
-            stock = float(p.get("stock_actual", 0))
-            texto_item = f"{p['nombre']}   ${float(p['precio_venta']):,.0f}"
-            if stock <= 0:
-                texto_item += "  ⚠️ sin stock"
+            texto_item = f"{p['nombre']}   ${float(p.get('precio_venta') or 0):,.0f}"
             item = QListWidgetItem(texto_item)
             item.setData(Qt.ItemDataRole.UserRole, p)
             lista.addItem(item)
         lay.addWidget(lista)
 
-        def seleccionar(item):
+        seleccionado = [False]  # flag para evitar doble ejecución
+
+        def seleccionar(item=None):
+            if seleccionado[0]:
+                return
+            if item is None:
+                item = lista.currentItem()
+            if item is None:
+                return
+            seleccionado[0] = True
             p = item.data(Qt.ItemDataRole.UserRole)
             self.agregar_item(p)
             self.input_buscar.clear()
@@ -972,12 +1007,13 @@ class VentasScreen(QWidget):
         btn = QPushButton("✅ Agregar seleccionado")
         btn.setFixedHeight(40)
         btn.setStyleSheet(f"background: {ACCENT_BOTON}; color: white; border-radius: 8px; font-weight: bold;")
-        btn.clicked.connect(lambda: seleccionar(lista.currentItem()) if lista.currentItem() else None)
+        btn.clicked.connect(lambda: seleccionar())
         lay.addWidget(btn)
 
         lista.setCurrentRow(0)
         lista.setFocus()
         dialog.exec()
+        self.input_buscar.clear()
         self.input_buscar.setFocus()
 
     def abrir_ingreso_departamento(self, depto):
@@ -1103,121 +1139,8 @@ class VentasScreen(QWidget):
         btn_confirmar.clicked.connect(confirmar)
         input_monto.setFocus()
         dialog.exec()
-        dialog = QDialog(self)
-        dialog.setWindowTitle(f"{depto['icono']} {depto['nombre']}")
-        dialog.setMinimumWidth(340)
-        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: white;")
-        layout = QVBoxLayout(dialog)
-        layout.setSpacing(12)
-        header = QFrame()
-        header.setStyleSheet(f"QFrame {{ background: {depto['color']}; border-radius: 10px; }}")
-        h_layout = QVBoxLayout(header)
-        h_layout.setContentsMargins(16, 12, 16, 12)
-        lbl_h = QLabel(f"{depto['icono']} {depto['nombre']}")
-        lbl_h.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        lbl_h.setStyleSheet("color: white;")
-        lbl_h.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        h_layout.addWidget(lbl_h)
-        layout.addWidget(header)
-        montos_temp = []
-        lista_frame = QFrame()
-        lista_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; border: 1px solid {depto['color']}; }}")
-        lista_layout = QVBoxLayout(lista_frame)
-        lista_layout.setContentsMargins(10, 8, 10, 8)
-        lista_layout.setSpacing(4)
-        lbl_montos = QLabel("- Sin items aun -")
-        lbl_montos.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
-        lbl_montos.setWordWrap(True)
-        lista_layout.addWidget(lbl_montos)
-        lbl_total_depto = QLabel("Total: $0.00")
-        lbl_total_depto.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        lbl_total_depto.setStyleSheet(f"color: {depto['color']};")
-        lbl_total_depto.setAlignment(Qt.AlignmentFlag.AlignRight)
-        lista_layout.addWidget(lbl_total_depto)
-        layout.addWidget(lista_frame)
-
-        def actualizar_lista():
-            if not montos_temp:
-                lbl_montos.setText("- Sin items aun -")
-                lbl_montos.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
-                lbl_total_depto.setText("Total: $0.00")
-                return
-            texto = "  +  ".join([f"${m:.2f}" for m in montos_temp])
-            lbl_montos.setText(texto)
-            lbl_montos.setStyleSheet("color: white; font-size: 13px;")
-            lbl_total_depto.setText(f"Total: ${sum(montos_temp):.2f}")
-
-        def agregar_monto():
-            texto_input = input_monto.text().strip()
-            if not texto_input: return
-            try: monto = float(texto_input.replace(",", "."))
-            except ValueError:
-                QMessageBox.warning(dialog, "Error", "Ingresa un monto valido")
-                return
-            if monto <= 0: return
-            montos_temp.append(monto)
-            input_monto.clear()
-            input_monto.setFocus()
-            actualizar_lista()
-
-        def borrar_ultimo():
-            if montos_temp:
-                montos_temp.pop()
-                actualizar_lista()
-
-        input_monto = MontoDeptoInput(agregar_monto)
-        input_monto.setPlaceholderText("Monto y Enter...")
-        input_monto.setFixedHeight(44)
-        input_monto.setAlignment(Qt.AlignmentFlag.AlignRight)
-        input_monto.setStyleSheet(f"QLineEdit {{ background: {BG_MAIN}; border: 2px solid {depto['color']}; border-radius: 8px; padding: 0 16px; color: white; font-size: 20px; font-weight: bold; }}")
-        input_frame = QFrame()
-        input_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; }}")
-        input_layout = QHBoxLayout(input_frame)
-        input_layout.setContentsMargins(8, 6, 8, 6)
-        input_layout.setSpacing(8)
-        input_layout.addWidget(input_monto)
-        btn_add = QPushButton("+ Sumar")
-        btn_add.setFixedSize(80, 44)
-        btn_add.setStyleSheet(f"QPushButton {{ background: {depto['color']}; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }}")
-        btn_add.clicked.connect(agregar_monto)
-        input_layout.addWidget(btn_add)
-        layout.addWidget(input_frame)
-        btn_borrar = QPushButton("<- Borrar ultimo")
-        btn_borrar.setFixedHeight(34)
-        btn_borrar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1px solid {TEXT_MUTED}; border-radius: 6px; font-size: 12px; }}")
-        btn_borrar.clicked.connect(borrar_ultimo)
-        layout.addWidget(btn_borrar)
-        btns = QHBoxLayout()
-        btn_cancelar = QPushButton("Cancelar")
-        btn_cancelar.setFixedHeight(44)
-        btn_cancelar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px; }}")
-        btn_cancelar.clicked.connect(dialog.reject)
-        btns.addWidget(btn_cancelar)
-        btn_confirmar = QPushButton("Agregar al ticket")
-        btn_confirmar.setFixedHeight(44)
-        btn_confirmar.setStyleSheet(f"QPushButton {{ background: {depto['color']}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }}")
-        btns.addWidget(btn_confirmar)
-        layout.addLayout(btns)
-
-        def confirmar():
-            if not montos_temp:
-                QMessageBox.warning(dialog, "Error", "Ingresa al menos un monto")
-                return
-            total = sum(montos_temp)
-            self.items_venta.append({
-                "producto_id": 0,
-                "nombre": f"{depto['icono']} {depto['nombre']}",
-                "precio_unitario": total,
-                "cantidad": 1,
-                "subtotal": total,
-                "descuento": 0
-            })
-            self.actualizar_tabla()
-            dialog.accept()
-
-        btn_confirmar.clicked.connect(confirmar)
-        input_monto.setFocus()
-        dialog.exec()
+        self.input_buscar.clear()
+        self.input_buscar.setFocus()
 
     def agregar_manual(self):
         nombre = self.input_manual_nombre.text().strip()
@@ -1239,24 +1162,17 @@ class VentasScreen(QWidget):
 
     def agregar_item(self, producto):
         self.ultimo_producto = producto
-        stock = float(producto.get("stock_actual", 0))
         for item in self.items_venta:
             if item["producto_id"] == producto["id"]:
                 item["cantidad"] += 1
                 item["subtotal"] = item["cantidad"] * item["precio_unitario"]
-                if stock > 0 and item["cantidad"] >= stock:
-                    QMessageBox.warning(self, "Stock bajo", f"Atencion: {producto['nombre']} tiene solo {stock} unidades en stock")
                 self.actualizar_tabla()
                 return
         self.items_venta.append({
             "producto_id": producto["id"], "nombre": producto["nombre"],
-            "precio_unitario": float(producto["precio_venta"]), "cantidad": 1,
-            "subtotal": float(producto["precio_venta"]), "descuento": 0
+            "precio_unitario": float(producto.get("precio_venta") or 0), "cantidad": 1,
+            "subtotal": float(producto.get("precio_venta") or 0), "descuento": 0
         })
-        if stock <= 1 and stock > 0:
-            QMessageBox.warning(self, "Stock bajo", f"Ultima unidad de: {producto['nombre']}")
-        elif stock == 0:
-            QMessageBox.warning(self, "Sin stock", f"{producto['nombre']} no tiene stock disponible")
         self.actualizar_tabla()
 
     def editar_item_doble_clic(self, row, col):
@@ -1270,6 +1186,8 @@ class VentasScreen(QWidget):
                     "producto": item["nombre"], "precio_original": precio_original,
                     "precio_nuevo": dialog.nuevo_precio, "hora": datetime.now().strftime("%H:%M:%S"), "ticket": "-"
                 })
+                _guardar_evento({"tipo": "modificacion", "producto": item["nombre"],
+                    "precio_original": precio_original, "precio_nuevo": dialog.nuevo_precio})
             item["precio_unitario"] = dialog.nuevo_precio
             item["cantidad"] = dialog.nueva_cantidad
             item["subtotal"] = dialog.nuevo_precio * dialog.nueva_cantidad
@@ -1284,6 +1202,8 @@ class VentasScreen(QWidget):
                 "producto": item["nombre"], "cantidad": item["cantidad"], "precio": item["precio_unitario"],
                 "hora": datetime.now().strftime("%H:%M:%S"), "motivo": "Cantidad reducida a 0", "venta_cerrada": False, "ticket": "-"
             })
+            _guardar_evento({"tipo": "eliminado", "producto": item["nombre"],
+                "cantidad": item["cantidad"], "precio": item["precio_unitario"], "motivo": "Cantidad reducida a 0"})
             self.items_venta.pop(idx)
         else:
             item["cantidad"] = nueva_cantidad
@@ -1334,6 +1254,8 @@ class VentasScreen(QWidget):
             "producto": item["nombre"], "cantidad": item["cantidad"], "precio": item["precio_unitario"],
             "hora": datetime.now().strftime("%H:%M:%S"), "motivo": "Eliminado con X", "venta_cerrada": False, "ticket": "-"
         })
+        _guardar_evento({"tipo": "eliminado", "producto": item["nombre"],
+            "cantidad": item["cantidad"], "precio": item["precio_unitario"], "motivo": "Eliminado con X"})
         self.items_venta.pop(idx)
         self.actualizar_tabla()
         self.input_buscar.setFocus()
@@ -1365,38 +1287,68 @@ class VentasScreen(QWidget):
         except Exception as e: print(f"Error: {e}")
 
     def ver_informe(self):
-        if not self.log_eliminados and not self.log_modificaciones:
-            QMessageBox.information(self, "Informe", "No hay eventos registrados en esta sesión.\n\nAcá se muestran artículos borrados\ny modificaciones de precio.")
+        registros = _leer_auditoria()
+        if not registros and not self.log_eliminados and not self.log_modificaciones:
+            QMessageBox.information(self, "Informe", "No hay eventos registrados.\n\nAcá se muestran artículos borrados\ny modificaciones de precio.")
             self.input_buscar.setFocus()
             return
+
         lineas = []
-        lineas.append("=" * 50)
-        lineas.append("INFORME DE SESION — MOVIMIENTOS")
-        lineas.append("=" * 50)
-        if self.log_eliminados:
-            lineas.append(f"\n🗑 PRODUCTOS ELIMINADOS ({len(self.log_eliminados)}):")
-            lineas.append("-" * 40)
-            for d in self.log_eliminados:
-                lineas.append(f"  {d.get('hora','')}  {d.get('producto','')}  x{d.get('cantidad','')}  ${float(d.get('precio',0)):,.2f}  [{d.get('motivo','')}] Ticket:{d.get('ticket','-')}")
-        if self.log_modificaciones:
-            lineas.append(f"\n✏️ MODIFICACIONES DE PRECIO ({len(self.log_modificaciones)}):")
-            lineas.append("-" * 40)
-            for d in self.log_modificaciones:
-                lineas.append(f"  {d.get('hora','')}  {d.get('producto','')}  ${float(d.get('precio_original',0)):,.2f} -> ${float(d.get('precio_nuevo',0)):,.2f}  Ticket:{d.get('ticket','-')}")
-        lineas.append("\n" + "=" * 50)
+        lineas.append("=" * 60)
+        lineas.append("📋 HISTORIAL DE AUDITORÍA")
+        lineas.append("=" * 60)
+
+        # Agrupar por fecha
+        por_fecha = {}
+        for r in registros:
+            fecha = r.get("fecha", "Sin fecha")
+            if fecha not in por_fecha:
+                por_fecha[fecha] = []
+            por_fecha[fecha].append(r)
+
+        # Mostrar últimas 10 fechas (más reciente primero)
+        fechas = sorted(por_fecha.keys(), reverse=True)[:10]
+        for fecha in fechas:
+            eventos = por_fecha[fecha]
+            eliminados = [e for e in eventos if e.get("tipo") == "eliminado"]
+            modificaciones = [e for e in eventos if e.get("tipo") == "modificacion"]
+
+            lineas.append(f"\n📅 {fecha}")
+            lineas.append("-" * 50)
+
+            if eliminados:
+                lineas.append(f"  🗑 Productos eliminados: {len(eliminados)}")
+                for e in eliminados:
+                    lineas.append(f"    {e.get('hora','')}  {e.get('producto','')}  x{e.get('cantidad','')}  ${float(e.get('precio',0)):,.2f}  [{e.get('motivo','')}]")
+
+            if modificaciones:
+                lineas.append(f"  ✏️ Precios modificados: {len(modificaciones)}")
+                for e in modificaciones:
+                    lineas.append(f"    {e.get('hora','')}  {e.get('producto','')}  ${float(e.get('precio_original',0)):,.2f} → ${float(e.get('precio_nuevo',0)):,.2f}")
+
+            if not eliminados and not modificaciones:
+                lineas.append("  Sin movimientos")
+
+        lineas.append("\n" + "=" * 60)
+        lineas.append(f"Total registros: {len(registros)}")
+        lineas.append("=" * 60)
+
         texto = "\n".join(lineas)
         dialog = QDialog(self)
-        dialog.setWindowTitle("Informe de sesion")
-        dialog.resize(700, 500)
+        dialog.setWindowTitle("📋 Historial de auditoría")
+        dialog.resize(750, 550)
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
         layout = QVBoxLayout(dialog)
         txt = QTextEdit()
         txt.setReadOnly(True)
         txt.setPlainText(texto)
         txt.setFont(QFont("Courier New", 10))
+        txt.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MAIN}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px;")
         layout.addWidget(txt)
         btn = QPushButton("Cerrar")
         btn.setFixedHeight(36)
         btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn.setStyleSheet(f"background: {ACCENT_BOTON}; color: white; border-radius: 8px;")
         btn.clicked.connect(dialog.accept)
         layout.addWidget(btn)
         dialog.exec()

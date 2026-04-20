@@ -503,6 +503,7 @@ class VentasScreen(QWidget):
         atajos_lay.setSpacing(0)
         # NUEVO: Agregamos "F5 Pausar" a la lista visual de atajos
         for texto, color in [
+            ("F2 Rápido",    "#e67e22"),
             ("F3 Precios",   "#1abc9c"),
             ("F5 Pausar",    "#F59E0B"),
             ("F6 Buscar",    ACCENT_BOTON),
@@ -590,7 +591,7 @@ class VentasScreen(QWidget):
         btn_repetir.clicked.connect(self.repetir_ultimo)
         fila_btns.addWidget(btn_repetir)
 
-        btn_cancelar = QPushButton("✕ F2")
+        btn_cancelar = QPushButton("✕")
         btn_cancelar.setFixedHeight(40)
         btn_cancelar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_cancelar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border-radius: 8px; font-size: 14px; font-weight: bold; border: 1px solid {BORDER}; }}")
@@ -636,6 +637,7 @@ class VentasScreen(QWidget):
         contenido.addLayout(panel_der, 1)
         layout.addLayout(contenido)
 
+        QShortcut(QKeySequence("F2"), self).activated.connect(self.cobrar_sin_ticket)
         QShortcut(QKeySequence("F3"), self).activated.connect(self.verificar_precio)
         QShortcut(QKeySequence("F5"), self).activated.connect(self.pausar_venta_actual)
         QShortcut(QKeySequence("F6"), self).activated.connect(self.abrir_busqueda_avanzada)
@@ -1363,29 +1365,24 @@ class VentasScreen(QWidget):
         except Exception as e: print(f"Error: {e}")
 
     def ver_informe(self):
-        if not self.log_eliminados and not self.log_ventas and not self.log_modificaciones:
-            QMessageBox.information(self, "Informe", "No hay eventos registrados en esta sesion.")
+        if not self.log_eliminados and not self.log_modificaciones:
+            QMessageBox.information(self, "Informe", "No hay eventos registrados en esta sesión.\n\nAcá se muestran artículos borrados\ny modificaciones de precio.")
             self.input_buscar.setFocus()
             return
         lineas = []
         lineas.append("=" * 50)
-        lineas.append("INFORME DE SESION")
+        lineas.append("INFORME DE SESION — MOVIMIENTOS")
         lineas.append("=" * 50)
         if self.log_eliminados:
-            lineas.append(f"\nPRODUCTOS ELIMINADOS ({len(self.log_eliminados)}):")
+            lineas.append(f"\n🗑 PRODUCTOS ELIMINADOS ({len(self.log_eliminados)}):")
             lineas.append("-" * 40)
             for d in self.log_eliminados:
                 lineas.append(f"  {d.get('hora','')}  {d.get('producto','')}  x{d.get('cantidad','')}  ${float(d.get('precio',0)):,.2f}  [{d.get('motivo','')}] Ticket:{d.get('ticket','-')}")
         if self.log_modificaciones:
-            lineas.append(f"\nMODIFICACIONES DE PRECIO ({len(self.log_modificaciones)}):")
+            lineas.append(f"\n✏️ MODIFICACIONES DE PRECIO ({len(self.log_modificaciones)}):")
             lineas.append("-" * 40)
             for d in self.log_modificaciones:
                 lineas.append(f"  {d.get('hora','')}  {d.get('producto','')}  ${float(d.get('precio_original',0)):,.2f} -> ${float(d.get('precio_nuevo',0)):,.2f}  Ticket:{d.get('ticket','-')}")
-        if self.log_ventas:
-            lineas.append(f"\nVENTAS CERRADAS ({len(self.log_ventas)}):")
-            lineas.append("-" * 40)
-            for d in self.log_ventas:
-                lineas.append(f"  {d.get('hora','')}  Ticket:{d.get('ticket','')}  ${d.get('total_final',0):,.2f}  {d.get('metodo_pago','')}  Desc:{d.get('descuento_pct',0):.1f}%")
         lineas.append("\n" + "=" * 50)
         texto = "\n".join(lineas)
         dialog = QDialog(self)
@@ -1404,6 +1401,74 @@ class VentasScreen(QWidget):
         layout.addWidget(btn)
         dialog.exec()
         self.input_buscar.setFocus()
+
+    def cobrar_sin_ticket(self):
+        """F2 — Cobra la venta actual sin imprimir ticket."""
+        if not self.items_venta:
+            QMessageBox.warning(self, "Sin productos", "Agrega productos antes de cobrar")
+            return
+        total_original = sum(i["subtotal"] for i in self.items_venta)
+        dialog = CobrarDialog(self, total_original, cliente=self.cliente_actual)
+        if not dialog.exec(): return
+        descuento_pct = dialog.descuento_pct
+        total_final = dialog.total_final
+        metodo_pago = dialog.metodo_pago
+        metodo_secundario = dialog.metodo_secundario
+        monto_secundario = dialog.monto_secundario
+        descuento_monto = total_original - total_final
+        vuelto = 0
+        if metodo_pago == "efectivo":
+            try:
+                entrega = float(dialog.input_entrega.text().replace(",", "."))
+                vuelto = max(0, entrega - (total_final - monto_secundario))
+            except ValueError: pass
+        items_backend = [i for i in self.items_venta if i["producto_id"] != 0]
+        if not items_backend:
+            items_backend = [{"producto_id": 1, "cantidad": 1, "precio_unitario": total_final, "descuento": 0}]
+        pagos = [{"metodo": metodo_pago, "monto": total_final - monto_secundario}]
+        if metodo_secundario and monto_secundario > 0:
+            pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
+        cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
+        try:
+            r = requests.post(f"{API_URL}/ventas/", json={
+                "usuario_id": self.usuario.get("id", 1) if self.usuario else 1,
+                "cliente_id": cliente_id,
+                "items": items_backend,
+                "pagos": pagos,
+                "descuento": descuento_monto
+            }, timeout=5)
+            if r.status_code == 200:
+                datos = r.json()
+                ticket = datos["numero"]
+                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+                metodo_str = nombres_metodo.get(metodo_pago, metodo_pago)
+                if metodo_secundario:
+                    metodo_str += f" + {nombres_metodo.get(metodo_secundario, metodo_secundario)} (${monto_secundario:.2f})"
+                self.log_ventas.append({"ticket": ticket, "total_original": total_original, "descuento_pct": descuento_pct, "total_final": total_final, "metodo_pago": metodo_str, "vuelto": vuelto, "hora": datetime.now().strftime("%H:%M:%S")})
+                for log in self.log_eliminados:
+                    if not log["venta_cerrada"]:
+                        log["venta_cerrada"] = True; log["ticket"] = ticket
+                for m in self.log_modificaciones:
+                    if m["ticket"] == "-": m["ticket"] = ticket
+                if self.cliente_actual:
+                    cid = self.cliente_actual["id"]
+                    if dialog.descuento_puntos > 0:
+                        try: requests.post(f"{API_URL}/clientes/{cid}/canjear-puntos", timeout=3)
+                        except Exception: pass
+                    try: requests.post(f"{API_URL}/clientes/{cid}/sumar-puntos", params={"monto": total_final}, timeout=3)
+                    except Exception: pass
+                self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
+                msg = f"✅ Ticket #{ticket} — ${total_final:,.0f} ({metodo_str})"
+                if metodo_pago == "efectivo" and vuelto > 0:
+                    msg += f" — Vuelto: ${vuelto:,.0f}"
+                # Sin ticket: solo aviso rápido en la barra, sin popup
+                self.lbl_total.setText(msg)
+                self.lbl_total.setStyleSheet(f"color: #27ae60; font-size: 28px; font-weight: bold;")
+                self.cancelar_venta()
+                # Restaurar el color del total después de 3 segundos
+                QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; font-size: 36px; font-weight: bold;"))
+            else: QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
+        except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
 
     def cobrar(self):
         if not self.items_venta:

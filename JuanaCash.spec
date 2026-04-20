@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('backend', 'backend'), ('desktop', 'desktop'), ('juana_cash.db', '.')]
 binaries = []
-hiddenimports = ['passlib.handlers.bcrypt', 'sqlalchemy.dialects.sqlite', 'reportlab.pdfgen', 'reportlab.lib.pagesizes', 'reportlab.lib.units', 'reportlab.lib.colors']
+hiddenimports = ['passlib.handlers.bcrypt', 'sqlalchemy.dialects.sqlite']
 tmp_ret = collect_all('uvicorn')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('fastapi')
@@ -32,6 +32,8 @@ tmp_ret = collect_all('bcrypt')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('multipart')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('openpyxl')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
@@ -59,7 +61,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
