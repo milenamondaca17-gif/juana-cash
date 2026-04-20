@@ -169,18 +169,49 @@ class SplashScreen(QWidget):
         self.pasos = [
             (8,   "Verificando configuración..."),
             (18,  "Conectando base de datos..."),
-            (32,  "Cargando productos..."),
-            (45,  "Inicializando módulos..."),
-            (58,  "Cargando interfaz..."),
-            (70,  "Verificando conexión..."),
+            (32,  "Buscando actualizaciones..."),
+            (45,  "Cargando productos..."),
+            (58,  "Inicializando módulos..."),
+            (70,  "Cargando interfaz..."),
             (82,  "Preparando reportes..."),
             (92,  "Casi listo..."),
             (100, "¡Sistema listo!"),
         ]
         self.paso_actual = 0
+        self._update_msg = None
         self.timer = QTimer()
         self.timer.timeout.connect(self._avanzar)
         self.timer.start(220)
+
+        # Verificar actualizaciones en segundo plano
+        try:
+            import sys, os
+            # Buscar updater en distintas ubicaciones
+            for ruta in [
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "updater.py"),
+                os.path.join(os.path.dirname(sys.executable), "updater.py"),
+                "updater.py",
+            ]:
+                ruta = os.path.normpath(ruta)
+                if os.path.exists(ruta):
+                    sys.path.insert(0, os.path.dirname(ruta))
+                    break
+
+            from updater import Updater
+            u = Updater()
+            u.verificar(
+                on_descargando=lambda v: self._set_update_msg(f"⬇️ Descargando v{v}..."),
+                on_actualizado=lambda v: self._set_update_msg(f"✅ Actualizado a v{v} — reiniciá"),
+                on_sin_internet=lambda: None,
+                on_no_hay_update=lambda: None,
+            )
+        except Exception:
+            pass
+
+    def _set_update_msg(self, msg):
+        self._update_msg = msg
+        self.lbl_estado.setText(msg)
+        self.lbl_estado.setStyleSheet("color: #F59E0B; background: transparent;")
 
     def _avanzar(self):
         if self.paso_actual >= len(self.pasos):
