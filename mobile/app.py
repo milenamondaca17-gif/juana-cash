@@ -239,6 +239,89 @@ def main(page: ft.Page):
         value="efectivo", width=150, border_radius=10,
         filled=True, bgcolor="#1E293B", border_color="transparent"
     )
+
+    # Cliente seleccionado para fiado
+    cliente_fiado = {"id": None, "nombre": ""}
+    lbl_cliente_fiado = ft.Text("", size=12, color="#F59E0B")
+    panel_buscar_cliente = ft.Container(visible=False)
+
+    def on_metodo_change(e):
+        if drop_metodo.value == "fiado":
+            panel_buscar_cliente.visible = True
+        else:
+            panel_buscar_cliente.visible = False
+            cliente_fiado["id"] = None
+            cliente_fiado["nombre"] = ""
+            lbl_cliente_fiado.value = ""
+        page.update()
+
+    drop_metodo.on_change = on_metodo_change
+
+    def buscar_cliente(e=None):
+        q = in_buscar_cliente.value.strip()
+        if not q: return
+
+        def _buscar():
+            data = api_get("/clientes/", params={"q": q}, timeout=8)
+            if not data:
+                data = api_get("/clientes/", timeout=8)
+                if data:
+                    q_lower = q.lower()
+                    data = [c for c in data if q_lower in c.get("nombre", "").lower()]
+
+            lista_clientes.controls.clear()
+            if data:
+                for c in data[:10]:
+                    nombre = c.get("nombre", "")
+                    deuda = float(c.get("deuda_actual") or 0)
+                    txt = f"{nombre}"
+                    if deuda > 0:
+                        txt += f"  💸 debe ${deuda:,.0f}"
+                    lista_clientes.controls.append(
+                        ft.Container(
+                            content=ft.Row([
+                                ft.Text(txt, expand=True, size=12, color="white"),
+                            ]),
+                            bgcolor="#1E293B", padding=10, border_radius=8,
+                            on_click=lambda e, cl=c: seleccionar_cliente(cl),
+                        )
+                    )
+            else:
+                lista_clientes.controls.append(
+                    ft.Text("Sin resultados", color="#94A3B8", size=12)
+                )
+            page.update()
+
+        import threading
+        threading.Thread(target=_buscar, daemon=True).start()
+
+    def seleccionar_cliente(c):
+        cliente_fiado["id"] = c["id"]
+        cliente_fiado["nombre"] = c.get("nombre", "")
+        lbl_cliente_fiado.value = f"✅ Cliente: {cliente_fiado['nombre']}"
+        lista_clientes.controls.clear()
+        in_buscar_cliente.value = ""
+        page.update()
+
+    in_buscar_cliente = ft.TextField(
+        label="Buscar cliente por nombre",
+        filled=True, border_color="transparent",
+        border_radius=10, content_padding=12,
+        bgcolor="#1E293B", expand=True,
+        on_submit=buscar_cliente
+    )
+    lista_clientes = ft.Column(spacing=4, scroll=ft.ScrollMode.ALWAYS, height=150)
+
+    panel_buscar_cliente.content = ft.Column([
+        ft.Row([in_buscar_cliente,
+                ft.ElevatedButton("🔍", on_click=buscar_cliente,
+                    bgcolor="#556EE6", color="white", height=44, width=50)]),
+        lbl_cliente_fiado,
+        lista_clientes,
+    ], spacing=6)
+    panel_buscar_cliente.bgcolor = "#0F172A"
+    panel_buscar_cliente.border_radius = 10
+    panel_buscar_cliente.padding = 10
     btn_recuperar = ft.ElevatedButton("⏳ (0)", bgcolor="#334155", color="white", visible=False)
 
     def recalc():
@@ -328,41 +411,89 @@ def main(page: ft.Page):
         )
         lista_compra.controls.append(fila)
 
-    @en_hilo
+    # Panel de resultados de búsqueda (inline, no dialog)
+    panel_resultados = ft.Container(visible=False)
+
+    def ocultar_resultados():
+        panel_resultados.visible = False
+        panel_resultados.content = None
+        page.update()
+
     def buscar_prod(e=None):
         v = in_scan.value.strip()
-        if not v: return
+        if not v:
+            ocultar_resultados()
+            return
         lbl_aviso.value = "🔍..."
         lbl_aviso.color = "#94A3B8"
         page.update()
 
-        # Buscar en cache local primero — instantáneo sin red
-        p = None
-        if productos_cache:
-            # 1. Código de barras exacto
-            if v in productos_codigo:
-                p = productos_codigo[v]
-            else:
-                # 2. Nombre (contiene)
-                v_lower = v.lower()
-                matches = [x for x in productos_cache if v_lower in x["nombre"].lower()]
-                if matches:
-                    p = matches[0]
-        else:
-            # Fallback API si cache vacío
-            data = api_get("/productos/buscar", params={"q": v})
-            if data:
-                p = data[0]
+        def _buscar():
+            matches = []
+            if productos_cache:
+                if v in productos_codigo:
+                    matches = [productos_codigo[v]]
+                else:
+                    v_lower = v.lower()
+                    matches = [x for x in productos_cache if v_lower in x["nombre"].lower()]
+            if not matches:
+                data = api_get("/productos/buscar", params={"q": v}, timeout=8)
+                if data:
+                    matches = data
 
-        if p:
-            dat = {"n": p["nombre"], "p": float(p.get("precio_venta") or 0), "producto_id": p["id"]}
-            carrito.append(dat); agregar_ui(dat)
-            in_scan.value = ""; lbl_aviso.value = ""
-            recalc()
-        else:
-            lbl_aviso.value = f"❌ '{v}' no encontrado"
-            lbl_aviso.color = "#EF4444"
-        page.update()
+            if not matches:
+                lbl_aviso.value = f"❌ '{v}' no encontrado"
+                lbl_aviso.color = "#EF4444"
+                page.update()
+                return
+
+            if len(matches) == 1:
+                p = matches[0]
+                dat = {"n": p["nombre"], "p": float(p.get("precio_venta") or 0), "producto_id": p["id"]}
+                carrito.append(dat); agregar_ui(dat)
+                in_scan.value = ""; lbl_aviso.value = ""
+                ocultar_resultados()
+                recalc()
+                return
+
+            # Múltiples — mostrar panel inline
+            def seleccionar(prod):
+                dat = {"n": prod["nombre"], "p": float(prod.get("precio_venta") or 0), "producto_id": prod["id"]}
+                carrito.append(dat); agregar_ui(dat)
+                in_scan.value = ""; lbl_aviso.value = ""
+                ocultar_resultados()
+                recalc()
+
+            filas = [
+                ft.Container(
+                    content=ft.Row([
+                        ft.Text(p["nombre"], expand=True, size=12, weight="bold", color="white"),
+                        ft.Text(f"${float(p.get('precio_venta') or 0):,.0f}",
+                               color="#38BDF8", size=13, weight="bold"),
+                    ]),
+                    bgcolor="#1E293B", padding=ft.padding.symmetric(horizontal=12, vertical=10),
+                    border_radius=8, on_click=lambda e, prod=p: seleccionar(prod),
+                )
+                for p in matches[:15]
+            ]
+            filas.append(
+                ft.TextButton("✕ Cancelar", on_click=lambda e: ocultar_resultados())
+            )
+
+            panel_resultados.content = ft.Column(
+                controls=filas, scroll=ft.ScrollMode.ALWAYS,
+                spacing=4, height=min(len(matches) * 50, 300)
+            )
+            panel_resultados.bgcolor = "#0F172A"
+            panel_resultados.border_radius = 10
+            panel_resultados.padding = 8
+            panel_resultados.visible = True
+            lbl_aviso.value = f"🔍 {len(matches)} resultados — tocá para agregar"
+            lbl_aviso.color = "#94A3B8"
+            page.update()
+
+        import threading
+        threading.Thread(target=_buscar, daemon=True).start()
 
     in_scan.on_submit = buscar_prod
 
@@ -371,8 +502,15 @@ def main(page: ft.Page):
             lbl_aviso,
             ft.Row([in_cliente, ft.ElevatedButton("⏸️", on_click=pausar, bgcolor="#F59E0B", color="black"), btn_recuperar]),
             ft.Row([in_scan, ft.ElevatedButton("➕", on_click=buscar_prod, bgcolor="#10B981", color="white", height=48)]),
-            lista_compra,
+            panel_resultados,
             ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween"),
+            ft.ElevatedButton(
+                "👤 Vincular cliente para Fiado", bgcolor="#F59E0B", color="black",
+                width=float("inf"), height=44,
+                on_click=lambda e: (setattr(panel_buscar_cliente, 'visible', not panel_buscar_cliente.visible), page.update())
+            ),
+            panel_buscar_cliente,
+            lista_compra,
             ft.ElevatedButton(
                 "🧾 COBRAR", width=float("inf"), height=58,
                 bgcolor="#F43F5E", color="white",
@@ -428,6 +566,7 @@ def main(page: ft.Page):
 
         data = api_post("/ventas/", json_data={
             "usuario_id": 1,
+            "cliente_id": cliente_fiado["id"] if drop_metodo.value == "fiado" else None,
             "items":      items_api,
             "pagos":      [{"metodo": metodo, "monto": tot}],
             "descuento":  0,
@@ -437,6 +576,10 @@ def main(page: ft.Page):
             num = data.get("numero", "?")
             carrito.clear(); lista_compra.controls.clear()
             in_pago.value = ""; in_cliente.value = ""
+            cliente_fiado["id"] = None; cliente_fiado["nombre"] = ""
+            lbl_cliente_fiado.value = ""
+            panel_buscar_cliente.visible = False
+            drop_metodo.value = "efectivo"
             view_ticket.visible  = False
             view_cobrar.visible  = True
             lbl_aviso.value      = f"✅ TICKET #{num} COBRADO!"

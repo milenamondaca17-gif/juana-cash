@@ -38,7 +38,7 @@ def buscar_producto(q: str, db: Session = Depends(get_db)):
     return db.query(Producto).filter(
         (Producto.nombre.contains(q)) | (Producto.codigo_barra == q),
         Producto.activo == True
-    ).all()
+    ).limit(20).all()
 
 @router.get("/{id}")
 def obtener_producto(id: int, db: Session = Depends(get_db)):
