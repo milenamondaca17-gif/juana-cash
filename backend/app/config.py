@@ -9,7 +9,10 @@ APP_NAME = "Juana Cash"
 APP_VERSION = "1.0.0"
 
 # Base de datos (SQLite, archivo local)
-DATABASE_URL = "sqlite:///./juana_cash.db"
+# Usar ruta absoluta para evitar problemas con el directorio de trabajo
+_DB_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # raíz del proyecto
+_DB_PATH = os.path.join(_DB_DIR, "juana_cash.db")
+DATABASE_URL = f"sqlite:///{_DB_PATH}"
 
 # Seguridad
 # La clave se lee de la variable de entorno JUANA_SECRET_KEY.

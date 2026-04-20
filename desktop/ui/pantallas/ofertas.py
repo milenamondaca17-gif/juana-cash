@@ -157,8 +157,16 @@ class OfertasRotator(QWidget):
             self.display.setWordWrap(True)
 
     def siguiente(self):
-        if not self.ofertas: return
+        # Re-leer desde disco para detectar cambios del celular
+        nuevas = leer_ofertas()
+        if nuevas != self.ofertas:
+            self.ofertas = nuevas
+            if self.indice >= len(self.ofertas):
+                self.indice = 0
         self.actualizar_intervalo()
+        if not self.ofertas: 
+            self.mostrar()
+            return
         self.indice = (self.indice + 1) % len(self.ofertas)
         self.mostrar()
 

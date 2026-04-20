@@ -576,6 +576,47 @@ def main(page: ft.Page):
             )
         page.update()
 
+    # ── Subida de imágenes con tkinter (compatible con cualquier Flet) ────────
+    def seleccionar_y_subir_imagen(e):
+        def _pick_and_upload():
+            import tkinter as tk
+            from tkinter import filedialog
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            ruta = filedialog.askopenfilename(
+                title="Elegí una imagen para la oferta",
+                filetypes=[("Imágenes", "*.jpg *.jpeg *.png *.webp *.bmp")]
+            )
+            root.destroy()
+            if not ruta:
+                return
+
+            lbl_oferta_status.value = "⏳ Subiendo imagen..."
+            lbl_oferta_status.color = "#94A3B8"
+            page.update()
+            try:
+                with open(ruta, "rb") as f:
+                    r = requests.post(
+                        f"{get_api_url()}/ofertas/imagen",
+                        files={"archivo": (os.path.basename(ruta), f, "image/jpeg")},
+                        timeout=15
+                    )
+                if r.status_code == 200:
+                    data = r.json()
+                    lbl_oferta_status.value = f"✅ Imagen subida! ({data.get('total', 0)} ofertas)"
+                    lbl_oferta_status.color = "#10B981"
+                    cargar_lista_ofertas()
+                else:
+                    lbl_oferta_status.value = f"❌ Error del servidor: {r.status_code}"
+                    lbl_oferta_status.color = "#EF4444"
+            except Exception as ex:
+                lbl_oferta_status.value = f"❌ Error: {ex}"
+                lbl_oferta_status.color = "#EF4444"
+            page.update()
+
+        threading.Thread(target=_pick_and_upload, daemon=True).start()
+
     view_ofertas = ft.Container(
         content=ft.Column([
             ft.Text("🏷️ SUBIR OFERTAS A LA PC", size=20, weight="w900"),
@@ -583,8 +624,14 @@ def main(page: ft.Page):
             lbl_color_preview,
             in_texto_oferta,
             ft.Row([btn_color_fondo,
-                    ft.ElevatedButton("📤 SUBIR", bgcolor="#556EE6", color="white",
+                    ft.ElevatedButton("📤 SUBIR TEXTO", bgcolor="#556EE6", color="white",
                         on_click=agregar_oferta_texto, expand=True, height=44)]),
+            ft.ElevatedButton(
+                "📷 SUBIR IMAGEN", bgcolor="#E91E63", color="white",
+                on_click=seleccionar_y_subir_imagen,
+                width=float("inf"), height=48,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+            ),
             lbl_oferta_status,
             ft.Divider(color="#334155"),
             ft.Row([

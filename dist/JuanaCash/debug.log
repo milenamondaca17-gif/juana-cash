@@ -1,0 +1,5 @@
+APP_DIR: C:\Users\lucas\OneDrive\Escritorio\JUANA CASH$\dist\JuanaCash
+INTERNAL: C:\Users\lucas\OneDrive\Escritorio\JUANA CASH$\dist\JuanaCash\_internal
+sys.path: ['C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\dist\\JuanaCash\\_internal\\base_library.zip', 'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\dist\\JuanaCash\\_internal\\python3.13\\lib-dynload', 'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\dist\\JuanaCash\\_internal', 'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\dist\\JuanaCash\\_internal\\win32', 'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\dist\\JuanaCash\\_internal\\pywin32_system32', 'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\dist\\JuanaCash\\_internal\\setuptools\\_vendor']
+Intentando importar backend...
+Backend importado OK
