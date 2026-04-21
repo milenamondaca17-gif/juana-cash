@@ -160,7 +160,7 @@ class ImportadorScreen(QWidget):
         if isinstance(texto, (int, float)):
             return float(texto)
         texto = str(texto).replace("$", "").replace(" ", "").strip()
-        if not texto or texto.lower() == "none":
+        if not texto or texto.lower() in ("none", "-"):
             return 0.0
         # Detectar formato: si tiene punto Y coma, hay que decidir cuál es decimal
         tiene_coma = "," in texto
@@ -196,24 +196,30 @@ class ImportadorScreen(QWidget):
         for i, h in enumerate(encabezados):
             h = str(h).lower().strip()
             if "prod" in h or h == "nombre" or h == "descripcion" or h == "articulo":
-                mapa["nombre"] = i
+                if mapa["nombre"] == -1:
+                    mapa["nombre"] = i
             elif "costo" in h or "compra" in h:
-                mapa["p_costo"] = i
-            elif "venta" in h or "precio" in h and mapa["p_venta"] == -1:
-                mapa["p_venta"] = i
+                if mapa["p_costo"] == -1:
+                    mapa["p_costo"] = i
+            elif h.startswith("p") and "venta" in h and "tipo" not in h:
+                # "P. Venta", "Precio Venta", "PVenta" — pero NO "Tipo de Venta"
+                if mapa["p_venta"] == -1:
+                    mapa["p_venta"] = i
             elif "mayor" in h:
-                pass  # ignorar mayoreo por ahora
+                pass  # ignorar mayoreo
             elif h in ("codigo", "código", "cod", "barras", "codigo_barra", "ean", "upc", "sku"):
                 mapa["codigo"] = i
             elif "exist" in h or "stock" in h or "cant" in h or "inventario" in h:
-                mapa["stock"] = i
+                if mapa["stock"] == -1:
+                    mapa["stock"] = i
             elif "depart" in h or "categ" in h or "rubro" in h or "familia" in h:
-                mapa["depto"] = i
-        # Si no detectó precio de venta pero hay una columna "precio", tomarla
+                if mapa["depto"] == -1:
+                    mapa["depto"] = i
+        # Si no detectó precio de venta, buscar columna que diga "precio" sola
         if mapa["p_venta"] == -1:
             for i, h in enumerate(encabezados):
                 h = str(h).lower().strip()
-                if "precio" in h and i != mapa["p_costo"]:
+                if "precio" in h and i != mapa["p_costo"] and "tipo" not in h:
                     mapa["p_venta"] = i
                     break
         return mapa

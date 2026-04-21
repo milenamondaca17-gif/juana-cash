@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('backend', 'backend'), ('desktop', 'desktop'), ('juana_cash.db', '.')]
+datas = [('backend', 'backend'), ('desktop', 'desktop'), ('juana_cash.db', '.'), ('updater.py', '.'), ('version.json', '.')]
 binaries = []
 hiddenimports = ['passlib.handlers.bcrypt', 'sqlalchemy.dialects.sqlite']
 tmp_ret = collect_all('uvicorn')

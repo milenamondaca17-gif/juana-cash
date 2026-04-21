@@ -6589,6 +6589,9 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\starlette\\websockets.py',
    'DATA'),
+  ('updater.py',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\updater.py',
+   'DATA'),
   ('uvicorn-0.44.0.dist-info\\INSTALLER',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\uvicorn-0.44.0.dist-info\\INSTALLER',
@@ -6780,6 +6783,9 @@
   ('uvicorn\\workers.py',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\uvicorn\\workers.py',
+   'DATA'),
+  ('version.json',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\version.json',
    'DATA')],
  '3.13.13 (tags/v3.13.13:01104ce, Apr  7 2026, 19:25:48) [MSC v.1944 64 bit '
  '(AMD64)]',
@@ -13725,11 +13731,11 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\passlib\\handlers\\bcrypt.py',
    'PYMODULE'),
-  ('_py_abc',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\_py_abc.py',
-   'PYMODULE'),
   ('tracemalloc',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\tracemalloc.py',
+   'PYMODULE'),
+  ('_py_abc',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\_py_abc.py',
    'PYMODULE'),
   ('PyQt6',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -13866,21 +13872,17 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\opengl32sw.dll',
    'BINARY'),
+  ('PyQt6\\Qt6\\plugins\\platforms\\qoffscreen.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\platforms\\qoffscreen.dll',
+   'BINARY'),
   ('PyQt6\\Qt6\\plugins\\imageformats\\qjpeg.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qjpeg.dll',
    'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\imageformats\\qicns.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qicns.dll',
-   'BINARY'),
   ('PyQt6\\Qt6\\plugins\\imageformats\\qtga.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qtga.dll',
-   'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\imageformats\\qwbmp.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qwbmp.dll',
    'BINARY'),
   ('PyQt6\\Qt6\\plugins\\imageformats\\qpdf.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -13890,29 +13892,25 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qsvg.dll',
    'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\iconengines\\qsvgicon.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\iconengines\\qsvgicon.dll',
-   'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\imageformats\\qgif.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qgif.dll',
-   'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\platforms\\qminimal.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\platforms\\qminimal.dll',
-   'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\imageformats\\qwebp.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qwebp.dll',
-   'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\platforms\\qoffscreen.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\platforms\\qoffscreen.dll',
-   'BINARY'),
   ('PyQt6\\Qt6\\plugins\\imageformats\\qtiff.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qtiff.dll',
+   'BINARY'),
+  ('PyQt6\\Qt6\\plugins\\imageformats\\qwbmp.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qwbmp.dll',
+   'BINARY'),
+  ('PyQt6\\Qt6\\plugins\\imageformats\\qicns.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qicns.dll',
+   'BINARY'),
+  ('PyQt6\\Qt6\\plugins\\generic\\qtuiotouchplugin.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\generic\\qtuiotouchplugin.dll',
+   'BINARY'),
+  ('PyQt6\\Qt6\\plugins\\iconengines\\qsvgicon.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\iconengines\\qsvgicon.dll',
    'BINARY'),
   ('PyQt6\\Qt6\\plugins\\platforms\\qwindows.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -13922,9 +13920,17 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qico.dll',
    'BINARY'),
-  ('PyQt6\\Qt6\\plugins\\generic\\qtuiotouchplugin.dll',
+  ('PyQt6\\Qt6\\plugins\\imageformats\\qwebp.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\generic\\qtuiotouchplugin.dll',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qwebp.dll',
+   'BINARY'),
+  ('PyQt6\\Qt6\\plugins\\imageformats\\qgif.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\imageformats\\qgif.dll',
+   'BINARY'),
+  ('PyQt6\\Qt6\\plugins\\platforms\\qminimal.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\platforms\\qminimal.dll',
    'BINARY'),
   ('PyQt6\\Qt6\\plugins\\styles\\qmodernwindowsstyle.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -14094,13 +14100,13 @@
   ('VCRUNTIME140.dll',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\VCRUNTIME140.dll',
    'BINARY'),
-  ('PyQt6\\Qt6\\bin\\Qt6Gui.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\Qt6Gui.dll',
-   'BINARY'),
   ('PyQt6\\Qt6\\bin\\Qt6Core.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\Qt6Core.dll',
+   'BINARY'),
+  ('PyQt6\\Qt6\\bin\\Qt6Gui.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\Qt6Gui.dll',
    'BINARY'),
   ('PyQt6\\Qt6\\bin\\Qt6Pdf.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -14110,16 +14116,16 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\Qt6Svg.dll',
    'BINARY'),
+  ('PyQt6\\Qt6\\bin\\Qt6Network.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\Qt6Network.dll',
+   'BINARY'),
   ('PyQt6\\Qt6\\bin\\MSVCP140.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\MSVCP140.dll',
    'BINARY'),
   ('VCRUNTIME140_1.dll',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\VCRUNTIME140_1.dll',
-   'BINARY'),
-  ('PyQt6\\Qt6\\bin\\Qt6Network.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\Qt6Network.dll',
    'BINARY'),
   ('PyQt6\\Qt6\\bin\\Qt6Widgets.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -14148,6 +14154,10 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\MSVCP140_2.dll',
    'BINARY'),
+  ('PyQt6\\Qt6\\bin\\MSVCP140_1.dll',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\MSVCP140_1.dll',
+   'BINARY'),
   ('PyQt6\\Qt6\\bin\\VCRUNTIME140_1.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\VCRUNTIME140_1.dll',
@@ -14155,10 +14165,6 @@
   ('PyQt6\\Qt6\\bin\\VCRUNTIME140.dll',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\VCRUNTIME140.dll',
-   'BINARY'),
-  ('PyQt6\\Qt6\\bin\\MSVCP140_1.dll',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\bin\\MSVCP140_1.dll',
    'BINARY')],
  [],
  [],
@@ -19608,6 +19614,9 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\starlette\\websockets.py',
    'DATA'),
+  ('updater.py',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\updater.py',
+   'DATA'),
   ('uvicorn-0.44.0.dist-info\\INSTALLER',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\uvicorn-0.44.0.dist-info\\INSTALLER',
@@ -19800,33 +19809,36 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\uvicorn\\workers.py',
    'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
-   'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+  ('version.json',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA CASH$\\version.json',
    'DATA'),
   ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\top_level.txt',
    'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
-   'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
+   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
    'DATA'),
   ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\WHEEL',
    'DATA'),
-  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\INSTALLER',
+   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\RECORD',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\licenses\\LICENSE',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\METADATA',
+   'DATA'),
+  ('setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\setuptools\\_vendor\\importlib_metadata-8.7.1.dist-info\\REQUESTED',
    'DATA'),
   ('setuptools\\_vendor\\jaraco\\text\\Lorem ipsum.txt',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -19841,265 +19853,89 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\certifi\\cacert.pem',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_fa.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_fa.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_lv.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_lv.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_cs.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_cs.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_zh_CN.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_zh_CN.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_fi.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_fi.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_uk.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_uk.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_da.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_da.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_nn.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_nn.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_ka.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ka.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_nl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_nl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_it.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_it.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_gl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_gl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_ja.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ja.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_sl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_sl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_bg.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_bg.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_en.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_en.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_pt_BR.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_pt_BR.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_sl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_sl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_pt_BR.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_pt_BR.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_es.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_es.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_fr.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_fr.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_es.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_es.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_nl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_nl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_he.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_he.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_nn.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_nn.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_sv.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_sv.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_lg.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_lg.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_ko.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ko.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_fr.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_fr.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_it.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_it.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_ko.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ko.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_cs.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_cs.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_cs.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_cs.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_de.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_de.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_lg.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_lg.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_pt_BR.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_pt_BR.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_nl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_nl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_sk.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_sk.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_zh_TW.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_zh_TW.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_uk.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_uk.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_ko.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ko.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_sk.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_sk.qm',
-   'DATA'),
   ('PyQt6\\Qt6\\translations\\qt_help_hu.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_hu.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_tr.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_tr.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_zh_TW.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_zh_TW.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_ar.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ar.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_lv.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_lv.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_ca.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ca.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_bg.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_bg.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_de.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_de.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_lt.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_lt.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_gl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_gl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_nn.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_nn.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_ru.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ru.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_da.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_da.qm',
    'DATA'),
   ('PyQt6\\Qt6\\translations\\qtbase_hu.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_hu.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_de.qm',
+  ('PyQt6\\Qt6\\translations\\qt_hr.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_de.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_hr.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_en.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_en.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_da.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_da.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_cs.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_cs.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_nl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_nl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_ka.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ka.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_ar.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ar.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_nl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_nl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_pt_BR.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_pt_BR.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_he.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_he.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_sv.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_sv.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_sv.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_sv.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_fr.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_fr.qm',
    'DATA'),
   ('PyQt6\\Qt6\\translations\\qtbase_bg.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_bg.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_gd.qm',
+  ('PyQt6\\Qt6\\translations\\qt_ar.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_gd.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ar.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_ja.qm',
+  ('PyQt6\\Qt6\\translations\\qtbase_fr.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ja.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_fr.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_pl.qm',
+  ('PyQt6\\Qt6\\translations\\qtbase_nn.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_pl.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_nn.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_zh_TW.qm',
+  ('PyQt6\\Qt6\\translations\\qt_ka.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_zh_TW.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ka.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_fi.qm',
+  ('PyQt6\\Qt6\\translations\\qtbase_ar.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_fi.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_pl.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_pl.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_sv.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_sv.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ar.qm',
    'DATA'),
   ('PyQt6\\Qt6\\translations\\qt_help_ru.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -20109,13 +19945,181 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_da.qm',
    'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_fi.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_fi.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_fa.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_fa.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_fr.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_fr.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_sk.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_sk.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_pt_BR.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_pt_BR.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_hr.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_hr.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_es.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_es.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_sv.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_sv.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_lg.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_lg.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_lv.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_lv.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_tr.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_tr.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_hr.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_hr.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_ru.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ru.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_es.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_es.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_he.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_he.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_gl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_gl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_gl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_gl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_es.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_es.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_zh_CN.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_zh_CN.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_it.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_it.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_cs.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_cs.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_zh_CN.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_zh_CN.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_uk.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_uk.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_zh_TW.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_zh_TW.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_gd.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_gd.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_tr.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_tr.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_zh_TW.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_zh_TW.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_ja.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ja.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_da.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_da.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_sl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_sl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_zh_CN.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_zh_CN.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_bg.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_bg.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_ca.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ca.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_ca.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ca.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_pl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_pl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_hu.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_hu.qm',
+   'DATA'),
   ('PyQt6\\Qt6\\translations\\qtbase_ca.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ca.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_ja.qm',
+  ('PyQt6\\Qt6\\translations\\qt_bg.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ja.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_bg.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_sk.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_sk.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_tr.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_tr.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_de.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_de.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_zh_TW.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_zh_TW.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_nl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_nl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_sl.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_sl.qm',
    'DATA'),
   ('PyQt6\\Qt6\\translations\\qt_help_sk.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -20125,105 +20129,117 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_pl.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_hr.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_hr.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_tr.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_tr.qm',
-   'DATA'),
   ('PyQt6\\Qt6\\translations\\qtbase_gd.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_gd.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_hr.qm',
+  ('PyQt6\\Qt6\\translations\\qt_nn.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_hr.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_it.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_it.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_ru.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ru.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_en.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_en.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_ca.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ca.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_fa.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_fa.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_ka.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ka.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_uk.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_uk.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_hr.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_hr.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_zh_CN.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_zh_CN.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_sv.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_sv.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_fr.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_fr.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_en.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_en.qm',
-   'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_es.qm',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_es.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_nn.qm',
    'DATA'),
   ('PyQt6\\Qt6\\translations\\qt_pt_PT.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_pt_PT.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_zh_CN.qm',
+  ('PyQt6\\Qt6\\translations\\qt_ko.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_zh_CN.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ko.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_tr.qm',
+  ('PyQt6\\Qt6\\translations\\qt_en.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_tr.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_en.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_ar.qm',
+  ('PyQt6\\Qt6\\translations\\qt_ru.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ar.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ru.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_hu.qm',
+  ('PyQt6\\Qt6\\translations\\qtbase_fa.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_hu.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_fa.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qtbase_he.qm',
+  ('PyQt6\\Qt6\\translations\\qt_pt_BR.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_he.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_pt_BR.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_help_ar.qm',
+  ('PyQt6\\Qt6\\translations\\qt_help_ko.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ar.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ko.qm',
    'DATA'),
-  ('PyQt6\\Qt6\\translations\\qt_ka.qm',
+  ('PyQt6\\Qt6\\translations\\qt_pl.qm',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ka.qm',
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_pl.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_it.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_it.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_en.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_en.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_nn.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_nn.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_ja.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ja.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_ka.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_ka.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_lt.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_lt.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_lg.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_lg.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_ko.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_ko.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_uk.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_uk.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_cs.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_cs.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_lv.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_lv.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_ja.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_ja.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_de.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_de.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_help_de.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_help_de.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_fi.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_fi.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qt_it.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qt_it.qm',
+   'DATA'),
+  ('PyQt6\\Qt6\\translations\\qtbase_uk.qm',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\PyQt6\\Qt6\\translations\\qtbase_uk.qm',
+   'DATA'),
+  ('click-8.3.2.dist-info\\licenses\\LICENSE.txt',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\click-8.3.2.dist-info\\licenses\\LICENSE.txt',
    'DATA'),
   ('click-8.3.2.dist-info\\METADATA',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
@@ -20233,48 +20249,23 @@
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\click-8.3.2.dist-info\\WHEEL',
    'DATA'),
-  ('click-8.3.2.dist-info\\INSTALLER',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\click-8.3.2.dist-info\\INSTALLER',
-   'DATA'),
-  ('click-8.3.2.dist-info\\licenses\\LICENSE.txt',
-   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
-   'CASH$\\venv\\Lib\\site-packages\\click-8.3.2.dist-info\\licenses\\LICENSE.txt',
-   'DATA'),
   ('click-8.3.2.dist-info\\RECORD',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\venv\\Lib\\site-packages\\click-8.3.2.dist-info\\RECORD',
+   'DATA'),
+  ('click-8.3.2.dist-info\\INSTALLER',
+   'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
+   'CASH$\\venv\\Lib\\site-packages\\click-8.3.2.dist-info\\INSTALLER',
    'DATA'),
   ('base_library.zip',
    'C:\\Users\\lucas\\OneDrive\\Escritorio\\JUANA '
    'CASH$\\build\\JuanaCash\\base_library.zip',
    'DATA')],
- [('re._parser',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_parser.py',
+ [('_collections_abc',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\_collections_abc.py',
    'PYMODULE'),
-  ('re._constants',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_constants.py',
-   'PYMODULE'),
-  ('re._compiler',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_compiler.py',
-   'PYMODULE'),
-  ('re._casefix',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_casefix.py',
-   'PYMODULE'),
-  ('re',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\__init__.py',
-   'PYMODULE'),
-  ('posixpath',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\posixpath.py',
-   'PYMODULE'),
-  ('_weakrefset',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\_weakrefset.py',
-   'PYMODULE'),
-  ('linecache',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\linecache.py',
-   'PYMODULE'),
-  ('copyreg',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\copyreg.py',
+  ('sre_constants',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\sre_constants.py',
    'PYMODULE'),
   ('encodings.zlib_codec',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\encodings\\zlib_codec.py',
@@ -20642,68 +20633,89 @@
   ('encodings',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\encodings\\__init__.py',
    'PYMODULE'),
-  ('_collections_abc',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\_collections_abc.py',
+  ('re._parser',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_parser.py',
    'PYMODULE'),
-  ('sre_parse',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\sre_parse.py',
+  ('re._constants',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_constants.py',
    'PYMODULE'),
-  ('functools',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\functools.py',
+  ('re._compiler',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_compiler.py',
    'PYMODULE'),
-  ('abc',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\abc.py',
+  ('re._casefix',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\_casefix.py',
    'PYMODULE'),
-  ('genericpath',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\genericpath.py',
+  ('re',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\re\\__init__.py',
    'PYMODULE'),
-  ('sre_constants',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\sre_constants.py',
-   'PYMODULE'),
-  ('operator',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\operator.py',
-   'PYMODULE'),
-  ('collections',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\collections\\__init__.py',
-   'PYMODULE'),
-  ('sre_compile',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\sre_compile.py',
-   'PYMODULE'),
-  ('warnings',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\warnings.py',
+  ('linecache',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\linecache.py',
    'PYMODULE'),
   ('weakref',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\weakref.py',
    'PYMODULE'),
-  ('keyword',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\keyword.py',
-   'PYMODULE'),
-  ('enum',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\enum.py',
+  ('warnings',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\warnings.py',
    'PYMODULE'),
   ('stat',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\stat.py',
    'PYMODULE'),
-  ('heapq',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\heapq.py',
+  ('sre_parse',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\sre_parse.py',
    'PYMODULE'),
   ('reprlib',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\reprlib.py',
    'PYMODULE'),
-  ('ntpath',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\ntpath.py',
+  ('operator',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\operator.py',
+   'PYMODULE'),
+  ('genericpath',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\genericpath.py',
+   'PYMODULE'),
+  ('sre_compile',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\sre_compile.py',
+   'PYMODULE'),
+  ('collections',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\collections\\__init__.py',
+   'PYMODULE'),
+  ('heapq',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\heapq.py',
+   'PYMODULE'),
+  ('_weakrefset',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\_weakrefset.py',
    'PYMODULE'),
   ('types',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\types.py',
    'PYMODULE'),
+  ('posixpath',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\posixpath.py',
+   'PYMODULE'),
+  ('ntpath',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\ntpath.py',
+   'PYMODULE'),
   ('locale',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\locale.py',
    'PYMODULE'),
-  ('io',
-   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\io.py',
+  ('abc',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\abc.py',
    'PYMODULE'),
   ('codecs',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\codecs.py',
+   'PYMODULE'),
+  ('enum',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\enum.py',
+   'PYMODULE'),
+  ('copyreg',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\copyreg.py',
+   'PYMODULE'),
+  ('functools',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\functools.py',
+   'PYMODULE'),
+  ('keyword',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\keyword.py',
+   'PYMODULE'),
+  ('io',
+   'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\io.py',
    'PYMODULE'),
   ('traceback',
    'C:\\Users\\lucas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\traceback.py',

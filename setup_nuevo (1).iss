@@ -38,6 +38,3 @@ Source: "juana_cash.ico"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\juana_cash.ico"; Tasks: desktopicon
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\juana_cash.ico"; Tasks: startmenuicon
 Name: "{group}\Desinstalar {#AppName}"; Filename: "{uninstallexe}"
-
-[Run]
-Filename: "{app}\{#AppExeName}"; Description: "Ejecutar {#AppName}"; Flags: nowait postinstall skipifsilent

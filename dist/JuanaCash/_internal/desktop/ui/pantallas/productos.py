@@ -118,10 +118,10 @@ class ProductoDialog(QDialog):
         if self.producto:
             self.input_nombre.setText(self.producto.get("nombre", ""))
             self.input_codigo.setText(self.producto.get("codigo_barra", "") or "")
-            self.input_precio_compra.setValue(float(self.producto.get("precio_compra", 0)))
-            self.input_precio_venta.setValue(float(self.producto.get("precio_venta", 0)))
-            self.input_stock.setValue(float(self.producto.get("stock_actual", 0)))
-            self.input_stock_minimo.setValue(float(self.producto.get("stock_minimo", 0)))
+            self.input_precio_compra.setValue(float(self.producto.get("precio_costo") or 0))
+            self.input_precio_venta.setValue(float(self.producto.get("precio_venta") or 0))
+            self.input_stock.setValue(float(self.producto.get("stock_actual") or 0))
+            self.input_stock_minimo.setValue(float(self.producto.get("stock_minimo") or 0))
             self.input_unidad.setText(self.producto.get("unidad_medida", "") or "")
             
             # Cargar códigos extra si existen
@@ -208,7 +208,7 @@ class ProductoDialog(QDialog):
             "codigo_barra": self.input_codigo.text().strip() or None,
             "codigos_extra": codigos_adicionales, # <--- MANDAMOS LA LISTA AL BACKEND
             "categoria": self.combo_categoria.currentText(),
-            "precio_compra": self.input_precio_compra.value(),
+            "precio_costo": self.input_precio_compra.value(),
             "precio_venta": self.input_precio_venta.value(),
             "stock_actual": self.input_stock.value(),
             "stock_minimo": self.input_stock_minimo.value(),
@@ -309,21 +309,23 @@ class ProductosScreen(QWidget):
 
     def cargar_productos(self):
         try:
-            r = requests.get(f"{API_URL}/productos/", timeout=5)
+            r = requests.get(f"{API_URL}/productos/", timeout=30)
             if r.status_code == 200:
                 self.productos = r.json()
                 self.mostrar_productos(self.productos)
                 self.actualizar_resumen()
-        except Exception:
+        except requests.exceptions.ConnectionError:
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al cargar productos:\n{str(e)}")
 
     def actualizar_resumen(self):
         total = len(self.productos)
         stock_bajo = sum(1 for p in self.productos
-                        if float(p.get("stock_actual", 0)) <= float(p.get("stock_minimo", 0))
-                        and float(p.get("stock_minimo", 0)) > 0)
-        sin_stock = sum(1 for p in self.productos if float(p.get("stock_actual", 0)) <= 0)
-        valor = sum(float(p.get("stock_actual", 0)) * float(p.get("precio_compra", 0))
+                        if float(p.get("stock_actual") or 0) <= float(p.get("stock_minimo") or 0)
+                        and float(p.get("stock_minimo") or 0) > 0)
+        sin_stock = sum(1 for p in self.productos if float(p.get("stock_actual") or 0) <= 0)
+        valor = sum(float(p.get("stock_actual") or 0) * float(p.get("precio_costo") or 0)
                    for p in self.productos)
         self.card_total[1].setText(str(total))
         self.card_stock_bajo[1].setText(str(stock_bajo))
@@ -337,17 +339,24 @@ class ProductosScreen(QWidget):
         filtrados = [p for p in self.productos
                      if texto.lower() in p["nombre"].lower()
                      or texto in (p.get("codigo_barra") or "")]
-        self.mostrar_productos(filtrados)
+        self.mostrar_productos(filtrados, es_filtro=True)
 
-    def mostrar_productos(self, productos):
-        self.tabla.setRowCount(len(productos))
-        for i, p in enumerate(productos):
+    def mostrar_productos(self, productos, es_filtro=False):
+        MAX_MOSTRAR = 50
+        if not es_filtro and len(productos) > MAX_MOSTRAR:
+            mostrar = productos[:MAX_MOSTRAR]
+            self.lbl_filtro_info = f"Mostrando {MAX_MOSTRAR} de {len(productos)} — Usá el buscador para encontrar productos"
+        else:
+            mostrar = productos
+            self.lbl_filtro_info = ""
+        self.tabla.setRowCount(len(mostrar))
+        for i, p in enumerate(mostrar):
             self.tabla.setItem(i, 0, QTableWidgetItem(p["nombre"]))
             self.tabla.setItem(i, 1, QTableWidgetItem(p.get("codigo_barra") or "-"))
             self.tabla.setItem(i, 2, QTableWidgetItem(p.get("categoria") or "-"))
 
-            costo = float(p.get("precio_compra", 0))
-            venta = float(p.get("precio_venta", 0))
+            costo = float(p.get("precio_costo") or 0)
+            venta = float(p.get("precio_venta") or 0)
             self.tabla.setItem(i, 3, QTableWidgetItem(f"${costo:.2f}"))
             self.tabla.setItem(i, 4, QTableWidgetItem(f"${venta:.2f}"))
 
@@ -366,8 +375,8 @@ class ProductosScreen(QWidget):
                 self.tabla.setItem(i, 5, QTableWidgetItem("—"))
 
             # Stock
-            stock = float(p.get("stock_actual", 0))
-            stock_min = float(p.get("stock_minimo", 0))
+            stock = float(p.get("stock_actual") or 0)
+            stock_min = float(p.get("stock_minimo") or 0)
             item_stock = QTableWidgetItem(str(stock))
             if stock <= 0:
                 item_stock.setForeground(Qt.GlobalColor.red)
@@ -381,20 +390,26 @@ class ProductosScreen(QWidget):
             # Botones
             btn_w = QWidget()
             btn_l = QHBoxLayout(btn_w)
-            btn_l.setContentsMargins(2, 2, 2, 2)
-            btn_l.setSpacing(4)
+            btn_l.setContentsMargins(1, 1, 1, 1)
+            btn_l.setSpacing(2)
 
-            btn_edit = QPushButton("✏️ Editar")
-            btn_edit.setFixedHeight(28)
-            btn_edit.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 4px; font-size: 12px; padding: 0 8px; }")
+            btn_edit = QPushButton("Ed")
+            btn_edit.setFixedSize(32, 24)
+            btn_edit.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 3px; font-size: 10px; }")
             btn_edit.clicked.connect(lambda _, idx=i: self.editar_producto(idx))
             btn_l.addWidget(btn_edit)
 
-            btn_ajuste = QPushButton("📊 Stock")
-            btn_ajuste.setFixedHeight(28)
-            btn_ajuste.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 4px; font-size: 12px; padding: 0 8px; }")
+            btn_ajuste = QPushButton("St")
+            btn_ajuste.setFixedSize(32, 24)
+            btn_ajuste.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 3px; font-size: 10px; }")
             btn_ajuste.clicked.connect(lambda _, idx=i: self.ajustar_stock(idx))
             btn_l.addWidget(btn_ajuste)
+
+            btn_borrar = QPushButton("🗑")
+            btn_borrar.setFixedSize(28, 24)
+            btn_borrar.setStyleSheet("QPushButton { background: #e74c3c; color: white; border-radius: 3px; font-size: 10px; }")
+            btn_borrar.clicked.connect(lambda _, idx=i: self.eliminar_producto(idx))
+            btn_l.addWidget(btn_borrar)
 
             self.tabla.setCellWidget(i, 8, btn_w)
 
@@ -452,7 +467,7 @@ class ProductosScreen(QWidget):
 
         input_stock = QDoubleSpinBox()
         input_stock.setRange(0, 999999)
-        input_stock.setValue(float(p.get("stock_actual", 0)))
+        input_stock.setValue(float(p.get("stock_actual") or 0))
         input_stock.setDecimals(2)
         input_stock.setFixedHeight(44)
         input_stock.setStyleSheet("QDoubleSpinBox { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 16px; }")
@@ -502,6 +517,39 @@ class ProductosScreen(QWidget):
 
         btn_ok.clicked.connect(confirmar)
         dialog.exec()
+
+    def eliminar_producto(self, idx):
+        productos_visibles = self.get_productos_visibles()
+        if idx >= len(productos_visibles):
+            return
+        p = productos_visibles[idx]
+        resp = QMessageBox.question(self, "Eliminar producto",
+            f"¿Eliminar '{p['nombre']}'?\n\nEl producto se desactiva, no se borra definitivamente.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if resp != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            r = requests.delete(f"{API_URL}/productos/{p['id']}", timeout=10)
+            if r.status_code == 200:
+                self.cargar_productos()
+                QMessageBox.information(self, "✅", f"'{p['nombre']}' eliminado")
+            else:
+                QMessageBox.critical(self, "Error", f"No se pudo eliminar: {r.text}")
+        except Exception:
+            QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
+        try:
+            r = requests.get(f"{API_URL}/reportes/stock-bajo", timeout=5)
+            if r.status_code == 200:
+                productos = r.json()
+                if not productos:
+                    QMessageBox.information(self, "✅ Stock", "¡Todos los productos tienen stock suficiente!")
+                    return
+                msg = "Productos con stock bajo:\n\n"
+                for p in productos:
+                    msg += f"• {p['nombre']}: {p['stock_actual']} (mín: {p['stock_minimo']})\n"
+                QMessageBox.warning(self, f"⚠️ {len(productos)} productos con stock bajo", msg)
+        except Exception:
+            QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def ver_stock_bajo(self):
         try:
