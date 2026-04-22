@@ -1,0 +1,25 @@
+CONFIGURAR TAILSCALE PARA JUANA CASH
+
+Qué es Tailscale:
+Red privada virtual que conecta la PC y el celular como si estuvieran en la misma red local, aunque estén en redes distintas o lejos.
+Para qué lo necesitamos:
+Que la app del celu se conecte al backend de la PC desde cualquier lugar — no solo cuando están en el mismo WiFi.
+
+Lo que hay que hacer:
+
+En la PC — instalar Tailscale: https://tailscale.com/download/windows
+En el celu — instalar Tailscale desde Play Store / App Store
+Crear una cuenta en https://tailscale.com (gratis)
+Iniciar sesión en ambos dispositivos con la misma cuenta
+Tailscale le asigna una IP fija a la PC (ej: 100.64.x.x)
+En la app del celu, ir a ⚙️ Configuración y poner esa IP
+
+
+Cambio en el código:
+El mobile/app.py ya tiene el campo de IP configurable en el tab ⚙️. Solo hay que poner la IP de Tailscale de la PC en vez de la IP local del WiFi.
+
+Ventaja:
+
+Funciona desde cualquier red (datos móviles, otro WiFi, etc.)
+La IP de Tailscale nunca cambia
+No necesita abrir puertos ni configurar el router

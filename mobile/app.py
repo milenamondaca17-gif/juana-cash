@@ -1,4 +1,4 @@
-import flet as ft
+﻿import flet as ft
 import requests
 import threading
 import json
@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 # ─── Configuración de IP ──────────────────────────────────────────────────────
-CONFIG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets", "mobile_config.json")
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobile_config.json")
 
 def leer_ip():
     try:
@@ -871,7 +871,7 @@ def main(page: ft.Page):
             ft.ElevatedButton("⚙️", data="S", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
         ], spacing=1),
-        bgcolor="#0F172A", padding=0
+        bgcolor="#0F172A", padding=ft.padding.only(bottom=20)
     )
 
     all_views = ft.Column(
