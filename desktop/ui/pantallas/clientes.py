@@ -398,6 +398,14 @@ class ClientesScreen(QWidget):
                 btn_canjear.setEnabled(False)
             btn_l.addWidget(btn_canjear)
 
+            # Botón cupón descuento
+            btn_cupon = QPushButton("🎟️ Cupón")
+            btn_cupon.setFixedSize(68, 28)
+            btn_cupon.setToolTip("Generar cupón de descuento (requiere PIN del dueño)")
+            btn_cupon.setStyleSheet("QPushButton { background: #8e44ad; color: white; border-radius: 4px; font-size: 11px; font-weight: bold; }")
+            btn_cupon.clicked.connect(lambda _, idx=i: self.generar_cupon(idx))
+            btn_l.addWidget(btn_cupon)
+
             self.tabla.setCellWidget(i, 6, btn_w)
 
             # ── Historial ───────────────────────────────────────────────────
@@ -482,6 +490,85 @@ class ClientesScreen(QWidget):
                     QMessageBox.critical(self, "Error", "No se pudo actualizar")
             except Exception:
                 QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
+
+    def generar_cupon(self, idx):
+        c = self.get_clientes_visibles()[idx]
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("🎟️ Generar cupón de descuento")
+        dialog.setMinimumWidth(380)
+        dialog.setStyleSheet("background: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dialog)
+        lay.setContentsMargins(20, 18, 20, 18)
+        lay.setSpacing(12)
+
+        lay.addWidget(QLabel(f"Cliente: <b>{c['nombre']}</b>",
+            styleSheet="color: white; font-size: 14px;"))
+
+        lay.addWidget(QLabel("Porcentaje de descuento (%):",
+            styleSheet="color: #a0a0b0; font-size: 12px;"))
+        spin_pct = QDoubleSpinBox()
+        spin_pct.setRange(1, 100)
+        spin_pct.setValue(10)
+        spin_pct.setSuffix(" %")
+        spin_pct.setFixedHeight(40)
+        spin_pct.setStyleSheet("QDoubleSpinBox { background: #0f3460; border: 1px solid #8e44ad; border-radius: 8px; padding: 6px; color: white; font-size: 14px; }")
+        lay.addWidget(spin_pct)
+
+        lay.addWidget(QLabel("PIN del dueño (autorización):",
+            styleSheet="color: #a0a0b0; font-size: 12px;"))
+        input_pin = QLineEdit()
+        input_pin.setEchoMode(QLineEdit.EchoMode.Password)
+        input_pin.setMaxLength(6)
+        input_pin.setFixedHeight(40)
+        input_pin.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 18px; letter-spacing: 4px; }")
+        lay.addWidget(input_pin)
+
+        lbl_err = QLabel("")
+        lbl_err.setStyleSheet("color: #e74c3c; font-size: 12px;")
+        lay.addWidget(lbl_err)
+
+        btns = QHBoxLayout()
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.setFixedHeight(38)
+        btn_cancel.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_cancel.clicked.connect(dialog.reject)
+        btns.addWidget(btn_cancel)
+
+        btn_ok = QPushButton("🎟️ Generar cupón")
+        btn_ok.setFixedHeight(38)
+        btn_ok.setStyleSheet("QPushButton { background: #8e44ad; color: white; border-radius: 8px; font-weight: bold; }")
+        btns.addWidget(btn_ok)
+        lay.addLayout(btns)
+
+        def confirmar():
+            pin = input_pin.text().strip()
+            pct = spin_pct.value()
+            try:
+                r = requests.post(
+                    f"{API_URL}/clientes/{c['id']}/generar-cupon",
+                    json={"porcentaje": pct, "pin_dueno": pin},
+                    timeout=5
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    dialog.accept()
+                    QMessageBox.information(self, "✅ Cupón generado",
+                        f"Cliente: {c['nombre']}\n"
+                        f"Código: {data['codigo']}\n"
+                        f"Descuento: {data['porcentaje']:.0f}%\n\n"
+                        f"Entregá este código al cliente.\nSe usará automáticamente en la próxima compra.")
+                    self.cargar_clientes()
+                elif r.status_code == 403:
+                    lbl_err.setText("❌ PIN incorrecto")
+                    input_pin.clear()
+                else:
+                    lbl_err.setText(f"❌ Error: {r.status_code}")
+            except Exception as ex:
+                lbl_err.setText(f"❌ Error de conexión: {ex}")
+
+        btn_ok.clicked.connect(confirmar)
+        dialog.exec()
 
     def registrar_fiado(self, idx):
         c = self.get_clientes_visibles()[idx]

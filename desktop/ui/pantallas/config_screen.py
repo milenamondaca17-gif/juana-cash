@@ -206,7 +206,130 @@ class ConfigScreen(QWidget):
         sis_layout.addStretch()
 
         tabs.addTab(tab_sis, "🖥️ Sistema")
+
+        # ── TAB: BORRADO DE VENTAS ───────────────────────────────────────────
+        tab_borrado = QWidget()
+        tab_borrado.setStyleSheet("background: transparent;")
+        bor_layout = QVBoxLayout(tab_borrado)
+        bor_layout.setContentsMargins(20, 20, 20, 20)
+        bor_layout.setSpacing(16)
+
+        # Advertencia
+        warn_frame = QFrame()
+        warn_frame.setStyleSheet("QFrame { background: #3d0000; border-radius: 10px; border-left: 4px solid #e74c3c; }")
+        warn_lay = QVBoxLayout(warn_frame)
+        warn_lay.setContentsMargins(16, 14, 16, 14)
+        lbl_warn1 = QLabel("⚠️  ZONA DE PELIGRO")
+        lbl_warn1.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        lbl_warn1.setStyleSheet("color: #e74c3c; background: transparent; border: none;")
+        lbl_warn2 = QLabel("Esta acción elimina PERMANENTEMENTE todas las ventas, anulaciones\ny datos procesados. Los productos NO se eliminan.")
+        lbl_warn2.setStyleSheet("color: #ffaaaa; font-size: 12px; background: transparent; border: none;")
+        lbl_warn2.setWordWrap(True)
+        warn_lay.addWidget(lbl_warn1)
+        warn_lay.addWidget(lbl_warn2)
+        bor_layout.addWidget(warn_frame)
+
+        # Qué se borra
+        info_frame = QFrame()
+        info_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 10px; }")
+        info_lay = QVBoxLayout(info_frame)
+        info_lay.setContentsMargins(16, 14, 16, 14)
+        info_lay.setSpacing(6)
+        lbl_info_t = QLabel("📋 Se eliminará:")
+        lbl_info_t.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        lbl_info_t.setStyleSheet("color: white; background: transparent; border: none;")
+        info_lay.addWidget(lbl_info_t)
+        for item in ["✅ Todas las ventas completadas",
+                     "❌ Todas las anulaciones",
+                     "📦 Items de ventas",
+                     "💳 Pagos registrados",
+                     "🏧 Historial de turnos de caja",
+                     "📋 Registro de sesiones y auditoria"]:
+            l = QLabel(f"  {item}")
+            l.setStyleSheet("color: #a0a0b0; font-size: 12px; background: transparent; border: none;")
+            info_lay.addWidget(l)
+        lbl_no_borra = QLabel("\n🔒 NO se eliminará: Productos, clientes, usuarios, configuración")
+        lbl_no_borra.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        info_lay.addWidget(lbl_no_borra)
+        bor_layout.addWidget(info_frame)
+
+        # PIN y botón
+        pin_frame = QFrame()
+        pin_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 10px; }")
+        pin_lay = QVBoxLayout(pin_frame)
+        pin_lay.setContentsMargins(16, 14, 16, 14)
+        pin_lay.setSpacing(10)
+        lbl_pin = QLabel("🔐 Ingresá el PIN de administrador para continuar:")
+        lbl_pin.setStyleSheet("color: #a0a0b0; font-size: 13px; background: transparent; border: none;")
+        pin_lay.addWidget(lbl_pin)
+        pin_row = QHBoxLayout()
+        self.input_pin_borrado = QLineEdit()
+        self.input_pin_borrado.setPlaceholderText("PIN (4 dígitos)")
+        self.input_pin_borrado.setEchoMode(QLineEdit.EchoMode.Password)
+        self.input_pin_borrado.setMaxLength(6)
+        self.input_pin_borrado.setFixedHeight(42)
+        self.input_pin_borrado.setFixedWidth(160)
+        self.input_pin_borrado.setStyleSheet(
+            "QLineEdit { background: #0f3460; border: 2px solid #e74c3c; border-radius: 8px; "
+            "padding: 8px; color: white; font-size: 18px; letter-spacing: 4px; }")
+        pin_row.addWidget(self.input_pin_borrado)
+        pin_row.addStretch()
+        pin_lay.addLayout(pin_row)
+        self.lbl_pin_error = QLabel("")
+        self.lbl_pin_error.setStyleSheet("color: #e74c3c; font-size: 12px; background: transparent; border: none;")
+        pin_lay.addWidget(self.lbl_pin_error)
+        bor_layout.addWidget(pin_frame)
+
+        btn_borrar = QPushButton("🗑️  BORRAR TODOS LOS DATOS DE VENTAS")
+        btn_borrar.setFixedHeight(52)
+        btn_borrar.setStyleSheet(
+            "QPushButton { background: #7f1d1d; color: #fca5a5; border-radius: 10px; "
+            "font-size: 14px; font-weight: bold; border: 2px solid #e74c3c; }"
+            "QPushButton:hover { background: #e74c3c; color: white; }")
+        btn_borrar.clicked.connect(self.ejecutar_borrado_ventas)
+        bor_layout.addWidget(btn_borrar)
+        bor_layout.addStretch()
+
+        tabs.addTab(tab_borrado, "🗑️ Borrado")
         layout.addWidget(tabs)
+
+    def ejecutar_borrado_ventas(self):
+        PIN_ADMIN = "1722"
+        pin = self.input_pin_borrado.text().strip()
+        if pin != PIN_ADMIN:
+            self.lbl_pin_error.setText("❌ PIN incorrecto")
+            self.input_pin_borrado.clear()
+            return
+        self.lbl_pin_error.setText("")
+
+        confirm = QMessageBox(self)
+        confirm.setWindowTitle("⚠️ Confirmar borrado")
+        confirm.setText("¿Estás SEGURO que querés borrar TODOS los datos de ventas?\n\nEsta acción NO se puede deshacer.")
+        confirm.setIcon(QMessageBox.Icon.Warning)
+        confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm.setDefaultButton(QMessageBox.StandardButton.No)
+        confirm.button(QMessageBox.StandardButton.Yes).setText("Sí, borrar todo")
+        confirm.button(QMessageBox.StandardButton.No).setText("Cancelar")
+        confirm.setStyleSheet("QMessageBox { background: #1a1a2e; color: white; } QLabel { color: white; } QPushButton { background: #16213e; color: white; border-radius: 6px; padding: 6px 14px; }")
+        if confirm.exec() != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            r = requests.post(f"{API_URL}/ventas/reset-ventas", json={"pin": PIN_ADMIN}, timeout=15)
+            if r.status_code == 200:
+                data = r.json()
+                self.input_pin_borrado.clear()
+                QMessageBox.information(self, "✅ Borrado exitoso",
+                    f"Datos eliminados correctamente:\n\n"
+                    f"🧾 Ventas: {data.get('ventas', 0)}\n"
+                    f"📦 Items: {data.get('items', 0)}\n"
+                    f"💳 Pagos: {data.get('pagos', 0)}\n"
+                    f"🏧 Turnos de caja: {data.get('turnos', 0)}\n"
+                    f"📋 Sesiones: {data.get('sesiones', 0)}")
+            else:
+                QMessageBox.critical(self, "Error", f"Error del servidor: {r.status_code}")
+        except Exception as ex:
+            QMessageBox.critical(self, "Error", f"No se pudo conectar al servidor:\n{ex}")
 
     def cargar_config(self):
         try:

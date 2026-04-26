@@ -96,6 +96,8 @@ class CobrarDialog(QDialog):
         self.btns_secundarios = {}
         self.cliente = cliente
         self.descuento_puntos = 0
+        self.cupon_aplicado = None   # guarda el código del cupón aplicado
+        self.cupon_pct = 0           # porcentaje del cupón
         self.setup_ui()
 
     def setup_ui(self):
@@ -134,6 +136,28 @@ class CobrarDialog(QDialog):
         self.input_pct.valueChanged.connect(self.actualizar_total)
         desc_layout.addWidget(self.input_pct)
         layout.addWidget(desc_frame)
+
+        # ── Campo cupón de descuento ─────────────────────────────────────────
+        cupon_frame = QFrame()
+        cupon_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; }}")
+        cupon_lay = QHBoxLayout(cupon_frame)
+        cupon_lay.setContentsMargins(10, 8, 10, 8)
+        cupon_lay.addWidget(QLabel("🎟️ Cupón:", styleSheet="color: #a0a0b0; font-size: 13px;"))
+        self.input_cupon = QLineEdit()
+        self.input_cupon.setPlaceholderText("Escaneá o ingresá el código...")
+        self.input_cupon.setFixedHeight(36)
+        self.input_cupon.setStyleSheet(f"QLineEdit {{ background: {BG_MAIN}; border: 1px solid #8e44ad; border-radius: 6px; color: white; padding: 4px 8px; font-size: 13px; }}")
+        self.input_cupon.returnPressed.connect(self.validar_cupon)
+        cupon_lay.addWidget(self.input_cupon)
+        btn_aplicar_cupon = QPushButton("Aplicar")
+        btn_aplicar_cupon.setFixedSize(70, 36)
+        btn_aplicar_cupon.setStyleSheet("QPushButton { background: #8e44ad; color: white; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #9b59b6; }")
+        btn_aplicar_cupon.clicked.connect(self.validar_cupon)
+        cupon_lay.addWidget(btn_aplicar_cupon)
+        self.lbl_cupon_status = QLabel("")
+        self.lbl_cupon_status.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold;")
+        cupon_lay.addWidget(self.lbl_cupon_status)
+        layout.addWidget(cupon_frame)
 
         self.lbl_total_final = QLabel(f"A cobrar: ${self.total_original:.2f}")
         self.lbl_total_final.setFont(QFont("Arial", 18, QFont.Weight.Bold))
@@ -330,9 +354,38 @@ class CobrarDialog(QDialog):
             self.lbl_vuelto.setText("Vuelto: -")
             self.lbl_vuelto.setStyleSheet(f"color: {ACCENT_TOTAL}; font-size: 20px; font-weight: bold;")
 
+    def validar_cupon(self):
+        codigo = self.input_cupon.text().strip().upper()
+        if not codigo:
+            return
+        try:
+            r = requests.get(f"{API_URL}/cupones/validar/{codigo}", timeout=5)
+            data = r.json()
+        except Exception:
+            self.lbl_cupon_status.setText("❌ Error de conexión")
+            self.lbl_cupon_status.setStyleSheet("color: #e74c3c; font-size: 12px; font-weight: bold;")
+            return
+
+        if data.get("valido"):
+            self.cupon_aplicado = codigo
+            self.cupon_pct = float(data.get("porcentaje", 0))
+            self.lbl_cupon_status.setText(f"✅ -{self.cupon_pct:.0f}% ({data.get('cliente','')})")
+            self.lbl_cupon_status.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold;")
+            self.input_cupon.setStyleSheet("QLineEdit { background: #0d2a1a; border: 1px solid #27ae60; border-radius: 6px; color: #27ae60; padding: 4px 8px; font-size: 13px; font-weight: bold; }")
+            self.actualizar_total()
+        else:
+            self.cupon_aplicado = None
+            self.cupon_pct = 0
+            motivo = data.get("motivo", "Inválido")
+            self.lbl_cupon_status.setText(f"❌ {motivo}")
+            self.lbl_cupon_status.setStyleSheet("color: #e74c3c; font-size: 12px; font-weight: bold;")
+            self.input_cupon.setStyleSheet("QLineEdit { background: #2a0d0d; border: 1px solid #e74c3c; border-radius: 6px; color: #e74c3c; padding: 4px 8px; font-size: 13px; }")
+            self.actualizar_total()
+
     def actualizar_total(self):
         self.descuento_pct = self.input_pct.value()
-        self.total_final = self.total_original - (self.total_original * self.descuento_pct / 100) - self.descuento_puntos
+        descuento_total = self.descuento_pct + self.cupon_pct
+        self.total_final = self.total_original - (self.total_original * descuento_total / 100) - self.descuento_puntos
         self.lbl_total_final.setText(f"A cobrar: ${self.total_final:.2f}")
         self.calcular_mixto()
 
@@ -523,7 +576,8 @@ class VentasScreen(QWidget):
         self.offset_marquee = 0
         self.timer_marquee = QTimer(self)
         self.timer_marquee.timeout.connect(self.animar_marquee)
-        self.timer_marquee.start(25)
+        self.timer_marquee.start(60)
+        self.input_buscar.installEventFilter(self)
 
         atajos_frame = QFrame()
         atajos_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; }}")
@@ -677,7 +731,7 @@ class VentasScreen(QWidget):
         # Solo actúa si no hay un dialog abierto y no se está editando nada
         self._timer_foco = QTimer()
         self._timer_foco.timeout.connect(self._restaurar_foco_lectora)
-        self._timer_foco.start(600)
+        self._timer_foco.start(1000)
         
         # BOTÓN PARA RECUPERAR TICKETS PAUSADOS
         self.btn_recuperar_pausa = QPushButton("⏳ Recuperar (0)")
@@ -690,6 +744,15 @@ class VentasScreen(QWidget):
         # Se agregará al final del bloque __init__ de la UI
         total_layout.insertWidget(total_layout.count() - 1, self.btn_recuperar_pausa)
         
+    def eventFilter(self, obj, event):
+        from PyQt6.QtCore import QEvent
+        if obj is self.input_buscar:
+            if event.type() == QEvent.Type.FocusIn:
+                self.timer_marquee.stop()
+            elif event.type() == QEvent.Type.FocusOut:
+                self.timer_marquee.start(60)
+        return super().eventFilter(obj, event)
+
     def animar_marquee(self):
         self.offset_marquee -= 2
         ancho_texto = self.texto_ofertas.width()
@@ -1248,40 +1311,46 @@ class VentasScreen(QWidget):
         self.actualizar_tabla()
 
     def actualizar_tabla(self):
-        self.tabla.setRowCount(len(self.items_venta))
+        self.tabla.setUpdatesEnabled(False)
+        n = len(self.items_venta)
+        self.tabla.setRowCount(n)
         total = 0
         for i, item in enumerate(self.items_venta):
+            # Actualizar textos siempre
             nombre_item = QTableWidgetItem(item["nombre"])
-            if item["producto_id"] == 0: nombre_item.setForeground(Qt.GlobalColor.green)
+            if item["producto_id"] == 0:
+                nombre_item.setForeground(Qt.GlobalColor.green)
             self.tabla.setItem(i, 0, nombre_item)
             self.tabla.setItem(i, 1, QTableWidgetItem(f"${item['precio_unitario']:.2f}"))
             self.tabla.setItem(i, 2, QTableWidgetItem(str(item["cantidad"])))
             self.tabla.setItem(i, 3, QTableWidgetItem(f"${item['subtotal']:.2f}"))
-            btn_widget = QWidget()
-            btn_layout = QHBoxLayout(btn_widget)
-            btn_layout.setContentsMargins(5, 5, 5, 5) 
-            btn_layout.setSpacing(5)
-            
-            btn_menos = QPushButton("-")
-            btn_menos.setFixedSize(36, 36)
-            btn_menos.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MAIN}; border-radius: 6px; font-size: 20px; font-weight: bold; border: 1px solid {BORDER}; }} QPushButton:hover {{ background: #F46A6A; border: none; }}")
-            btn_menos.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, -1))
-            btn_layout.addWidget(btn_menos)
-            
-            btn_mas = QPushButton("+")
-            btn_mas.setFixedSize(36, 36)
-            btn_mas.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MAIN}; border-radius: 6px; font-size: 20px; font-weight: bold; border: 1px solid {BORDER}; }} QPushButton:hover {{ background: {ACCENT_TOTAL}; border: none; }}")
-            btn_mas.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, 1))
-            btn_layout.addWidget(btn_mas)
-            self.tabla.setCellWidget(i, 4, btn_widget)
-            
-            btn_del = QPushButton("X")
-            btn_del.setFixedSize(36, 36)
-            btn_del.setStyleSheet(f"QPushButton {{ color: #F46A6A; background: transparent; font-size: 20px; font-weight: bold; }}")
-            btn_del.clicked.connect(lambda _, idx=i: self.eliminar_item(idx))
-            self.tabla.setCellWidget(i, 5, btn_del)
+
+            # Crear botones solo si la celda está vacía (fila nueva)
+            if self.tabla.cellWidget(i, 4) is None:
+                btn_widget = QWidget()
+                btn_layout = QHBoxLayout(btn_widget)
+                btn_layout.setContentsMargins(5, 5, 5, 5)
+                btn_layout.setSpacing(5)
+                btn_menos = QPushButton("-")
+                btn_menos.setFixedSize(36, 36)
+                btn_menos.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MAIN}; border-radius: 6px; font-size: 20px; font-weight: bold; border: 1px solid {BORDER}; }} QPushButton:hover {{ background: #F46A6A; border: none; }}")
+                btn_menos.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, -1))
+                btn_layout.addWidget(btn_menos)
+                btn_mas = QPushButton("+")
+                btn_mas.setFixedSize(36, 36)
+                btn_mas.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MAIN}; border-radius: 6px; font-size: 20px; font-weight: bold; border: 1px solid {BORDER}; }} QPushButton:hover {{ background: {ACCENT_TOTAL}; border: none; }}")
+                btn_mas.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, 1))
+                btn_layout.addWidget(btn_mas)
+                self.tabla.setCellWidget(i, 4, btn_widget)
+                btn_del = QPushButton("X")
+                btn_del.setFixedSize(36, 36)
+                btn_del.setStyleSheet(f"QPushButton {{ color: #F46A6A; background: transparent; font-size: 20px; font-weight: bold; }}")
+                btn_del.clicked.connect(lambda _, idx=i: self.eliminar_item(idx))
+                self.tabla.setCellWidget(i, 5, btn_del)
+
             total += item["subtotal"]
-            
+
+        self.tabla.setUpdatesEnabled(True)
         self.lbl_total.setText(f"${total:.2f}")
 
     def eliminar_item(self, idx):
@@ -1446,6 +1515,16 @@ class VentasScreen(QWidget):
                         except Exception: pass
                     try: requests.post(f"{API_URL}/clientes/{cid}/sumar-puntos", params={"monto": total_final}, timeout=3)
                     except Exception: pass
+                # Marcar cupón como usado si se aplicó uno
+                if hasattr(dialog, 'cupon_aplicado') and dialog.cupon_aplicado:
+                    try:
+                        requests.post(
+                            f"{API_URL}/cupones/usar/{dialog.cupon_aplicado}",
+                            json={"venta_id": datos.get("id")},
+                            timeout=3
+                        )
+                    except Exception:
+                        pass
                 self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
                 msg = f"✅ Ticket #{ticket} — ${total_final:,.0f} ({metodo_str})"
                 if metodo_pago == "efectivo" and vuelto > 0:
@@ -1525,6 +1604,16 @@ class VentasScreen(QWidget):
                 except Exception:
                     QMessageBox.information(self, "Venta registrada", msg)
                 self.cancelar_venta()
+                # Marcar cupón como usado si se aplicó uno
+                if hasattr(dialog, 'cupon_aplicado') and dialog.cupon_aplicado:
+                    try:
+                        requests.post(
+                            f"{API_URL}/cupones/usar/{dialog.cupon_aplicado}",
+                            json={"venta_id": datos.get('id')},
+                            timeout=3
+                        )
+                    except Exception:
+                        pass
             else: QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
         except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
 

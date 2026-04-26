@@ -98,8 +98,12 @@ class DashboardScreen(QWidget):
         self.datos = None
         self.setup_ui()
         self.timer = QTimer()
-        self.timer.timeout.connect(self.cargar_datos)
-        self.timer.start(30000)  # Auto-refresh cada 30 segundos
+        self.timer.timeout.connect(self._cargar_datos_hilo)
+        self.timer.start(30000)
+
+    def _cargar_datos_hilo(self):
+        import threading
+        threading.Thread(target=self.cargar_datos, daemon=True).start()
 
     def setup_ui(self):
         self.setStyleSheet("background-color: #1a1a2e; color: white;")

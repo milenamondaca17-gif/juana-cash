@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 # CambiÃ¡ la lÃ­nea de los modelos por esta:
@@ -8,6 +8,7 @@ from .routers import (auth, productos, ventas, clientes, stock, ia, config_siste
                       reportes, caja, fiados, sesiones, gastos)
 from .routers import ofertas_api
 from .routers import alertas
+from .routers import cupones as cupones_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -34,6 +35,7 @@ app.include_router(ia.router)
 app.include_router(config_sistema.router)
 app.include_router(ofertas_api.router)
 app.include_router(alertas.router)
+app.include_router(cupones_router.router)
 
 @app.get("/")
 def root():

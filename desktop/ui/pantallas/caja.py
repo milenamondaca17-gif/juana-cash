@@ -171,6 +171,69 @@ class CajaScreen(QWidget):
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla)
 
+        # ── HISTORIAL DE CIERRES ─────────────────────────────────────────────
+        sep_h = QFrame(); sep_h.setFixedHeight(1)
+        sep_h.setStyleSheet("background: #0f3460; border: none;")
+        layout.addWidget(sep_h)
+
+        hdr_hist = QHBoxLayout()
+        lbl_hist = QLabel("📋 Historial de cierres")
+        lbl_hist.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        lbl_hist.setStyleSheet("color: #a0a0b0;")
+        hdr_hist.addWidget(lbl_hist)
+        hdr_hist.addStretch()
+        btn_hist_ref = QPushButton("🔄")
+        btn_hist_ref.setFixedSize(32, 32)
+        btn_hist_ref.setStyleSheet("QPushButton { background: #16213e; color: white; border-radius: 6px; }")
+        btn_hist_ref.clicked.connect(self.cargar_historial)
+        hdr_hist.addWidget(btn_hist_ref)
+        layout.addLayout(hdr_hist)
+
+        self.tabla_historial = QTableWidget()
+        self.tabla_historial.setColumnCount(6)
+        self.tabla_historial.setHorizontalHeaderLabels(["Apertura", "Cierre", "Apertura $", "Vendido $", "Declarado $", "Diferencia"])
+        self.tabla_historial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tabla_historial.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabla_historial.setColumnWidth(2, 100)
+        self.tabla_historial.setColumnWidth(3, 100)
+        self.tabla_historial.setColumnWidth(4, 110)
+        self.tabla_historial.setColumnWidth(5, 100)
+        self.tabla_historial.setMaximumHeight(220)
+        self.tabla_historial.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
+        self.tabla_historial.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        layout.addWidget(self.tabla_historial)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.cargar_historial()
+
+    def cargar_historial(self):
+        try:
+            r = requests.get(f"{API_URL}/caja/historial", timeout=5)
+            cierres = r.json() if r.status_code == 200 else []
+        except Exception:
+            cierres = []
+        self.tabla_historial.setRowCount(0)
+        for c in cierres:
+            row = self.tabla_historial.rowCount()
+            self.tabla_historial.insertRow(row)
+            diff = float(c.get("diferencia", 0))
+            color_diff = "#27ae60" if abs(diff) < 100 else "#e74c3c"
+            valores = [
+                c.get("apertura", ""),
+                c.get("cierre", ""),
+                f"${float(c.get('monto_apertura',0)):,.0f}",
+                f"${float(c.get('monto_cierre_calculado',0)):,.0f}",
+                f"${float(c.get('monto_cierre_declarado',0)):,.0f}",
+                f"${diff:+,.0f}",
+            ]
+            for col, val in enumerate(valores):
+                item = QTableWidgetItem(str(val))
+                item.setForeground(__import__('PyQt6.QtGui', fromlist=['QColor']).QColor(
+                    color_diff if col == 5 else "white"
+                ))
+                self.tabla_historial.setItem(row, col, item)
+
     def abrir_caja(self):
         try:
             monto = float(self.input_monto.text() or 0)
@@ -214,9 +277,12 @@ class CajaScreen(QWidget):
         ventas = datos_hoy.get("ventas", [])
         totales = {"efectivo": 0, "tarjeta": 0, "mercadopago_qr": 0, "transferencia": 0, "fiado": 0}
         cant_tickets = 0
+        cant_celular = 0
         for v in ventas:
             if v.get("estado") == "completada":
                 cant_tickets += 1
+                if v.get("origen", "") in ("celular", "celular_offline"):
+                    cant_celular += 1
                 m = v.get("metodo_pago", "efectivo")
                 if m in totales:
                     totales[m] += float(v.get("total", 0))
@@ -253,7 +319,8 @@ class CajaScreen(QWidget):
         stats_lay.setSpacing(0)
         for s_txt, s_val, s_color in [
             ("Tickets", str(cant_tickets), "#3498db"),
-            ("Promedio", f"${ticket_prom:,.0f}", "#9b59b6"),
+            ("📱 Celular", str(cant_celular), "#9b59b6"),
+            ("Promedio", f"${ticket_prom:,.0f}", "#27ae60"),
             ("Apertura", str(self.turno_actual.get("fecha_apertura","?"))[:16].replace("T"," "), "#f39c12"),
         ]:
             col = QVBoxLayout()
@@ -289,12 +356,11 @@ class CajaScreen(QWidget):
             lay.addWidget(f)
 
         detalle_ef = f"apertura ${monto_apertura:,.0f} + ventas ${totales['efectivo']:,.0f} - gastos ${total_gastos:,.0f}"
-        fila_metodo("", "Efectivo",        efectivo_esperado,         "#27ae60", detalle_ef)
-        fila_metodo("", "Tarjeta",          totales["tarjeta"],        "#3498db")
-        fila_metodo("", "Mercado Pago/QR",  totales["mercadopago_qr"], "#009ee3")
-        fila_metodo("", "Transferencia",    totales["transferencia"],  "#9b59b6")
-        if totales["fiado"] > 0:
-            fila_metodo("", "Fiado (pendiente)", totales["fiado"],     "#e74c3c")
+        fila_metodo("💵", "Efectivo",        efectivo_esperado,         "#27ae60", detalle_ef)
+        fila_metodo("💳", "Tarjeta",          totales["tarjeta"],        "#3498db")
+        fila_metodo("📱", "Mercado Pago/QR",  totales["mercadopago_qr"], "#009ee3")
+        fila_metodo("🏦", "Transferencia",    totales["transferencia"],  "#9b59b6")
+        fila_metodo("💸", "Fiado (pendiente)", totales["fiado"],         "#e74c3c")
 
         sep2 = QFrame(); sep2.setFixedHeight(1); sep2.setStyleSheet("background: #0f3460; border: none;")
         lay.addWidget(sep2)
@@ -305,6 +371,7 @@ class CajaScreen(QWidget):
         res_lay.setContentsMargins(14, 10, 14, 10); res_lay.setSpacing(4)
         for txt, val, color in [
             ("Total vendido:",    f"${total_vendido:,.2f}",               "#27ae60"),
+            ("Fiado del turno:",  f"${totales['fiado']:,.2f}",            "#e74c3c"),
             ("Gastos del turno:", f"-${total_gastos:,.2f}",               "#e74c3c"),
             ("Neto del turno:",   f"${total_vendido - total_gastos:,.2f}", "#f39c12"),
         ]:

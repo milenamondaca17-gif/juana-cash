@@ -186,3 +186,54 @@ def anular_venta(id: int, datos: AnularVentaSchema, db: Session = Depends(get_db
         "mensaje": f"Venta {venta.numero} anulada correctamente",
         "motivo": datos.motivo
     }
+
+
+# ── RESET DE VENTAS ───────────────────────────────────────────────────────────
+class ResetVentasSchema(BaseModel):
+    pin: str
+
+@router.post("/reset-ventas")
+def reset_ventas(datos: ResetVentasSchema, db: Session = Depends(get_db)):
+    if datos.pin != "1722":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="PIN incorrecto")
+
+    from ..models.caja_turno import CajaTurno
+    from ..models.sesion_log import SesionLog
+    from ..models.auditoria import RegistroBorrados
+    from ..models.gasto import Gasto
+    from sqlalchemy import text
+
+    # Contar antes de borrar
+    cant_ventas  = db.query(Venta).count()
+    cant_items   = db.query(ItemVenta).count()
+    cant_pagos   = db.query(Pago).count()
+    cant_turnos  = db.query(CajaTurno).count()
+    cant_ses     = db.query(SesionLog).count()
+
+    # Borrar en orden por foreign keys
+    db.query(RegistroBorrados).delete()
+    db.query(Pago).delete()
+    db.query(ItemVenta).delete()
+    db.query(Venta).delete()
+    db.query(CajaTurno).delete()
+    db.query(SesionLog).delete()
+    db.query(Gasto).delete()
+
+    # Resetear contadores autoincrementales
+    for tabla in ["ventas", "items_venta", "pagos", "caja_turnos", "sesion_logs", "gastos", "registro_borrados"]:
+        try:
+            db.execute(text(f"DELETE FROM sqlite_sequence WHERE name='{tabla}'"))
+        except Exception:
+            pass
+
+    db.commit()
+
+    return {
+        "mensaje": "Datos de ventas eliminados correctamente",
+        "ventas":   cant_ventas,
+        "items":    cant_items,
+        "pagos":    cant_pagos,
+        "turnos":   cant_turnos,
+        "sesiones": cant_ses,
+    }

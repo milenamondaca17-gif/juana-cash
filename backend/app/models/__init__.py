@@ -8,3 +8,4 @@ from .sesion_log import SesionLog
 from .gasto import Gasto
 from .auditoria import RegistroBorrados
 from .alerta_precio import AlertaPrecio
+from .cupon import Cupon

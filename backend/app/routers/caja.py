@@ -58,3 +58,19 @@ def turno_actual(usuario_id: int, db: Session = Depends(get_db)):
     if not turno:
         return {"abierto": False}
     return {"abierto": True, "id": turno.id, "monto_apertura": float(turno.monto_apertura)}
+
+@router.get("/historial")
+def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
+    turnos = db.query(CajaTurno).filter(
+        CajaTurno.estado == "cerrado"
+    ).order_by(CajaTurno.cierre.desc()).limit(limite).all()
+    return [{
+        "id":                    t.id,
+        "apertura":              str(t.apertura)[:16] if t.apertura else "",
+        "cierre":                str(t.cierre)[:16] if t.cierre else "",
+        "monto_apertura":        float(t.monto_apertura or 0),
+        "monto_cierre_declarado": float(t.monto_cierre_declarado or 0),
+        "monto_cierre_calculado": float(t.monto_cierre_calculado or 0),
+        "diferencia":            float(t.diferencia or 0),
+        "usuario_id":            t.usuario_id,
+    } for t in turnos]

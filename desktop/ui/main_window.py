@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
 
     def cambiar_pantalla(self, key):
         rol = self.cajero_actual.get("rol", "cajero") if self.cajero_actual else "cajero"
-        
+
         if key in self.menus_admin and rol not in ["admin", "encargado"]:
             QMessageBox.warning(self, "Acceso denegado",
                 "Solo admin o encargado pueden acceder a esta sección")
@@ -342,18 +342,11 @@ class MainWindow(QMainWindow):
             "ofertas":   self.ofertas_screen,
             "alertas":   self.alertas_screen,
         }
-        if key in pantallas:
-            acciones = {
-                "productos": lambda: self.productos_screen.cargar_productos(),
-                "reportes":  lambda: self.reportes_screen.cargar_datos(),
-                "clientes":  lambda: self.clientes_screen.cargar_clientes(),
-                "caja":      lambda: self.caja_screen.actualizar_ventas(),
-                "sesiones":  lambda: self.sesiones_screen.cargar_sesiones(),
-                "usuarios":  lambda: self.usuarios_screen.cargar_usuarios(),
-            }
-            if key in acciones:
-                acciones[key]()
-            self.stack.setCurrentWidget(pantallas[key])
+        if key not in pantallas:
+            return
+
+        # Mostrar pantalla — cada una carga sus datos con showEvent propio
+        self.stack.setCurrentWidget(pantallas[key])
 
     def on_login_exitoso(self, usuario):
         self.usuario_actual = usuario
@@ -443,56 +436,74 @@ class MainWindow(QMainWindow):
     def _check_timeout(self):
         if not self.cajero_actual:
             return
-        try:
-            r = requests.get("http://127.0.0.1:8000/config/", timeout=2)
-            minutos = r.json().get("timeout_minutos", 30)
-        except Exception:
-            minutos = 30
-        desde_ultimo = (datetime.now() - self._ultimo_movimiento).total_seconds() / 60
-        if desde_ultimo >= minutos:
-            self._timer_timeout.stop()
-            QMessageBox.information(self, "⏱ Sesión expirada",
-                f"La sesión se cerró automáticamente por {minutos} minutos de inactividad.")
-            self.on_logout()
+        def _check():
+            try:
+                r = requests.get("http://127.0.0.1:8000/config/", timeout=2)
+                minutos = r.json().get("timeout_minutos", 30)
+            except Exception:
+                minutos = 30
+            desde_ultimo = (datetime.now() - self._ultimo_movimiento).total_seconds() / 60
+            if desde_ultimo >= minutos:
+                self._timer_timeout.stop()
+                QTimer.singleShot(0, lambda: (
+                    QMessageBox.information(self, "⏱ Sesión expirada",
+                        f"La sesión se cerró automáticamente por {minutos} minutos de inactividad."),
+                    self.on_logout()
+                ))
+        import threading
+        threading.Thread(target=_check, daemon=True).start()
 
     def _actualizar_badge_alertas(self):
-        try:
-            import requests as _req
-            r = _req.get("http://localhost:8000/alertas-precio/pendientes", timeout=3)
-            if r.status_code == 200:
+        def _fetch():
+            try:
+                import requests as _req
+                r = _req.get("http://localhost:8000/alertas-precio/pendientes", timeout=3)
+                if r.status_code != 200:
+                    return
                 n = r.json().get("pendientes", 0)
-                btn = self.btns_menu.get("alertas")
-                if btn:
-                    btn.setText(f"🔔 Alertas {f'({n})' if n > 0 else ''}")
-                    btn.setStyleSheet(
-                        f"""QPushButton {{
-                            background: {'#7f1d1d' if n > 0 else '#16213e'};
-                            color: {'#fca5a5' if n > 0 else '#a0a0b0'};
-                            border: none; border-radius: 0px;
-                            font-size: 13px; font-weight: {'bold' if n > 0 else 'normal'};
-                            padding: 0 8px; text-align: left;
-                        }}
-                        QPushButton:hover {{ background: #0f3460; color: white; }}
-                        QPushButton:checked {{ background: #e94560; color: white; font-weight: bold; }}"""
-                    )
-        except Exception:
-            pass
+                def _update():
+                    btn = self.btns_menu.get("alertas")
+                    if btn:
+                        btn.setText(f"🔔 Alertas {f'({n})' if n > 0 else ''}")
+                        btn.setStyleSheet(
+                            f"""QPushButton {{
+                                background: {'#7f1d1d' if n > 0 else '#16213e'};
+                                color: {'#fca5a5' if n > 0 else '#a0a0b0'};
+                                border: none; border-radius: 0px;
+                                font-size: 13px; font-weight: {'bold' if n > 0 else 'normal'};
+                                padding: 0 8px; text-align: left;
+                            }}
+                            QPushButton:hover {{ background: #0f3460; color: white; }}
+                            QPushButton:checked {{ background: #e94560; color: white; font-weight: bold; }}"""
+                        )
+                QTimer.singleShot(0, _update)
+            except Exception:
+                pass
+        import threading
+        threading.Thread(target=_fetch, daemon=True).start()
 
     def _sync_offline(self):
         if sincronizar_cola is None:
             return
-        pendientes = cantidad_pendientes()
-        if pendientes > 0:
-            enviadas, fallidas, _ = sincronizar_cola()
-            if enviadas > 0:
-                self.setWindowTitle(self.windowTitle().split(" 📡")[0] + f" ✅ {enviadas} venta(s) sincronizada(s)")
-                QTimer.singleShot(5000, lambda: self.setWindowTitle(self.windowTitle().split(" ✅")[0]))
-        aun_pendientes = cantidad_pendientes()
-        titulo_base = self.windowTitle().split(" 📡")[0].split(" ✅")[0]
-        if aun_pendientes > 0:
-            self.setWindowTitle(titulo_base + f" 📡 {aun_pendientes} offline")
-        else:
-            self.setWindowTitle(titulo_base)
+        def _sync():
+            pendientes = cantidad_pendientes()
+            if pendientes > 0:
+                enviadas, fallidas, _ = sincronizar_cola()
+                if enviadas > 0:
+                    QTimer.singleShot(0, lambda: self.setWindowTitle(
+                        self.windowTitle().split(" 📡")[0] + f" ✅ {enviadas} venta(s) sincronizada(s)"))
+                    QTimer.singleShot(5000, lambda: self.setWindowTitle(
+                        self.windowTitle().split(" ✅")[0]))
+            aun_pendientes = cantidad_pendientes()
+            def _titulo():
+                titulo_base = self.windowTitle().split(" 📡")[0].split(" ✅")[0]
+                if aun_pendientes > 0:
+                    self.setWindowTitle(titulo_base + f" 📡 {aun_pendientes} offline")
+                else:
+                    self.setWindowTitle(titulo_base)
+            QTimer.singleShot(0, _titulo)
+        import threading
+        threading.Thread(target=_sync, daemon=True).start()
 
     def mousePressEvent(self, event):
         self._ultimo_movimiento = datetime.now()
@@ -503,31 +514,30 @@ class MainWindow(QMainWindow):
         super().keyPressEvent(event)
 
     def _chequear_ventas_celular(self):
-        """Detecta ventas nuevas del celular y notifica al cajero."""
-        try:
-            r = requests.get(f"{API_URL}/reportes/hoy", timeout=3)
-            if r.status_code != 200:
-                return
-            ventas = r.json().get("ventas", [])
-            # Buscar ventas de celular
-            ventas_celular = [v for v in ventas if v.get("origen") == "celular" and v.get("estado") == "completada"]
-            if not ventas_celular:
-                return
-            ultima = ventas_celular[0]  # La más reciente (ya viene ordenada)
-            clave  = ultima.get("numero")
-            if clave == self._ultima_venta_celular:
-                return  # Ya notificamos esta
-            self._ultima_venta_celular = clave
-            total  = float(ultima.get("total", 0))
-            metodo = ultima.get("metodo_pago", "efectivo")
-            # Notificación visual en la barra de título
-            self.setWindowTitle(self.windowTitle().split(" 📲")[0] + f" 📲 Celular: ${total:,.0f} ({metodo})")
-            QTimer.singleShot(8000, lambda: self.setWindowTitle(self.windowTitle().split(" 📲")[0]))
-            # Si está en la pantalla de caja, actualizar tabla
-            if hasattr(self.caja_screen, 'actualizar_ventas'):
-                self.caja_screen.actualizar_ventas()
-        except Exception:
-            pass
+        def _fetch():
+            try:
+                r = requests.get(f"{API_URL}/reportes/hoy", timeout=3)
+                if r.status_code != 200:
+                    return
+                ventas = r.json().get("ventas", [])
+                ventas_celular = [v for v in ventas if v.get("origen") == "celular" and v.get("estado") == "completada"]
+                if not ventas_celular:
+                    return
+                ultima = ventas_celular[0]
+                clave  = ultima.get("numero")
+                if clave == self._ultima_venta_celular:
+                    return
+                self._ultima_venta_celular = clave
+                total  = float(ultima.get("total", 0))
+                metodo = ultima.get("metodo_pago", "efectivo")
+                def _update():
+                    self.setWindowTitle(self.windowTitle().split(" 📲")[0] + f" 📲 Celular: ${total:,.0f} ({metodo})")
+                    QTimer.singleShot(8000, lambda: self.setWindowTitle(self.windowTitle().split(" 📲")[0]))
+                QTimer.singleShot(0, _update)
+            except Exception:
+                pass
+        import threading
+        threading.Thread(target=_fetch, daemon=True).start()
 
     def on_logout(self):
         self.usuario_actual = None
