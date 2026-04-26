@@ -4,7 +4,7 @@ from sqlalchemy import func, desc
 from datetime import date, timedelta
 from ..database import get_db
 from ..models.venta import Venta, ItemVenta, Pago
-from ..models.producto import Producto
+from ..models.producto import Producto, Categoria
 from .. import models
 
 router = APIRouter(prefix="/reportes", tags=["Reportes"])
@@ -212,15 +212,20 @@ def dashboard_tiempo_real(db: Session = Depends(get_db)):
         m = p.metodo
         desglose[m] = desglose.get(m, 0.0) + float(p.monto)
 
-    inicio_mes = hoy.replace(day=1)
+    inicio_anio = hoy.replace(month=1, day=1)
+    CATEGORIAS_EXCLUIR = ["carniceria", "carnicería", "fiamberia", "fiambería",
+                          "lacteos", "lácteos", "fiambreria", "fiambrerìa"]
     top_productos = db.query(
         Producto.nombre,
         func.sum(ItemVenta.cantidad).label("qty"),
         func.sum(ItemVenta.subtotal).label("total")
-    ).join(ItemVenta).join(Venta).filter(
-        func.date(Venta.fecha) >= inicio_mes,
-        Venta.estado == "completada"
-    ).group_by(Producto.id).order_by(func.sum(ItemVenta.subtotal).desc()).limit(5).all()
+    ).join(ItemVenta).join(Venta)\
+     .outerjoin(Categoria, Producto.categoria_id == Categoria.id)\
+     .filter(
+        func.date(Venta.fecha) >= inicio_anio,
+        Venta.estado == "completada",
+        ~func.lower(func.coalesce(Categoria.nombre, "")).in_(CATEGORIAS_EXCLUIR)
+    ).group_by(Producto.id).order_by(func.sum(ItemVenta.subtotal).desc()).limit(15).all()
 
     variacion_pct = 0
     if total_ayer > 0:

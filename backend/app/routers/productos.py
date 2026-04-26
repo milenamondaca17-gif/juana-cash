@@ -60,8 +60,27 @@ def actualizar_producto(id: int, datos: ProductoCrear, db: Session = Depends(get
     p = db.query(Producto).filter(Producto.id == id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Registrar alerta si cambió el precio
+    precio_anterior = float(p.precio_venta or 0)
+    precio_nuevo = float(datos.precio_venta or 0)
+    if abs(precio_nuevo - precio_anterior) > 0.01:
+        try:
+            from ..models.alerta_precio import AlertaPrecio
+            alerta = AlertaPrecio(
+                producto_id=p.id,
+                nombre_producto=p.nombre,
+                precio_anterior=precio_anterior,
+                precio_nuevo=precio_nuevo,
+                usuario=datos.dict().get("usuario_modificacion", "sistema")
+            )
+            db.add(alerta)
+        except Exception:
+            pass
+
     for key, value in datos.dict().items():
-        setattr(p, key, value)
+        if key != "usuario_modificacion":
+            setattr(p, key, value)
     db.commit()
     db.refresh(p)
     return p

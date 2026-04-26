@@ -25,6 +25,7 @@ from ui.pantallas.config_screen import ConfigScreen
 from ui.pantallas.importador import ImportadorScreen # LA NUEVA NAVE
 from ui.pantallas.etiquetas.generador_etiquetas import GeneradorEtiquetasScreen # <-- LA FÁBRICA DE ETIQUETAS
 from ui.pantallas.ofertas import OfertasScreen # <-- PANTALLA DE OFERTAS
+from ui.pantallas.precios_alerta import AlertasPrecioScreen  # <-- ALERTAS DE PRECIOS
 
 try:
     from ui.pantallas.offline_manager import sincronizar_cola, cantidad_pendientes, servidor_disponible
@@ -161,41 +162,85 @@ class MainWindow(QMainWindow):
         navbar_layout.addSpacing(30)
 
         self.btns_menu = {}
-        # <-- Agregamos "etiquetas" a los accesos de admin
-        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador", "etiquetas", "ofertas"]
-        
-        # Agregamos el botón a la lista visual
-        menus = [
-            ("🛒 Ventas",      "ventas"),
-            ("📦 Prod.",        "productos"),
-            ("👥 Client.",      "clientes"),
-            ("🧾 Caja",         "caja"),
-            ("📊 Repor.",       "reportes"),
-            ("📈 Dash",         "dashboard"),
-            ("📋 Stock",        "stock"),
-            ("💰 Prec.",        "precios"),
-            ("🤖 IA",           "ia"),
-            ("⚙️ Config",       "config"),
-            ("📋 Ses.",         "sesiones"),
-            ("👤 Usuar.",       "usuarios"),
-            ("📥 Importar",     "importador"),
-            ("🖨️ Etiq.",        "etiquetas"),
-            ("🏷️ Ofertas",      "ofertas"),
+        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador", "etiquetas", "ofertas", "alertas"]
+
+        # Pestañas siempre visibles
+        menus_principales = [
+            ("🛒 Ventas",    "ventas"),
+            ("🧾 Caja",      "caja"),
+            ("📦 Productos", "productos"),
+            ("👥 Clientes",  "clientes"),
+            ("📈 Dashboard", "dashboard"),
+            ("🔔 Alertas",   "alertas"),
+            ("📊 Reportes",  "reportes"),
+            ("🏷️ Ofertas",   "ofertas"),
         ]
-        
-        for texto, key in menus:
+
+        # Pestañas dentro de Config (ocultas por defecto)
+        menus_config = [
+            ("🖨️ Etiquetas",  "etiquetas"),
+            ("📋 Stock",      "stock"),
+            ("💰 Precios",    "precios"),
+            ("📥 Importar",   "importador"),
+            ("🤖 IA",         "ia"),
+            ("👤 Usuarios",   "usuarios"),
+        ]
+
+        ESTILO_BTN = """
+            QPushButton { background: transparent; color: #8899aa; font-size: 13px; font-weight: bold; border: none; padding: 0 12px; border-bottom: 3px solid transparent;}
+            QPushButton:hover { color: #f0f0f0; background: #111d33; border-bottom: 3px solid #8899aa;}
+            QPushButton:checked { color: white; background: #111d33; border-bottom: 3px solid #e63946;}
+        """
+        ESTILO_CONFIG = """
+            QPushButton { background: #0d1b30; color: #8899aa; font-size: 12px; font-weight: bold; border: none; padding: 0 10px; border-bottom: 3px solid transparent; border-left: 2px solid #1a2744;}
+            QPushButton:hover { color: #f0f0f0; background: #111d33; border-bottom: 3px solid #8899aa;}
+            QPushButton:checked { color: white; background: #111d33; border-bottom: 3px solid #e63946;}
+        """
+
+        for texto, key in menus_principales:
             btn = QPushButton(texto)
             btn.setFixedHeight(60)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet("""
-                QPushButton { background: transparent; color: #8899aa; font-size: 13px; font-weight: bold; border: none; padding: 0 12px; border-bottom: 3px solid transparent;}
-                QPushButton:hover { color: #f0f0f0; background: #111d33; border-bottom: 3px solid #8899aa;}
-                QPushButton:checked { color: white; background: #111d33; border-bottom: 3px solid #e63946;}
-            """)
+            btn.setStyleSheet(ESTILO_BTN)
             btn.clicked.connect(lambda _, k=key: self.cambiar_pantalla(k))
             navbar_layout.addWidget(btn)
             self.btns_menu[key] = btn
+
+        # Botón Config toggle
+        self._config_expandido = False
+        self._btns_config_ocultos = []
+
+        btn_config_toggle = QPushButton("⚙️ Config  ▾")
+        btn_config_toggle.setFixedHeight(60)
+        btn_config_toggle.setCheckable(True)
+        btn_config_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_config_toggle.setStyleSheet(ESTILO_BTN)
+        navbar_layout.addWidget(btn_config_toggle)
+        self.btns_menu["config"] = btn_config_toggle
+
+        # Crear botones ocultos de config
+        for texto, key in menus_config:
+            btn = QPushButton(texto)
+            btn.setFixedHeight(52)
+            btn.setCheckable(True)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(ESTILO_CONFIG)
+            btn.setVisible(False)
+            btn.clicked.connect(lambda _, k=key: self.cambiar_pantalla(k))
+            navbar_layout.addWidget(btn)
+            self.btns_menu[key] = btn
+            self._btns_config_ocultos.append(btn)
+
+        def _toggle_config(checked):
+            self._config_expandido = not self._config_expandido
+            for b in self._btns_config_ocultos:
+                b.setVisible(self._config_expandido)
+            btn_config_toggle.setText("⚙️ Config  ▴" if self._config_expandido else "⚙️ Config  ▾")
+            if checked:
+                self.cambiar_pantalla("config")
+
+        btn_config_toggle.clicked.connect(_toggle_config)
 
         navbar_layout.addStretch()
 
@@ -244,6 +289,8 @@ class MainWindow(QMainWindow):
             if hasattr(self.ventas_screen, 'rotador_ofertas') else None
         )
 
+        self.alertas_screen = AlertasPrecioScreen()
+
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
             self.productos_screen, self.reportes_screen, self.clientes_screen,
@@ -256,6 +303,7 @@ class MainWindow(QMainWindow):
             self.importador_screen,
             self.etiquetas_screen,
             self.ofertas_screen,
+            self.alertas_screen,
         ]:
             self.stack.addWidget(screen)
 
@@ -292,6 +340,7 @@ class MainWindow(QMainWindow):
             "importador": self.importador_screen,
             "etiquetas": self.etiquetas_screen,
             "ofertas":   self.ofertas_screen,
+            "alertas":   self.alertas_screen,
         }
         if key in pantallas:
             acciones = {
@@ -354,6 +403,13 @@ class MainWindow(QMainWindow):
             self._timer_offline = QTimer()
             self._timer_offline.timeout.connect(self._sync_offline)
         self._timer_offline.start(30000)
+
+        # Timer badge alertas de precios
+        if not hasattr(self, '_timer_alertas'):
+            self._timer_alertas = QTimer()
+            self._timer_alertas.timeout.connect(self._actualizar_badge_alertas)
+        self._timer_alertas.start(20000)
+        self._actualizar_badge_alertas()
         self.setWindowTitle(f"Juana Cash — {nombre} | {rol} | {turno[:5]}")
 
     def verificar_cumpleanos(self):
@@ -398,6 +454,29 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "⏱ Sesión expirada",
                 f"La sesión se cerró automáticamente por {minutos} minutos de inactividad.")
             self.on_logout()
+
+    def _actualizar_badge_alertas(self):
+        try:
+            import requests as _req
+            r = _req.get("http://localhost:8000/alertas-precio/pendientes", timeout=3)
+            if r.status_code == 200:
+                n = r.json().get("pendientes", 0)
+                btn = self.btns_menu.get("alertas")
+                if btn:
+                    btn.setText(f"🔔 Alertas {f'({n})' if n > 0 else ''}")
+                    btn.setStyleSheet(
+                        f"""QPushButton {{
+                            background: {'#7f1d1d' if n > 0 else '#16213e'};
+                            color: {'#fca5a5' if n > 0 else '#a0a0b0'};
+                            border: none; border-radius: 0px;
+                            font-size: 13px; font-weight: {'bold' if n > 0 else 'normal'};
+                            padding: 0 8px; text-align: left;
+                        }}
+                        QPushButton:hover {{ background: #0f3460; color: white; }}
+                        QPushButton:checked {{ background: #e94560; color: white; font-weight: bold; }}"""
+                    )
+        except Exception:
+            pass
 
     def _sync_offline(self):
         if sincronizar_cola is None:

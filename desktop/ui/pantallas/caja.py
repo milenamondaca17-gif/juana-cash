@@ -199,7 +199,6 @@ class CajaScreen(QWidget):
         if not self.turno_actual:
             return
 
-        # Obtener datos del día
         try:
             r_hoy = requests.get(f"{API_URL}/reportes/hoy", timeout=5)
             datos_hoy = r_hoy.json() if r_hoy.status_code == 200 else {}
@@ -212,47 +211,62 @@ class CajaScreen(QWidget):
         except Exception:
             datos_gastos = {}
 
-        # Calcular totales por método
         ventas = datos_hoy.get("ventas", [])
         totales = {"efectivo": 0, "tarjeta": 0, "mercadopago_qr": 0, "transferencia": 0, "fiado": 0}
+        cant_tickets = 0
         for v in ventas:
             if v.get("estado") == "completada":
+                cant_tickets += 1
                 m = v.get("metodo_pago", "efectivo")
                 if m in totales:
                     totales[m] += float(v.get("total", 0))
 
         total_vendido = datos_hoy.get("total_vendido", 0)
         total_gastos  = datos_gastos.get("total", 0)
+        ticket_prom   = (total_vendido / cant_tickets) if cant_tickets > 0 else 0
 
-        # Apertura
         try:
             monto_apertura = float(self.turno_actual.get("monto_apertura", 0))
         except Exception:
             monto_apertura = 0
 
-        # Efectivo esperado = apertura + ventas efectivo - gastos
         efectivo_esperado = monto_apertura + totales["efectivo"] - total_gastos
 
-        # Mostrar dialog de cierre
         dialog = QDialog(self)
-        dialog.setWindowTitle("🔒 Cierre de caja")
-        dialog.setMinimumWidth(480)
+        dialog.setWindowTitle("Cierre de caja")
+        dialog.setMinimumWidth(520)
         dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
         lay = QVBoxLayout(dialog)
         lay.setContentsMargins(24, 20, 24, 20)
         lay.setSpacing(10)
 
-        titulo = QLabel("🔒 RESUMEN DE CIERRE")
+        titulo = QLabel("RESUMEN DE CIERRE")
         titulo.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         titulo.setStyleSheet("color: white;")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(titulo)
 
-        sep = QFrame(); sep.setFixedHeight(1)
-        sep.setStyleSheet("background: #0f3460; border: none;")
+        stats_frame = QFrame()
+        stats_frame.setStyleSheet("QFrame { background: #0f3460; border-radius: 8px; }")
+        stats_lay = QHBoxLayout(stats_frame)
+        stats_lay.setContentsMargins(14, 10, 14, 10)
+        stats_lay.setSpacing(0)
+        for s_txt, s_val, s_color in [
+            ("Tickets", str(cant_tickets), "#3498db"),
+            ("Promedio", f"${ticket_prom:,.0f}", "#9b59b6"),
+            ("Apertura", str(self.turno_actual.get("fecha_apertura","?"))[:16].replace("T"," "), "#f39c12"),
+        ]:
+            col = QVBoxLayout()
+            l1 = QLabel(s_txt); l1.setStyleSheet("color: #a0a0b0; font-size: 11px;"); l1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            l2 = QLabel(s_val); l2.setStyleSheet(f"color: {s_color}; font-size: 15px; font-weight: bold;"); l2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            col.addWidget(l1); col.addWidget(l2)
+            stats_lay.addLayout(col)
+        lay.addWidget(stats_frame)
+
+        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet("background: #0f3460; border: none;")
         lay.addWidget(sep)
 
-        subtitulo = QLabel("DEBÉS TENER EN CAJA:")
+        subtitulo = QLabel("DEBES TENER EN CAJA:")
         subtitulo.setStyleSheet("color: #a0a0b0; font-size: 12px; letter-spacing: 2px; font-weight: bold;")
         lay.addWidget(subtitulo)
 
@@ -265,8 +279,7 @@ class CajaScreen(QWidget):
             lbl_n.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
             fl.addWidget(lbl_n)
             if detalle:
-                lbl_d = QLabel(detalle)
-                lbl_d.setStyleSheet("color: #606880; font-size: 11px;")
+                lbl_d = QLabel(detalle); lbl_d.setStyleSheet("color: #606880; font-size: 11px;")
                 fl.addWidget(lbl_d)
             fl.addStretch()
             lbl_m = QLabel(f"${monto:,.2f}")
@@ -276,59 +289,89 @@ class CajaScreen(QWidget):
             lay.addWidget(f)
 
         detalle_ef = f"apertura ${monto_apertura:,.0f} + ventas ${totales['efectivo']:,.0f} - gastos ${total_gastos:,.0f}"
-        fila_metodo("💵", "Efectivo",       efectivo_esperado,      "#27ae60", detalle_ef)
-        fila_metodo("💳", "Tarjeta",         totales["tarjeta"],     "#3498db")
-        fila_metodo("📱", "Mercado Pago/QR", totales["mercadopago_qr"], "#009ee3")
-        fila_metodo("🏦", "Transferencia",   totales["transferencia"],"#9b59b6")
+        fila_metodo("", "Efectivo",        efectivo_esperado,         "#27ae60", detalle_ef)
+        fila_metodo("", "Tarjeta",          totales["tarjeta"],        "#3498db")
+        fila_metodo("", "Mercado Pago/QR",  totales["mercadopago_qr"], "#009ee3")
+        fila_metodo("", "Transferencia",    totales["transferencia"],  "#9b59b6")
         if totales["fiado"] > 0:
-            fila_metodo("💸", "Fiado (pendiente)", totales["fiado"], "#e74c3c")
+            fila_metodo("", "Fiado (pendiente)", totales["fiado"],     "#e74c3c")
 
-        sep2 = QFrame(); sep2.setFixedHeight(1)
-        sep2.setStyleSheet("background: #0f3460; border: none;")
+        sep2 = QFrame(); sep2.setFixedHeight(1); sep2.setStyleSheet("background: #0f3460; border: none;")
         lay.addWidget(sep2)
 
-        # Resumen final
         resumen_frame = QFrame()
         resumen_frame.setStyleSheet("QFrame { background: #0f3460; border-radius: 8px; }")
         res_lay = QVBoxLayout(resumen_frame)
-        res_lay.setContentsMargins(14, 10, 14, 10)
-        res_lay.setSpacing(4)
+        res_lay.setContentsMargins(14, 10, 14, 10); res_lay.setSpacing(4)
         for txt, val, color in [
-            ("Total vendido:",  f"${total_vendido:,.2f}",        "#27ae60"),
-            ("Gastos del turno:", f"-${total_gastos:,.2f}",      "#e74c3c"),
-            ("Neto del turno:",  f"${total_vendido - total_gastos:,.2f}", "#f39c12"),
+            ("Total vendido:",    f"${total_vendido:,.2f}",               "#27ae60"),
+            ("Gastos del turno:", f"-${total_gastos:,.2f}",               "#e74c3c"),
+            ("Neto del turno:",   f"${total_vendido - total_gastos:,.2f}", "#f39c12"),
         ]:
-            r = QHBoxLayout()
+            rw = QHBoxLayout()
             l1 = QLabel(txt); l1.setStyleSheet("color: #a0a0b0; font-size: 13px;")
             l2 = QLabel(val); l2.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
-            r.addWidget(l1); r.addStretch(); r.addWidget(l2)
-            res_lay.addLayout(r)
+            rw.addWidget(l1); rw.addStretch(); rw.addWidget(l2)
+            res_lay.addLayout(rw)
         lay.addWidget(resumen_frame)
 
-        # Monto declarado
         row_decl = QHBoxLayout()
-        lbl_d = QLabel("Efectivo contado ($):")
-        lbl_d.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lbl_d = QLabel("Efectivo contado ($):"); lbl_d.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         row_decl.addWidget(lbl_d)
         input_declarado = QLineEdit()
         input_declarado.setPlaceholderText(f"{efectivo_esperado:.2f}")
-        input_declarado.setFixedWidth(140)
-        input_declarado.setFixedHeight(38)
+        input_declarado.setFixedWidth(140); input_declarado.setFixedHeight(38)
         input_declarado.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }")
         row_decl.addWidget(input_declarado)
         lay.addLayout(row_decl)
 
         btns = QHBoxLayout()
-        btn_c = QPushButton("Cancelar")
-        btn_c.setFixedHeight(42)
+        btn_c = QPushButton("Cancelar"); btn_c.setFixedHeight(42)
         btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
-        btn_c.clicked.connect(dialog.reject)
-        btns.addWidget(btn_c)
-        btn_ok = QPushButton("✅  Confirmar cierre")
-        btn_ok.setFixedHeight(42)
+        btn_c.clicked.connect(dialog.reject); btns.addWidget(btn_c)
+
+        btn_exp = QPushButton("Exportar .txt"); btn_exp.setFixedHeight(42)
+        btn_exp.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border-radius: 8px; font-size: 13px; font-weight: bold; border: 1px solid #3498db; }")
+        btns.addWidget(btn_exp)
+
+        btn_ok = QPushButton("Confirmar cierre"); btn_ok.setFixedHeight(42)
         btn_ok.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
         btns.addWidget(btn_ok)
         lay.addLayout(btns)
+
+        def _txt_cierre(decl=None, diff=None):
+            from datetime import datetime
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            ls = ["="*40, "   JUANA CASH - CIERRE DE CAJA", "="*40,
+                  f"Fecha:       {ts}", f"Cajero:      {getattr(self,'nombre_cajero','?')}",
+                  f"Tickets:     {cant_tickets}", f"Prom ticket: ${ticket_prom:,.2f}",
+                  "-"*40,
+                  f"Efectivo:    ${totales['efectivo']:,.2f}",
+                  f"Tarjeta:     ${totales['tarjeta']:,.2f}",
+                  f"Mdo Pago:    ${totales['mercadopago_qr']:,.2f}",
+                  f"Transfer.:   ${totales['transferencia']:,.2f}",
+                  f"Fiado:       ${totales['fiado']:,.2f}",
+                  "-"*40,
+                  f"Total:       ${total_vendido:,.2f}",
+                  f"Gastos:     -${total_gastos:,.2f}",
+                  f"NETO:        ${total_vendido - total_gastos:,.2f}",
+                  "-"*40,
+                  f"Apertura:    ${monto_apertura:,.2f}",
+                  f"Ef. esperad: ${efectivo_esperado:,.2f}"]
+            if decl is not None:
+                ls += [f"Ef. contado: ${decl:,.2f}", f"Diferencia:  ${diff:+,.2f}"]
+            ls += ["="*40]
+            return "\n".join(ls)
+
+        def exportar():
+            import os; from datetime import datetime
+            ruta = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets",
+                                f"cierre_{datetime.now().strftime('%Y%m%d_%H%M')}.txt")
+            os.makedirs(os.path.dirname(ruta), exist_ok=True)
+            with open(ruta, "w", encoding="utf-8") as fh: fh.write(_txt_cierre())
+            QMessageBox.information(dialog, "Exportado", f"Guardado en:\n{ruta}")
+
+        btn_exp.clicked.connect(exportar)
 
         def confirmar_cierre():
             try:
@@ -342,36 +385,36 @@ class CajaScreen(QWidget):
                 if r.status_code == 200:
                     try:
                         requests.post(f"{API_URL}/sesiones/registrar", json={
-                            "usuario_id": self.usuario_id,
-                            "nombre_cajero": self.nombre_cajero,
+                            "usuario_id": self.usuario_id, "nombre_cajero": self.nombre_cajero,
                             "accion": "CIERRE_CAJA",
-                            "detalle": f"Vendido: ${total_vendido:.2f} | Gastos: ${total_gastos:.2f} | Diferencia: ${diferencia:.2f}"
+                            "detalle": f"Vendido: ${total_vendido:.2f} | Tickets: {cant_tickets} | Dif: ${diferencia:.2f}"
                         }, timeout=3)
-                    except Exception:
-                        pass
+                    except Exception: pass
                     try:
-                        import backup
-                        backup.hacer_backup()
-                    except Exception:
-                        pass
+                        import os; from datetime import datetime
+                        ruta = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets",
+                                            f"cierre_{datetime.now().strftime('%Y%m%d_%H%M')}.txt")
+                        os.makedirs(os.path.dirname(ruta), exist_ok=True)
+                        with open(ruta, "w", encoding="utf-8") as fh: fh.write(_txt_cierre(monto_declarado, diferencia))
+                    except Exception: pass
                     dialog.accept()
                     self.turno_actual = None
-                    self.lbl_estado.setText("⚪ Caja cerrada")
+                    self.lbl_estado.setText("Caja cerrada")
                     self.lbl_estado.setStyleSheet("color: #a0a0b0; font-size: 16px; font-weight: bold;")
                     self.lbl_apertura.setText("")
                     self.lbl_total_caja.setText("Total acumulado: $0.00")
-                    self.btn_abrir.setEnabled(True)
-                    self.btn_cerrar.setEnabled(False)
-                    for lbl in self.cards_metodo.values():
-                        lbl.setText("$0.00")
-                    color_dif = "✅" if abs(diferencia) < 100 else "⚠️"
-                    QMessageBox.information(self, "✅ Caja cerrada",
-                        f"Caja cerrada correctamente\n{color_dif} Diferencia de efectivo: ${diferencia:+.2f}")
+                    self.btn_abrir.setEnabled(True); self.btn_cerrar.setEnabled(False)
+                    for lbl in self.cards_metodo.values(): lbl.setText("$0.00")
+                    color_dif = "OK" if abs(diferencia) < 100 else "REVISAR"
+                    QMessageBox.information(self, "Caja cerrada",
+                        f"Cierre confirmado\n{color_dif} Diferencia: ${diferencia:+.2f}\n"
+                        f"Tickets: {cant_tickets} | Promedio: ${ticket_prom:,.2f}")
             except Exception:
                 QMessageBox.critical(dialog, "Error", "No se puede conectar al servidor")
 
         btn_ok.clicked.connect(confirmar_cierre)
         dialog.exec()
+
 
     def registrar_gasto(self):
         dialog = QDialog(self)

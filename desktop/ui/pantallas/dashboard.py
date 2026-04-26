@@ -177,11 +177,11 @@ class DashboardScreen(QWidget):
 
         self.panel_top = QFrame()
         self.panel_top.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
-        self.panel_top.setMinimumHeight(180)
+        self.panel_top.setMinimumHeight(480)
         self.top_layout = QVBoxLayout(self.panel_top)
         self.top_layout.setContentsMargins(16, 14, 16, 14)
         self.top_layout.setSpacing(6)
-        lbl_t = QLabel("🏆 Top productos del mes")
+        lbl_t = QLabel("🏆 Top productos del año")
         lbl_t.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
         self.top_layout.addWidget(lbl_t)
         self.top_contenido = QVBoxLayout()
@@ -373,29 +373,36 @@ class DashboardScreen(QWidget):
         if not isinstance(top_prod, list):
             top_prod = []
             
-        medallas = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+        medallas = ["🥇","🥈","🥉","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟",
+                    "1️⃣1️⃣","1️⃣2️⃣","1️⃣3️⃣","1️⃣4️⃣","1️⃣5️⃣"]
         for i, prod in enumerate(top_prod):
             if not isinstance(prod, dict): continue
-            fila = QHBoxLayout()
+            w = QWidget()
+            w.setFixedHeight(26)
+            w.setStyleSheet("background: transparent;")
+            fila = QHBoxLayout(w)
+            fila.setContentsMargins(0, 0, 0, 0)
+            fila.setSpacing(6)
+
             lbl_med = QLabel(medallas[i] if i < len(medallas) else f"{i+1}.")
-            lbl_med.setFixedWidth(24)
-            lbl_med.setStyleSheet("font-size: 13px;")
+            lbl_med.setFixedWidth(28)
+            lbl_med.setFixedHeight(22)
+            lbl_med.setStyleSheet("font-size: 13px; background: transparent; border: none;")
             fila.addWidget(lbl_med)
-            
+
             nombre_prod = str(prod.get("nombre", "Desconocido"))
-            lbl_nombre = QLabel(nombre_prod[:28] + ("..." if len(nombre_prod) > 28 else ""))
-            lbl_nombre.setStyleSheet("color: white; font-size: 12px;")
+            lbl_nombre = QLabel(nombre_prod[:30] + ("…" if len(nombre_prod) > 30 else ""))
+            lbl_nombre.setFixedHeight(22)
+            lbl_nombre.setStyleSheet("color: white; font-size: 12px; background: transparent; border: none;")
             fila.addWidget(lbl_nombre)
             fila.addStretch()
-            
+
             total_prod = to_float(prod.get("total", 0))
             lbl_total = QLabel(f"${total_prod:,.0f}")
-            lbl_total.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold;")
+            lbl_total.setFixedHeight(22)
+            lbl_total.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold; background: transparent; border: none;")
             fila.addWidget(lbl_total)
-            
-            w = QWidget()
-            w.setStyleSheet("background: transparent;")
-            w.setLayout(fila)
+
             self.top_contenido.addWidget(w)
 
         # Horario pico

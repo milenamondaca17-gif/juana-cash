@@ -909,9 +909,46 @@ class VentasScreen(QWidget):
             card_layout.addWidget(lbl_t)
             self.depto_layout.addWidget(card)
 
+    def _parsear_codigo_balanza(self, texto):
+        """
+        Balanza Coura — formato EAN-13 con precio embebido.
+        Estructura: 2 + 5 dígitos PLU + 5 dígitos precio (sin decimales) + 1 verificador
+        Ejemplo: 2201000235135 → precio = $23.513
+        """
+        texto = texto.strip()
+        if len(texto) != 13:
+            return None
+        if not texto.startswith("2"):
+            return None
+        if not texto.isdigit():
+            return None
+        try:
+            precio_str = texto[6:11]   # posiciones 6-10
+            precio     = int(precio_str)
+            if precio <= 0:
+                return None
+            return precio
+        except Exception:
+            return None
+
     def buscar_producto(self):
         texto = self.input_buscar.text().strip()
         if not texto:
+            return
+
+        # ── Balanza Coura — precio embebido en código ────────────────────────
+        precio_balanza = self._parsear_codigo_balanza(texto)
+        if precio_balanza:
+            self.input_buscar.clear()
+            self.items_venta.append({
+                "producto_id":     0,
+                "nombre":          "Carnicería (balanza)",
+                "precio_unitario": precio_balanza,
+                "cantidad":        1,
+                "subtotal":        precio_balanza,
+                "descuento":       0,
+            })
+            self.actualizar_tabla()
             return
 
         # Código de departamento especial

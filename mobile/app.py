@@ -28,6 +28,38 @@ def guardar_ip(ip):
 def get_api_url():
     return f"http://{leer_ip()}:8000"
 
+def _probar_conexion(ip, timeout=2):
+    """Devuelve True si el backend responde en esa IP."""
+    try:
+        r = requests.get(f"http://{ip}:8000/", timeout=timeout)
+        return r.status_code < 500
+    except Exception:
+        return False
+
+def detectar_mejor_ip():
+    """Prueba WiFi local primero, cae a Tailscale si no responde."""
+    ip_guardada = leer_ip()
+    # Si ya está configurada una IP local y responde, usarla
+    if not ip_guardada.startswith("100.") and _probar_conexion(ip_guardada):
+        return ip_guardada
+    # Intentar WiFi local automáticamente
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(1); s.connect(("8.8.8.8", 80))
+        ip_local = s.getsockname()[0]; s.close()
+        if ip_local and not ip_local.startswith("127."):
+            red = ip_local.rsplit(".", 1)[0]
+            for ultimo in ["1", "100", "101", "2", ip_local.split(".")[-1]]:
+                candidato = f"{red}.{ultimo}"
+                if candidato != ip_local and _probar_conexion(candidato, 1):
+                    guardar_ip(candidato)
+                    return candidato
+    except Exception:
+        pass
+    # Fallback: Tailscale
+    return ip_guardada
+
 
 # ─── Llamadas API en hilo separado (evita freezing en Flet) ──────────────────
 
@@ -63,6 +95,24 @@ def api_delete(path, timeout=5):
 # ─── APP PRINCIPAL ────────────────────────────────────────────────────────────
 
 def main(page: ft.Page):
+    import traceback
+    try:
+        _main(page)
+    except Exception as _e:
+        page.controls.clear()
+        page.bgcolor = "#080E1C"
+        page.add(ft.Container(
+            content=ft.Column([
+                ft.Text("ERROR AL INICIAR", size=18, weight="bold", color="#EF4444"),
+                ft.Text(str(_e), size=13, color="white", selectable=True),
+                ft.Divider(color="#1E293B"),
+                ft.Text(traceback.format_exc(), size=10, color="#94A3B8", selectable=True),
+            ], scroll=ft.ScrollMode.ALWAYS, spacing=10),
+            padding=20, expand=True
+        ))
+        page.update()
+
+def _main(page: ft.Page):
     page.title       = "Juana Cash"
     page.theme_mode  = ft.ThemeMode.DARK
     page.bgcolor     = "#080E1C"
@@ -71,7 +121,7 @@ def main(page: ft.Page):
 
     # ── SPLASH SCREEN ────────────────────────────────────────────────────────
     import time
-    progress_bar = ft.ProgressBar(value=0, width=float("inf"), height=5,
+    progress_bar = ft.ProgressBar(value=0, expand=True, height=5,
                                   color="#27AE60", bgcolor="#0d1f35")
     lbl_pct    = ft.Text("0%", size=13, weight="bold", color="#1B9FD4", text_align="center")
     lbl_estado = ft.Text("Iniciando...", size=11, color="#4a7a9a", text_align="center")
@@ -79,12 +129,7 @@ def main(page: ft.Page):
     page.add(ft.Container(
         content=ft.Column([
             ft.Container(expand=True),
-            ft.Text("$↗", size=60, weight="bold", color="#27AE60", text_align="center"),
-            ft.Container(height=6),
-            ft.Text("JUANA CA$H", size=36, weight="w900", color="white", text_align="center"),
-            ft.Text("GESTIÓN DE CAJA", size=12, weight="bold", color="#27AE60", text_align="center"),
-            ft.Container(height=6),
-            ft.Divider(color="#1B3A5C"),
+            ft.Image(src="/assets/splash.png", width=260, fit="contain"),
             ft.Container(height=18),
             progress_bar,
             ft.Container(height=10),
@@ -211,7 +256,7 @@ def main(page: ft.Page):
             lista_movs,
             ft.ElevatedButton(
                 "🔄 ACTUALIZAR", on_click=cargar_dashboard,
-                width=float("inf"), height=48,
+                expand=True, height=48,
                 bgcolor="#3B82F6", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             )
@@ -506,13 +551,13 @@ def main(page: ft.Page):
             ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween"),
             ft.ElevatedButton(
                 "👤 Vincular cliente para Fiado", bgcolor="#F59E0B", color="black",
-                width=float("inf"), height=44,
+                expand=True, height=44,
                 on_click=lambda e: (setattr(panel_buscar_cliente, 'visible', not panel_buscar_cliente.visible), page.update())
             ),
             panel_buscar_cliente,
             lista_compra,
             ft.ElevatedButton(
-                "🧾 COBRAR", width=float("inf"), height=58,
+                "🧾 COBRAR", expand=True, height=58,
                 bgcolor="#F43F5E", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=14)),
                 on_click=lambda e: ir_ticket()
@@ -628,7 +673,7 @@ def main(page: ft.Page):
     color_sel         = {"fondo": "#e74c3c", "texto": "#ffffff"}
     lbl_color_preview = ft.Container(
         content=ft.Text("Vista previa del texto", color="#ffffff", weight="bold", text_align="center"),
-        bgcolor="#e74c3c", border_radius=10, padding=14, width=float("inf")
+        bgcolor="#e74c3c", border_radius=10, padding=14, expand=True
     )
 
     def set_color_fondo(e):
@@ -719,46 +764,11 @@ def main(page: ft.Page):
             )
         page.update()
 
-    # ── Subida de imágenes con tkinter (compatible con cualquier Flet) ────────
+    # ── Subida de imágenes — no disponible en esta versión móvil ─────────────
     def seleccionar_y_subir_imagen(e):
-        def _pick_and_upload():
-            import tkinter as tk
-            from tkinter import filedialog
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes("-topmost", True)
-            ruta = filedialog.askopenfilename(
-                title="Elegí una imagen para la oferta",
-                filetypes=[("Imágenes", "*.jpg *.jpeg *.png *.webp *.bmp")]
-            )
-            root.destroy()
-            if not ruta:
-                return
-
-            lbl_oferta_status.value = "⏳ Subiendo imagen..."
-            lbl_oferta_status.color = "#94A3B8"
-            page.update()
-            try:
-                with open(ruta, "rb") as f:
-                    r = requests.post(
-                        f"{get_api_url()}/ofertas/imagen",
-                        files={"archivo": (os.path.basename(ruta), f, "image/jpeg")},
-                        timeout=15
-                    )
-                if r.status_code == 200:
-                    data = r.json()
-                    lbl_oferta_status.value = f"✅ Imagen subida! ({data.get('total', 0)} ofertas)"
-                    lbl_oferta_status.color = "#10B981"
-                    cargar_lista_ofertas()
-                else:
-                    lbl_oferta_status.value = f"❌ Error del servidor: {r.status_code}"
-                    lbl_oferta_status.color = "#EF4444"
-            except Exception as ex:
-                lbl_oferta_status.value = f"❌ Error: {ex}"
-                lbl_oferta_status.color = "#EF4444"
-            page.update()
-
-        threading.Thread(target=_pick_and_upload, daemon=True).start()
+        lbl_oferta_status.value = "📵 Subida de imagen no disponible en móvil"
+        lbl_oferta_status.color = "#F59E0B"
+        page.update()
 
     view_ofertas = ft.Container(
         content=ft.Column([
@@ -772,7 +782,7 @@ def main(page: ft.Page):
             ft.ElevatedButton(
                 "📷 SUBIR IMAGEN", bgcolor="#E91E63", color="white",
                 on_click=seleccionar_y_subir_imagen,
-                width=float("inf"), height=48,
+                expand=True, height=48,
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             ),
             lbl_oferta_status,
@@ -783,6 +793,104 @@ def main(page: ft.Page):
                     bgcolor="#1E293B", color="white", width=44, height=36)
             ]),
             lista_ofertas_ui,
+        ], spacing=10),
+        padding=16, visible=False, expand=True
+    )
+
+    # ── PANTALLA 5: VENTAS DEL PERÍODO ───────────────────────────────────────
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    in_desde = ft.TextField(label="Desde", hint_text="YYYY-MM-DD", value=hoy_str,
+        filled=True, border_color="transparent", border_radius=12,
+        content_padding=14, bgcolor="#1E293B", expand=True)
+    in_hasta = ft.TextField(label="Hasta", hint_text="YYYY-MM-DD", value=hoy_str,
+        filled=True, border_color="transparent", border_radius=12,
+        content_padding=14, bgcolor="#1E293B", expand=True)
+    lbl_ventas_total   = ft.Text("$ 0.00", size=32, weight="w900", color="#10B981")
+    lbl_ventas_resumen = ft.Text("", size=12, color="#94A3B8")
+    lbl_ventas_err     = ft.Text("", color="#EF4444", size=12)
+    lista_ventas_ui    = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=370)
+
+    @en_hilo
+    def cargar_ventas(e=None):
+        desde = in_desde.value.strip() or hoy_str
+        hasta = in_hasta.value.strip() or hoy_str
+        lbl_ventas_err.value = "⏳ Cargando..."
+        lbl_ventas_err.color = "#94A3B8"
+        lista_ventas_ui.controls.clear()
+        page.update()
+        data = api_get("/reportes/rango", params={"desde": desde, "hasta": hasta})
+        lbl_ventas_err.value = ""
+        if data:
+            cant   = data.get("cantidad_ventas", 0)
+            total  = float(data.get("total_vendido", 0))
+            ventas = data.get("ventas", [])
+            lbl_ventas_total.value   = f"$ {total:,.2f}"
+            lbl_ventas_resumen.value = f"{cant} venta{'s' if cant!=1 else ''} — {desde} al {hasta}"
+            MCOLOR = {"efectivo":"#10B981","tarjeta":"#3B82F6",
+                      "mercadopago_qr":"#9333EA","transferencia":"#F59E0B","fiado":"#EF4444"}
+            MICON  = {"efectivo":"💵","tarjeta":"💳",
+                      "mercadopago_qr":"📱","transferencia":"🏦","fiado":"💸"}
+            for v in ventas:
+                metodo = v.get("metodo_pago","efectivo").lower()
+                estado = v.get("estado","completada")
+                color  = MCOLOR.get(metodo,"#94A3B8") if estado != "anulada" else "#475569"
+                fecha  = str(v.get("fecha",""))
+                hora   = fecha[11:16] if len(fecha) >= 16 else ""
+                lista_ventas_ui.controls.append(
+                    ft.Container(
+                        content=ft.Row([
+                            ft.Text(MICON.get(metodo,"💰"), size=20),
+                            ft.Column([
+                                ft.Text(f"#{v.get('numero','?')}  {hora}", size=12,
+                                        weight="bold", color="white"),
+                                ft.Text(metodo.upper(), size=10, color=color),
+                            ], spacing=0, expand=True),
+                            ft.Column([
+                                ft.Text(f"${float(v.get('total',0)):,.0f}", size=15,
+                                        weight="w900", color=color),
+                                ft.Text(estado, size=9,
+                                        color="#EF4444" if estado=="anulada" else "#94A3B8"),
+                            ], spacing=0, horizontal_alignment="end"),
+                        ]),
+                        bgcolor="#1E293B", padding=12, border_radius=12
+                    )
+                )
+            if not ventas:
+                lista_ventas_ui.controls.append(
+                    ft.Text("Sin ventas en ese período", color="#94A3B8",
+                            size=13, text_align="center"))
+        else:
+            lbl_ventas_total.value = "$ 0.00"
+            lbl_ventas_err.value   = f"Sin conexión — {get_api_url()}"
+        page.update()
+
+    def _v_hoy(e):
+        h = datetime.now().strftime("%Y-%m-%d")
+        in_desde.value = h; in_hasta.value = h; cargar_ventas()
+    def _v_mes(e):
+        hoy = datetime.now()
+        in_desde.value = hoy.strftime("%Y-%m-01")
+        in_hasta.value = hoy.strftime("%Y-%m-%d")
+        cargar_ventas()
+
+    view_ventas = ft.Container(
+        content=ft.Column([
+            ft.Text("📋 VENTAS DEL PERÍODO", size=20, weight="w900"),
+            ft.Row([in_desde, in_hasta], spacing=8),
+            ft.Row([
+                ft.ElevatedButton("Hoy", on_click=_v_hoy, expand=True, height=40,
+                    bgcolor="#1E293B", color="white"),
+                ft.ElevatedButton("Mes", on_click=_v_mes, expand=True, height=40,
+                    bgcolor="#1E293B", color="white"),
+                ft.ElevatedButton("🔍 Ver", on_click=cargar_ventas, expand=True, height=40,
+                    bgcolor="#3B82F6", color="white"),
+            ], spacing=6),
+            ft.Container(
+                content=ft.Column([lbl_ventas_total, lbl_ventas_resumen],
+                    horizontal_alignment="center", spacing=2),
+                bgcolor="#0F172A", padding=14, border_radius=14),
+            lbl_ventas_err,
+            lista_ventas_ui,
         ], spacing=10),
         padding=16, visible=False, expand=True
     )
@@ -814,10 +922,28 @@ def main(page: ft.Page):
             lbl_config_status.color = "#EF4444"
         page.update()
 
+    lbl_deteccion = ft.Text("", size=12, color="#94A3B8")
+
+    @en_hilo
+    def detectar_auto(e=None):
+        lbl_deteccion.value = "⏳ Buscando servidor en la red..."
+        lbl_deteccion.color = "#94A3B8"
+        page.update()
+        ip = detectar_mejor_ip()
+        if _probar_conexion(ip):
+            in_ip.value = ip
+            guardar_ip(ip)
+            lbl_deteccion.value = f"✅ Encontrado en {ip}"
+            lbl_deteccion.color = "#10B981"
+        else:
+            lbl_deteccion.value = f"❌ No se encontró servidor. Ingresá la IP manualmente."
+            lbl_deteccion.color = "#EF4444"
+        page.update()
+
     view_config = ft.Container(
         content=ft.Column([
             ft.Text("⚙️ CONFIGURACIÓN", size=20, weight="w900"),
-            ft.Text("Ingresá la IP local de la PC donde corre el sistema", color="#94A3B8", size=12),
+            ft.Text("Ingresá la IP de la PC o detectala automáticamente", color="#94A3B8", size=12),
             ft.Container(
                 content=ft.Column([
                     ft.Text("¿Cómo saber la IP de la PC?", weight="bold", color="#38BDF8", size=13),
@@ -830,10 +956,17 @@ def main(page: ft.Page):
                 ]),
                 bgcolor="#1E293B", padding=14, border_radius=12
             ),
+            ft.ElevatedButton(
+                "🔍 DETECTAR AUTOMÁTICAMENTE", on_click=detectar_auto,
+                expand=True, height=44,
+                bgcolor="#0F172A", color="#38BDF8",
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+            ),
+            lbl_deteccion,
             in_ip,
             ft.ElevatedButton(
                 "💾 GUARDAR Y PROBAR", on_click=guardar_config,
-                width=float("inf"), height=48,
+                expand=True, height=48,
                 bgcolor="#556EE6", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             ),
@@ -847,6 +980,7 @@ def main(page: ft.Page):
         "D": view_dashboard,
         "C": view_cobrar,
         "O": view_ofertas,
+        "V": view_ventas,
         "S": view_config,
     }
 
@@ -858,6 +992,7 @@ def main(page: ft.Page):
         lbl_aviso.value = ""
         if key == "D": cargar_dashboard()
         if key == "O": cargar_lista_ofertas()
+        if key == "V": cargar_ventas()
         page.update()
 
     nav_bar = ft.Container(
@@ -868,20 +1003,23 @@ def main(page: ft.Page):
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
             ft.ElevatedButton("🏷️", data="O", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
+            ft.ElevatedButton("📋", data="V", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
             ft.ElevatedButton("⚙️", data="S", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
         ], spacing=1),
-        bgcolor="#0F172A", padding=ft.padding.only(bottom=20)
+        bgcolor="#0F172A", padding=ft.padding.only(bottom=40)
     )
 
     all_views = ft.Column(
-        [view_dashboard, view_cobrar, view_ticket, view_ofertas, view_config],
+        [view_dashboard, view_cobrar, view_ticket, view_ofertas, view_ventas, view_config],
         expand=True
     )
 
     page.add(app_bar, all_views, nav_bar)
+    page.update()
     cargar_dashboard()
-    cargar_cache_productos()  # Carga productos en background al arrancar
+    cargar_cache_productos()
 
 
 ft.app(target=main)

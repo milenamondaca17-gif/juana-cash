@@ -1,12 +1,13 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-# Cambiá la línea de los modelos por esta:
+# CambiÃ¡ la lÃ­nea de los modelos por esta:
 from .models import Usuario, Producto, Venta, Cliente, Fiado, CajaTurno, SesionLog, Gasto
 from .models import sesion_log, gasto
 from .routers import (auth, productos, ventas, clientes, stock, ia, config_sistema,
                       reportes, caja, fiados, sesiones, gastos)
 from .routers import ofertas_api
+from .routers import alertas
 
 Base.metadata.create_all(bind=engine)
 
@@ -32,7 +33,9 @@ app.include_router(stock.router)
 app.include_router(ia.router)
 app.include_router(config_sistema.router)
 app.include_router(ofertas_api.router)
+app.include_router(alertas.router)
 
 @app.get("/")
 def root():
-    return {"mensaje": "Juana Cash API funcionando ✅"}
+    return {"mensaje": "Juana Cash API funcionando âœ…"}
+
