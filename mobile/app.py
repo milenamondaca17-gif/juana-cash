@@ -29,9 +29,14 @@ def guardar_ip(ip):
         pass
 
 def _probar_ip(ip, timeout=2):
+    """Verifica que el servidor en esa IP sea EL backend de Juana Cash, no un router."""
     try:
-        r = requests.get(f"http://{ip}:8000/", timeout=timeout)
-        return r.status_code < 500
+        r = requests.get(f"http://{ip}:8000/openapi.json", timeout=timeout)
+        if r.status_code != 200:
+            return False
+        data = r.json()
+        titulo = data.get("info", {}).get("title", "")
+        return "Juana Cash" in titulo
     except Exception:
         return False
 
@@ -41,43 +46,66 @@ _ip_activa = {"ip": leer_ip()}
 def get_api_url():
     return f"http://{_ip_activa['ip']}:8000"
 
-def detectar_mejor_ip():
+def detectar_mejor_ip(callback_progreso=None):
     """
     Orden de prioridad:
-    1. IP guardada — si responde la usamos
-    2. WiFi local — escaneo automático de la red local
-    3. Tailscale — fallback si estás lejos de casa
+    1. IP guardada — si responde la usamos (instantáneo)
+    2. WiFi local — escaneo paralelo completo de toda la red /24
+    3. Tailscale — fallback si no hay WiFi local
     """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import socket
+
     ip_guardada = leer_ip()
 
-    # 1. Probar IP guardada primero
+    # 1. Probar IP guardada primero — si anda, listo
     if _probar_ip(ip_guardada, 2):
         _ip_activa["ip"] = ip_guardada
         return ip_guardada
 
-    # 2. Intentar WiFi local automáticamente
+    # 2. Escaneo paralelo completo de la red local
     try:
-        import socket
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(1); s.connect(("8.8.8.8", 80))
         ip_local = s.getsockname()[0]; s.close()
+
         if ip_local and not ip_local.startswith("127."):
             red = ip_local.rsplit(".", 1)[0]
-            for ultimo in ["1", "100", "101", "2", "10", "50"]:
-                candidato = f"{red}.{ultimo}"
-                if _probar_ip(candidato, 1):
-                    guardar_ip(candidato)
-                    _ip_activa["ip"] = candidato
-                    return candidato
+            candidatos = [f"{red}.{i}" for i in range(1, 255)]
+
+            if callback_progreso:
+                callback_progreso(f"Escaneando {red}.0/24...")
+
+            encontrado = None
+            with ThreadPoolExecutor(max_workers=20) as ex:
+                futuros = {ex.submit(_probar_ip, ip, 0.8): ip for ip in candidatos}
+                for fut in as_completed(futuros):
+                    ip_cand = futuros[fut]
+                    try:
+                        if fut.result():
+                            encontrado = ip_cand
+                            # Cancelar los demás
+                            for f2 in futuros:
+                                f2.cancel()
+                            break
+                    except Exception:
+                        pass
+
+            if encontrado:
+                guardar_ip(encontrado)
+                _ip_activa["ip"] = encontrado
+                return encontrado
     except Exception:
         pass
 
     # 3. Fallback Tailscale
+    if callback_progreso:
+        callback_progreso("Probando Tailscale...")
     if _probar_ip(TAILSCALE_IP, 3):
         _ip_activa["ip"] = TAILSCALE_IP
         return TAILSCALE_IP
 
-    # Sin conexión
+    # Sin conexión — mantener última IP conocida
     _ip_activa["ip"] = ip_guardada
     return ip_guardada
 
@@ -155,6 +183,20 @@ def api_post(path, json_data=None, timeout=8):
 def api_delete(path, timeout=5):
     try:
         r = requests.delete(f"{get_api_url()}{path}", timeout=timeout)
+        return r.json() if r.status_code == 200 else None
+    except Exception:
+        return None
+
+def api_put(path, json_data=None, timeout=8):
+    try:
+        r = requests.put(f"{get_api_url()}{path}", json=json_data, timeout=timeout)
+        return r.json() if r.status_code == 200 else None
+    except Exception:
+        return None
+
+def api_patch(path, json_data=None, timeout=8):
+    try:
+        r = requests.patch(f"{get_api_url()}{path}", json=json_data, timeout=timeout)
         return r.json() if r.status_code == 200 else None
     except Exception:
         return None
@@ -403,7 +445,7 @@ def _main(page: ft.Page):
 
     # ── PANTALLA 2: COBRAR ────────────────────────────────────────────────────
     lbl_aviso    = ft.Text("", size=13, weight="bold")
-    lista_compra = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=240)
+    lista_compra = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=160)
     lbl_total_c  = ft.Text("$ 0.00", size=34, weight="w900", color="#F43F5E")
     in_scan      = ft.TextField(
         label="Escanear o buscar...", filled=True, border_color="transparent",
@@ -500,7 +542,7 @@ def _main(page: ft.Page):
         bgcolor="#1E293B", expand=True,
         on_submit=buscar_cliente
     )
-    lista_clientes = ft.Column(spacing=4, scroll=ft.ScrollMode.ALWAYS, height=150)
+    lista_clientes = ft.Column(spacing=4, scroll=ft.ScrollMode.ALWAYS, height=120)
 
     panel_buscar_cliente.content = ft.Column([
         ft.Row([in_buscar_cliente,
@@ -687,23 +729,29 @@ def _main(page: ft.Page):
 
     in_scan.on_submit = buscar_prod
 
+    btn_cobrar = ft.ElevatedButton(
+        "🧾 COBRAR", expand=True, height=58,
+        bgcolor="#F43F5E", color="white",
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=14)),
+        on_click=lambda e: ir_ticket()
+    )
+
     view_cobrar = ft.Container(
         content=ft.Column([
-            lbl_aviso,
-            ft.Row([in_cliente, ft.ElevatedButton("⏸️", on_click=pausar, bgcolor="#F59E0B", color="black"), btn_recuperar]),
-            ft.Row([in_scan, ft.ElevatedButton("➕", on_click=buscar_prod, bgcolor="#10B981", color="white", height=48)]),
-            panel_resultados,
-            ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween"),
-            btn_vincular_fiado,
-            panel_buscar_cliente,
-            lista_compra,
-            ft.ElevatedButton(
-                "🧾 COBRAR", expand=True, height=58,
-                bgcolor="#F43F5E", color="white",
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=14)),
-                on_click=lambda e: ir_ticket()
-            )
-        ], spacing=10),
+            # Contenido scrolleable — nunca pisa el botón COBRAR
+            ft.Column([
+                lbl_aviso,
+                ft.Row([in_cliente, ft.ElevatedButton("⏸️", on_click=pausar, bgcolor="#F59E0B", color="black"), btn_recuperar]),
+                ft.Row([in_scan, ft.ElevatedButton("➕", on_click=buscar_prod, bgcolor="#10B981", color="white", height=48)]),
+                panel_resultados,
+                ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween"),
+                btn_vincular_fiado,
+                panel_buscar_cliente,
+                lista_compra,
+            ], spacing=10, scroll=ft.ScrollMode.AUTO, expand=True),
+            # COBRAR siempre visible abajo
+            btn_cobrar,
+        ], spacing=8),
         padding=16, visible=False, expand=True
     )
 
@@ -826,6 +874,13 @@ def _main(page: ft.Page):
 
     def ir_ticket():
         if not carrito: return
+        # Validar: fiado requiere cliente vinculado
+        if drop_metodo.value == "fiado" and not cliente_fiado["id"]:
+            lbl_aviso.value = "⚠️ Fiado requiere vincular un cliente primero"
+            lbl_aviso.color = "#EF4444"
+            panel_buscar_cliente.visible = True
+            page.update()
+            return
         lista_ticket.controls = [ft.Row([ft.Text(i["n"], expand=True, size=12), ft.Text(f"${i['p']:,.0f}")]) for i in carrito]
         tot = sum(i["p"] for i in carrito)
         lbl_ticket_total.value = f"$ {tot:,.0f}"
@@ -1190,13 +1245,20 @@ def _main(page: ft.Page):
 
     @en_hilo
     def detectar_auto(e=None):
-        lbl_config_status.value = "⏳ Buscando servidor en la red..."
+        lbl_config_status.value = "⏳ Escaneando la red..."
         lbl_config_status.color = "#94A3B8"
         page.update()
-        ip = detectar_mejor_ip()
+
+        def _progreso(msg):
+            lbl_config_status.value = f"⏳ {msg}"
+            page.update()
+
+        ip = detectar_mejor_ip(callback_progreso=_progreso)
         if _probar_ip(ip):
             in_ip.value = ip
             guardar_ip(ip)
+            _ip_activa["ip"] = ip
+            lbl_ip_status.value = f"📡 {ip}"
             lbl_config_status.value = f"✅ Encontrado en {ip}"
             lbl_config_status.color = "#10B981"
         else:
@@ -1208,6 +1270,7 @@ def _main(page: ft.Page):
     def guardar_config(e=None):
         ip = in_ip.value.strip().replace("http://", "").replace(":8000", "")
         guardar_ip(ip)
+        _ip_activa["ip"] = ip
         lbl_config_status.value = "⏳ Probando conexión..."
         lbl_config_status.color = "#94A3B8"
         page.update()
@@ -1312,16 +1375,18 @@ def _main(page: ft.Page):
                         return
 
                     def _put():
-                        datos = {k: v for k, v in prod.items()}
-                        datos["precio_venta"] = nuevo
-                        datos["usuario_modificacion"] = "mobile"
-                        r = api_post(f"/productos/{prod['id']}", json_data=datos)
-                        if r:
-                            lbl_precio_status.value = f"✅ {prod['nombre']} → ${nuevo:,.0f}"
+                        # Usa el endpoint POST simple — sin validación Pydantic estricta
+                        r = api_post(f"/productos/{prod['id']}/cambiar-precio", json_data={
+                            "precio_nuevo": nuevo,
+                            "usuario": "mobile"
+                        })
+                        if r and r.get("ok"):
+                            lbl_precio_status.value = f"✅ {prod['nombre']} → ${nuevo:,.0f} (alerta enviada a la PC)"
                             lbl_precio_status.color = "#10B981"
                             cargar_cache_productos()
                         else:
-                            lbl_precio_status.value = "❌ Error al guardar"
+                            error_msg = r.get("error", "Error desconocido") if r else "Sin conexión"
+                            lbl_precio_status.value = f"❌ {error_msg}"
                             lbl_precio_status.color = "#EF4444"
                         page.update()
 

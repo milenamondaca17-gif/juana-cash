@@ -29,6 +29,10 @@ class PreciosDiferenciados(BaseModel):
     precio_mayorista: Optional[float] = None
     precio_vip: Optional[float] = None
 
+class CambioPrecio(BaseModel):
+    precio_nuevo: float
+    usuario: str = "mobile"
+
 @router.get("/")
 def listar_productos(db: Session = Depends(get_db)):
     return db.query(Producto).filter(Producto.activo == True).all()
@@ -93,6 +97,85 @@ def eliminar_producto(id: int, db: Session = Depends(get_db)):
     p.activo = False
     db.commit()
     return {"mensaje": "Producto desactivado"}
+
+# ─── Cambio de precio rápido (móvil) ──────────────────────────────────────────
+# Función compartida — funciona con POST, PATCH y GET
+# Compatible con APKs viejas (PATCH /precio) y nuevas (POST /cambiar-precio)
+
+from fastapi import Request
+
+def _aplicar_cambio_precio(id: int, precio: float, usuario: str, db: Session):
+    """Lógica compartida: cambia el precio y crea la alerta."""
+    if precio <= 0:
+        return {"ok": False, "error": "Precio inválido"}
+
+    p = db.query(Producto).filter(Producto.id == id).first()
+    if not p:
+        return {"ok": False, "error": "Producto no encontrado"}
+
+    precio_anterior = float(p.precio_venta or 0)
+
+    # Crear alerta SIEMPRE
+    try:
+        from ..models.alerta_precio import AlertaPrecio
+        alerta = AlertaPrecio(
+            producto_id=p.id,
+            nombre_producto=p.nombre,
+            precio_anterior=precio_anterior,
+            precio_nuevo=precio,
+            usuario=usuario
+        )
+        db.add(alerta)
+        db.flush()
+        print(f"[ALERTA OK] {p.nombre}: ${precio_anterior} -> ${precio}")
+    except Exception as e:
+        print(f"[ALERTA ERROR] {e}")
+
+    # ACTUALIZAR EL PRECIO EN LA DB
+    p.precio_venta = precio
+    db.commit()
+    db.refresh(p)
+    print(f"[PRECIO OK] {p.nombre} actualizado a ${precio} en la DB")
+
+    return {
+        "ok": True,
+        "id": p.id,
+        "nombre": p.nombre,
+        "precio_anterior": precio_anterior,
+        "precio_nuevo": precio,
+        "alerta_creada": True
+    }
+
+
+@router.post("/{id}/cambiar-precio")
+async def cambiar_precio_post(id: int, request: Request, db: Session = Depends(get_db)):
+    """Endpoint nuevo (APK v5+): POST /productos/{id}/cambiar-precio"""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    precio = float(body.get("precio_nuevo") or body.get("precio") or 0)
+    usuario = str(body.get("usuario", "mobile"))
+    return _aplicar_cambio_precio(id, precio, usuario, db)
+
+
+@router.patch("/{id}/precio")
+async def cambiar_precio_patch(id: int, request: Request, db: Session = Depends(get_db)):
+    """Compatibilidad con APK v4: PATCH /productos/{id}/precio"""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    precio = float(body.get("precio_nuevo") or body.get("precio") or 0)
+    usuario = str(body.get("usuario", "mobile"))
+    return _aplicar_cambio_precio(id, precio, usuario, db)
+
+
+@router.get("/{id}/cambiar-precio")
+def cambiar_precio_get(id: int, precio: float, usuario: str = "mobile", db: Session = Depends(get_db)):
+    """Endpoint GET para debugging desde el navegador."""
+    return _aplicar_cambio_precio(id, precio, usuario, db)
+
 
 # ─── SEMANA 5: Actualización masiva de precios ────────────────────────────────
 

@@ -1,18 +1,37 @@
+"""
+Pantalla de Alertas de Cambio de Precios
+Reescrita para no freezar nunca:
+- Sin polling automático que acumula threads
+- Refresh manual con botón
+- Auto-refresh con flag anti-acumulación
+- Todo en threads daemon, UI siempre en hilo principal
+"""
 import requests
+import threading
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QScrollArea, QFrame, QMessageBox)
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 
 API_URL = "http://localhost:8000"
 
+
 class AlertasPrecioScreen(QWidget):
+    # Señal para actualizar UI desde thread
+    alertas_recibidas = pyqtSignal(list)
+
     def __init__(self):
         super().__init__()
+        self._cargando = False  # Evita lanzar dos threads a la vez
         self.setup_ui()
+
+        # Conectar señal a slot que se ejecuta en el hilo principal
+        self.alertas_recibidas.connect(self._actualizar_ui)
+
+        # Auto-refresh cada 60 segundos (no 30 que era muy seguido)
         self.timer = QTimer()
         self.timer.timeout.connect(self.cargar_alertas)
-        self.timer.start(30000)  # Refresca cada 30 segundos
+        self.timer.start(60000)
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -44,13 +63,13 @@ class AlertasPrecioScreen(QWidget):
         btn_todas.clicked.connect(self.marcar_todas_vistas)
         header.addWidget(btn_todas)
 
-        btn_ref = QPushButton("🔄")
-        btn_ref.setFixedSize(36, 36)
-        btn_ref.setStyleSheet(
+        self.btn_ref = QPushButton("🔄")
+        self.btn_ref.setFixedSize(36, 36)
+        self.btn_ref.setStyleSheet(
             "QPushButton { background: #16213e; color: white; border-radius: 8px; font-size: 16px; }"
         )
-        btn_ref.clicked.connect(self.cargar_alertas)
-        header.addWidget(btn_ref)
+        self.btn_ref.clicked.connect(self.cargar_alertas)
+        header.addWidget(self.btn_ref)
 
         layout.addLayout(header)
 
@@ -58,6 +77,11 @@ class AlertasPrecioScreen(QWidget):
         sub = QLabel("Cada vez que se modifica un precio desde cualquier dispositivo, queda registrado aquí.")
         sub.setStyleSheet("color: #606880; font-size: 12px;")
         layout.addWidget(sub)
+
+        # Indicador de estado
+        self.lbl_estado = QLabel("")
+        self.lbl_estado.setStyleSheet("color: #94A3B8; font-size: 11px;")
+        layout.addWidget(self.lbl_estado)
 
         sep = QFrame()
         sep.setFixedHeight(1)
@@ -80,37 +104,59 @@ class AlertasPrecioScreen(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.cargar_alertas()
+        # Solo cargar si no se está cargando ya
+        if not self._cargando:
+            self.cargar_alertas()
 
     def cargar_alertas(self):
+        """Punto de entrada — verifica que no haya otro thread corriendo."""
+        if self._cargando:
+            return  # Ya hay un fetch en curso, no acumular threads
+        self._cargando = True
+        self.lbl_estado.setText("⏳ Actualizando...")
+        self.btn_ref.setEnabled(False)
+        threading.Thread(target=self._fetch_alertas, daemon=True).start()
+
+    def _fetch_alertas(self):
+        """Corre en thread — NO toca widgets directamente, emite señal."""
         try:
-            r = requests.get(f"{API_URL}/alertas-precio/", timeout=5)
+            r = requests.get(f"{API_URL}/alertas-precio/", timeout=4)
             alertas = r.json() if r.status_code == 200 else []
         except Exception:
             alertas = []
+        # Emitir señal — esto hace que _actualizar_ui se ejecute en el hilo principal
+        self.alertas_recibidas.emit(alertas)
 
-        # Limpiar lista
-        while self.lista_layout.count():
-            item = self.lista_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+    def _actualizar_ui(self, alertas):
+        """Se ejecuta en el hilo principal por la señal pyqtSignal."""
+        try:
+            # Limpiar lista
+            while self.lista_layout.count():
+                item = self.lista_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
 
-        pendientes = sum(1 for a in alertas if not a.get("visto"))
-        if pendientes > 0:
-            self.lbl_pendientes.setText(f"  {pendientes} pendiente{'s' if pendientes > 1 else ''}  ")
-            self.lbl_pendientes.show()
-        else:
-            self.lbl_pendientes.hide()
+            pendientes = sum(1 for a in alertas if not a.get("visto"))
+            if pendientes > 0:
+                self.lbl_pendientes.setText(f"  {pendientes} pendiente{'s' if pendientes > 1 else ''}  ")
+                self.lbl_pendientes.show()
+            else:
+                self.lbl_pendientes.hide()
 
-        if not alertas:
-            lbl = QLabel("✅ Sin alertas de precios por el momento")
-            lbl.setStyleSheet("color: #606880; font-size: 14px; padding: 40px;")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.lista_layout.addWidget(lbl)
-            return
+            if not alertas:
+                lbl = QLabel("✅ Sin alertas de precios por el momento")
+                lbl.setStyleSheet("color: #606880; font-size: 14px; padding: 40px;")
+                lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.lista_layout.addWidget(lbl)
+            else:
+                for a in alertas:
+                    self._agregar_fila(a)
 
-        for a in alertas:
-            self._agregar_fila(a)
+            self.lbl_estado.setText(f"✓ {len(alertas)} alerta(s) — última actualización: ahora")
+        finally:
+            # SIEMPRE liberar el flag y reactivar el botón
+            self._cargando = False
+            self.btn_ref.setEnabled(True)
 
     def _agregar_fila(self, a):
         fondo = "#16213e" if a.get("visto") else "#1a1a3e"
@@ -126,13 +172,11 @@ class AlertasPrecioScreen(QWidget):
         row.setContentsMargins(16, 8, 12, 8)
         row.setSpacing(12)
 
-        # Ícono estado
         icono = QLabel("✅" if a.get("visto") else "🔔")
         icono.setFixedWidth(24)
         icono.setStyleSheet("font-size: 18px; background: transparent; border: none;")
         row.addWidget(icono)
 
-        # Nombre producto
         col_nombre = QVBoxLayout()
         col_nombre.setSpacing(2)
         lbl_nombre = QLabel(a.get("nombre_producto", "Desconocido"))
@@ -149,7 +193,6 @@ class AlertasPrecioScreen(QWidget):
         row.addLayout(col_nombre)
         row.addStretch()
 
-        # Precios
         ant = float(a.get("precio_anterior", 0))
         nvo = float(a.get("precio_nuevo", 0))
         diff = nvo - ant
@@ -170,7 +213,6 @@ class AlertasPrecioScreen(QWidget):
         col_precios.addWidget(lbl_ant)
         row.addLayout(col_precios)
 
-        # Botón marcar visto (solo si no está visto)
         if not a.get("visto"):
             btn_v = QPushButton("✓")
             btn_v.setFixedSize(32, 32)
@@ -186,15 +228,28 @@ class AlertasPrecioScreen(QWidget):
         self.lista_layout.addWidget(card)
 
     def marcar_visto(self, alerta_id):
-        try:
-            requests.post(f"{API_URL}/alertas-precio/{alerta_id}/visto", timeout=5)
-            self.cargar_alertas()
-        except Exception:
-            pass
+        """Marca una alerta como vista en thread separado."""
+        def _post():
+            try:
+                requests.post(f"{API_URL}/alertas-precio/{alerta_id}/visto", timeout=4)
+            except Exception:
+                pass
+        threading.Thread(target=_post, daemon=True).start()
+        # Refrescar después de un momento
+        QTimer.singleShot(500, self.cargar_alertas)
 
     def marcar_todas_vistas(self):
-        try:
-            requests.post(f"{API_URL}/alertas-precio/marcar-todas-vistas", timeout=5)
-            self.cargar_alertas()
-        except Exception:
-            QMessageBox.critical(self, "Error", "No se pudo conectar al servidor")
+        """Marca todas como vistas en thread separado."""
+        def _post():
+            try:
+                requests.post(f"{API_URL}/alertas-precio/marcar-todas-vistas", timeout=4)
+            except Exception:
+                pass
+        threading.Thread(target=_post, daemon=True).start()
+        QTimer.singleShot(500, self.cargar_alertas)
+
+    def closeEvent(self, event):
+        """Detener el timer al cerrar la pantalla."""
+        if self.timer:
+            self.timer.stop()
+        super().closeEvent(event)

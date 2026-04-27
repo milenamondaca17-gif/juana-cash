@@ -7,3 +7,8 @@ build/
 
 dist/
 build/
+
+__pycache__/
+*.pyc
+app.py
+mobile/juana_cash.db
