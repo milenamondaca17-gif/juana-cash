@@ -1,22 +1,31 @@
 import sys, os, threading, time
 
 if getattr(sys, 'frozen', False):
-    APP_DIR = os.path.dirname(sys.executable)
+    APP_DIR  = os.path.dirname(sys.executable)
     INTERNAL = sys._MEIPASS
-    # En modo windowed (.exe sin consola), sys.stdout/stderr son None
-    # Uvicorn necesita que existan, así que los redirigimos a devnull
     if sys.stdout is None:
         sys.stdout = open(os.devnull, 'w')
     if sys.stderr is None:
         sys.stderr = open(os.devnull, 'w')
 else:
-    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+    APP_DIR  = os.path.dirname(os.path.abspath(__file__))
     INTERNAL = APP_DIR
 
 sys.path.insert(0, INTERNAL)
 sys.path.insert(0, APP_DIR)
 
-os.environ['DATABASE_URL'] = f"sqlite:///{os.path.join(APP_DIR, 'juana_cash.db')}"
+# ── Base de datos en carpeta del usuario (escribible siempre) ─────────────────
+DATA_DIR = os.path.join(os.path.expanduser("~"), "JuanaCash_Data")
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH  = os.path.join(DATA_DIR, "juana_cash.db")
+
+# Migrar base de datos vieja si existe en APP_DIR
+_db_vieja = os.path.join(APP_DIR, "juana_cash.db")
+if os.path.exists(_db_vieja) and not os.path.exists(DB_PATH):
+    import shutil
+    shutil.copy2(_db_vieja, DB_PATH)
+
+os.environ['DATABASE_URL'] = f"sqlite:///{DB_PATH}"
 
 def run_backend():
     try:
@@ -25,7 +34,7 @@ def run_backend():
         uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_level="error", access_log=False)
     except Exception as e:
         try:
-            with open(os.path.join(APP_DIR, "debug.log"), "a") as f:
+            with open(os.path.join(DATA_DIR, "debug.log"), "a") as f:
                 import traceback
                 f.write(f"ERROR BACKEND: {e}\n")
                 f.write(traceback.format_exc())

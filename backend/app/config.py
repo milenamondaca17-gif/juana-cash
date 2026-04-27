@@ -8,11 +8,20 @@ import secrets
 APP_NAME = "Juana Cash"
 APP_VERSION = "1.0.0"
 
-# Base de datos (SQLite, archivo local)
-# Usar ruta absoluta para evitar problemas con el directorio de trabajo
-_DB_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # raíz del proyecto
-_DB_PATH = os.path.join(_DB_DIR, "juana_cash.db")
-DATABASE_URL = f"sqlite:///{_DB_PATH}"
+# Base de datos — usa variable de entorno si existe (instalador), sino ruta local (desarrollo)
+import sys as _sys
+
+if os.environ.get("DATABASE_URL"):
+    DATABASE_URL = os.environ["DATABASE_URL"]
+elif getattr(_sys, "frozen", False):
+    # Instalado como .exe — guardar en carpeta del usuario
+    _data_dir = os.path.join(os.path.expanduser("~"), "JuanaCash_Data")
+    os.makedirs(_data_dir, exist_ok=True)
+    DATABASE_URL = f"sqlite:///{os.path.join(_data_dir, 'juana_cash.db')}"
+else:
+    # Modo desarrollo — carpeta raíz del proyecto
+    _DB_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    DATABASE_URL = f"sqlite:///{os.path.join(_DB_DIR, 'juana_cash.db')}"
 
 # Seguridad
 # La clave se lee de la variable de entorno JUANA_SECRET_KEY.
