@@ -1,4 +1,4 @@
-﻿import flet as ft
+import flet as ft
 import requests
 import threading
 import json
@@ -6,16 +6,19 @@ import os
 from datetime import datetime
 
 # ─── Configuración de IP ──────────────────────────────────────────────────────
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobile_config.json")
+CONFIG_PATH   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobile_config.json")
+OFFLINE_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ventas_offline.json")
+TAILSCALE_IP  = "100.72.212.67"  # IP fija de Tailscale
 
 def leer_ip():
     try:
         if os.path.exists(CONFIG_PATH):
             with open(CONFIG_PATH) as f:
-                return json.load(f).get("ip", "127.0.0.1")
+                data = json.load(f)
+                return data.get("ip", TAILSCALE_IP)
     except Exception:
         pass
-    return "127.0.0.1"
+    return TAILSCALE_IP
 
 def guardar_ip(ip):
     try:
@@ -25,8 +28,96 @@ def guardar_ip(ip):
     except Exception:
         pass
 
+def _probar_ip(ip, timeout=2):
+    try:
+        r = requests.get(f"http://{ip}:8000/", timeout=timeout)
+        return r.status_code < 500
+    except Exception:
+        return False
+
+# IP activa en memoria — se actualiza automáticamente
+_ip_activa = {"ip": leer_ip()}
+
 def get_api_url():
-    return f"http://{leer_ip()}:8000"
+    return f"http://{_ip_activa['ip']}:8000"
+
+def detectar_mejor_ip():
+    """
+    Orden de prioridad:
+    1. IP guardada — si responde la usamos
+    2. WiFi local — escaneo automático de la red local
+    3. Tailscale — fallback si estás lejos de casa
+    """
+    ip_guardada = leer_ip()
+
+    # 1. Probar IP guardada primero
+    if _probar_ip(ip_guardada, 2):
+        _ip_activa["ip"] = ip_guardada
+        return ip_guardada
+
+    # 2. Intentar WiFi local automáticamente
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(1); s.connect(("8.8.8.8", 80))
+        ip_local = s.getsockname()[0]; s.close()
+        if ip_local and not ip_local.startswith("127."):
+            red = ip_local.rsplit(".", 1)[0]
+            for ultimo in ["1", "100", "101", "2", "10", "50"]:
+                candidato = f"{red}.{ultimo}"
+                if _probar_ip(candidato, 1):
+                    guardar_ip(candidato)
+                    _ip_activa["ip"] = candidato
+                    return candidato
+    except Exception:
+        pass
+
+    # 3. Fallback Tailscale
+    if _probar_ip(TAILSCALE_IP, 3):
+        _ip_activa["ip"] = TAILSCALE_IP
+        return TAILSCALE_IP
+
+    # Sin conexión
+    _ip_activa["ip"] = ip_guardada
+    return ip_guardada
+
+def _autoconectar_en_hilo():
+    """Detecta la mejor IP en background al arrancar."""
+    threading.Thread(target=detectar_mejor_ip, daemon=True).start()
+
+# ── Offline ───────────────────────────────────────────────────────────────────
+def _leer_offline():
+    try:
+        with open(OFFLINE_PATH, "r") as f: return json.load(f)
+    except Exception: return []
+
+def _guardar_offline(ventas):
+    try:
+        with open(OFFLINE_PATH, "w") as f: json.dump(ventas, f)
+    except Exception: pass
+
+def _agregar_venta_offline(venta_data):
+    ventas = _leer_offline()
+    venta_data["_offline_ts"] = datetime.now().isoformat()
+    ventas.append(venta_data)
+    _guardar_offline(ventas)
+
+def _contar_pendientes():
+    return len(_leer_offline())
+
+def _sincronizar_offline():
+    ventas = _leer_offline()
+    if not ventas: return 0
+    ok, resto = 0, []
+    for v in ventas:
+        data = {k: val for k, val in v.items() if not k.startswith("_")}
+        try:
+            r = requests.post(f"{get_api_url()}/ventas/", json=data, timeout=8)
+            if r.status_code == 200: ok += 1
+            else: resto.append(v)
+        except Exception: resto.append(v)
+    _guardar_offline(resto)
+    return ok
 
 def _probar_conexion(ip, timeout=2):
     """Devuelve True si el backend responde en esa IP."""
@@ -36,29 +127,6 @@ def _probar_conexion(ip, timeout=2):
     except Exception:
         return False
 
-def detectar_mejor_ip():
-    """Prueba WiFi local primero, cae a Tailscale si no responde."""
-    ip_guardada = leer_ip()
-    # Si ya está configurada una IP local y responde, usarla
-    if not ip_guardada.startswith("100.") and _probar_conexion(ip_guardada):
-        return ip_guardada
-    # Intentar WiFi local automáticamente
-    try:
-        import socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(1); s.connect(("8.8.8.8", 80))
-        ip_local = s.getsockname()[0]; s.close()
-        if ip_local and not ip_local.startswith("127."):
-            red = ip_local.rsplit(".", 1)[0]
-            for ultimo in ["1", "100", "101", "2", ip_local.split(".")[-1]]:
-                candidato = f"{red}.{ultimo}"
-                if candidato != ip_local and _probar_conexion(candidato, 1):
-                    guardar_ip(candidato)
-                    return candidato
-    except Exception:
-        pass
-    # Fallback: Tailscale
-    return ip_guardada
 
 
 # ─── Llamadas API en hilo separado (evita freezing en Flet) ──────────────────
@@ -210,37 +278,95 @@ def _main(page: ft.Page):
     # ── PANTALLA 1: DASHBOARD ─────────────────────────────────────────────────
     lbl_total    = ft.Text("$ 0.00", size=44, weight="w900", color="#10B981")
     lbl_tickets  = ft.Text("0 tickets hoy", size=14, color="#94A3B8")
-    lista_movs   = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=280)
+    lbl_mes      = ft.Text("", size=13, color="#94A3B8")
+    lbl_metodo   = ft.Text("", size=12, color="#38BDF8")
+    lbl_top_prod = ft.Text("", size=12, color="#F59E0B")
+    lbl_offline_badge = ft.Text("", size=12, color="#F59E0B")
+
+    @en_hilo
+    def sincronizar_manual(e=None):
+        n = _contar_pendientes()
+        if n == 0:
+            lbl_offline_badge.value = "✅ Sin ventas pendientes"
+            lbl_offline_badge.color = "#10B981"
+            page.update()
+            return
+        lbl_offline_badge.value = f"⏳ Sincronizando {n} venta(s)..."
+        lbl_offline_badge.color = "#94A3B8"
+        page.update()
+        ok = _sincronizar_offline()
+        resto = _contar_pendientes()
+        if resto == 0:
+            lbl_offline_badge.value = f"✅ {ok} venta(s) sincronizadas!"
+            lbl_offline_badge.color = "#10B981"
+        else:
+            lbl_offline_badge.value = f"⚠️ {ok} OK, {resto} aún pendientes"
+            lbl_offline_badge.color = "#F59E0B"
+
+    def _actualizar_badge():
+        n = _contar_pendientes()
+        if n > 0:
+            lbl_offline_badge.value = f"📴 {n} venta{'s' if n!=1 else ''} offline — tocá para sincronizar"
+            lbl_offline_badge.color = "#F59E0B"
+        else:
+            lbl_offline_badge.value = ""
+        page.update()
+
+    lista_movs   = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=200)
     lbl_dashboard_err = ft.Text("", color="#EF4444", size=12)
 
     @en_hilo
     def cargar_dashboard(e=None):
-        lbl_ip_status.value = f"📡 {leer_ip()}"
+        _ip_activa["ip"] = detectar_mejor_ip()
+        lbl_ip_status.value = f"📡 {_ip_activa['ip']}"
         data = api_get("/reportes/hoy")
+        data_mes = api_get("/reportes/mes")
         if data:
             lbl_total.value   = f"$ {data.get('total_vendido', 0):,.2f}"
             lbl_total.color   = "#10B981"
             cant = data.get("cantidad_ventas", 0)
             lbl_tickets.value = f"{cant} ticket{'s' if cant != 1 else ''} hoy"
             lbl_dashboard_err.value = ""
+            # Método más usado
+            ventas = data.get("ventas", [])
+            metodos = {}
+            for v in ventas:
+                m = v.get("metodo_pago","efectivo")
+                metodos[m] = metodos.get(m, 0) + 1
+            if metodos:
+                top_m = max(metodos, key=metodos.get)
+                nombres_m = {"efectivo":"💵 Efectivo","tarjeta":"💳 Tarjeta",
+                            "mercadopago_qr":"📱 QR/MP","transferencia":"🏦 Transf.","fiado":"💸 Fiado"}
+                lbl_metodo.value = f"Más usado: {nombres_m.get(top_m, top_m)}"
+            # Producto top del día
+            top_prods = data.get("top_productos", [])
+            if top_prods:
+                lbl_top_prod.value = f"🏆 {top_prods[0].get('nombre','?')}"
+            # Últimos movimientos
             lista_movs.controls.clear()
-            for v in data.get("ventas", [])[:12]:
+            for v in ventas[:10]:
                 metodo = v.get("metodo_pago", "efectivo").upper()
                 total  = float(v.get("total", 0))
+                estado = v.get("estado","")
+                color  = "#EF4444" if estado == "anulada" else "#38BDF8"
                 lista_movs.controls.append(
                     ft.Container(
                         content=ft.Row([
-                            ft.Text("🛍️", size=18),
-                            ft.Text(metodo, weight="bold", expand=True, size=13),
-                            ft.Text(f"${total:,.0f}", weight="bold", color="#38BDF8", size=15),
+                            ft.Text("🛍️", size=16),
+                            ft.Text(metodo, weight="bold", expand=True, size=12),
+                            ft.Text(f"${total:,.0f}", weight="bold", color=color, size=14),
                         ]),
-                        bgcolor="#1E293B", padding=12, border_radius=10
+                        bgcolor="#1E293B", padding=10, border_radius=10
                     )
                 )
         else:
             lbl_total.value   = "Sin conexión"
             lbl_total.color   = "#EF4444"
             lbl_dashboard_err.value = f"No se pudo conectar a {get_api_url()}"
+        # Total del mes
+        if data_mes:
+            total_mes = float(data_mes.get("total_vendido", 0))
+            lbl_mes.value = f"Este mes: $ {total_mes:,.0f}"
         page.update()
 
     view_dashboard = ft.Container(
@@ -248,9 +374,20 @@ def _main(page: ft.Page):
             ft.Container(
                 content=ft.Column([
                     ft.Text("CAJA DEL DÍA", weight="bold", color="#94A3B8", size=12),
-                    lbl_total, lbl_tickets, lbl_dashboard_err
+                    lbl_total, lbl_tickets,
+                    ft.Row([lbl_mes, lbl_metodo], alignment="spaceBetween"),
+                    lbl_top_prod,
+                    lbl_dashboard_err,
                 ], horizontal_alignment="center"),
-                padding=20, border_radius=16, bgcolor="#0F172A"
+                padding=16, border_radius=16, bgcolor="#0F172A"
+            ),
+            ft.GestureDetector(
+                content=ft.Container(
+                    content=lbl_offline_badge,
+                    padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                    border_radius=8, bgcolor="#1E293B",
+                ),
+                on_tap=sincronizar_manual,
             ),
             ft.Text("Últimos movimientos", weight="w600", size=15),
             lista_movs,
@@ -290,11 +427,19 @@ def _main(page: ft.Page):
     lbl_cliente_fiado = ft.Text("", size=12, color="#F59E0B")
     panel_buscar_cliente = ft.Container(visible=False)
 
+    btn_vincular_fiado = ft.ElevatedButton(
+        "👤 Vincular cliente para Fiado", bgcolor="#F59E0B", color="black",
+        expand=True, height=44, visible=False,
+        on_click=lambda e: (setattr(panel_buscar_cliente, 'visible', not panel_buscar_cliente.visible), page.update())
+    )
+
     def on_metodo_change(e):
         if drop_metodo.value == "fiado":
             panel_buscar_cliente.visible = True
+            btn_vincular_fiado.visible = True
         else:
             panel_buscar_cliente.visible = False
+            btn_vincular_fiado.visible = False
             cliente_fiado["id"] = None
             cliente_fiado["nombre"] = ""
             lbl_cliente_fiado.value = ""
@@ -549,11 +694,7 @@ def _main(page: ft.Page):
             ft.Row([in_scan, ft.ElevatedButton("➕", on_click=buscar_prod, bgcolor="#10B981", color="white", height=48)]),
             panel_resultados,
             ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween"),
-            ft.ElevatedButton(
-                "👤 Vincular cliente para Fiado", bgcolor="#F59E0B", color="black",
-                expand=True, height=44,
-                on_click=lambda e: (setattr(panel_buscar_cliente, 'visible', not panel_buscar_cliente.visible), page.update())
-            ),
+            btn_vincular_fiado,
             panel_buscar_cliente,
             lista_compra,
             ft.ElevatedButton(
@@ -618,12 +759,21 @@ def _main(page: ft.Page):
             "origen":     "celular"
         })
         if data:
+            # Sincronizar pendientes offline si los hay
+            pendientes = _contar_pendientes()
+            if pendientes > 0:
+                sync = _sincronizar_offline()
+                if sync > 0:
+                    lbl_aviso.value = f"✅ TICKET #{data.get('numero','?')} + {sync} offline sincronizados!"
+                    lbl_aviso.color = "#10B981"
+                    page.update()
             num = data.get("numero", "?")
             carrito.clear(); lista_compra.controls.clear()
             in_pago.value = ""; in_cliente.value = ""
             cliente_fiado["id"] = None; cliente_fiado["nombre"] = ""
             lbl_cliente_fiado.value = ""
             panel_buscar_cliente.visible = False
+            btn_vincular_fiado.visible = False
             drop_metodo.value = "efectivo"
             view_ticket.visible  = False
             view_cobrar.visible  = True
@@ -633,8 +783,27 @@ def _main(page: ft.Page):
             recalc()
             cargar_dashboard()
         else:
-            lbl_cobrar_status.value = f"❌ Error — verificá la conexión a {get_api_url()}"
-            lbl_cobrar_status.color = "#EF4444"
+            # Sin conexión → guardar offline
+            _agregar_venta_offline({
+                "usuario_id": 1,
+                "cliente_id": cliente_fiado["id"] if drop_metodo.value == "fiado" else None,
+                "items": items_api,
+                "pagos": [{"metodo": metodo, "monto": tot}],
+                "descuento": 0,
+                "origen": "celular_offline"
+            })
+            n = _contar_pendientes()
+            carrito.clear(); lista_compra.controls.clear()
+            in_pago.value = ""; in_cliente.value = ""
+            cliente_fiado["id"] = None; cliente_fiado["nombre"] = ""
+            lbl_cliente_fiado.value = ""
+            panel_buscar_cliente.visible = False
+            btn_vincular_fiado.visible = False
+            drop_metodo.value = "efectivo"
+            lbl_cobrar_status.value = ""
+            recalc()
+            lbl_aviso.value = f"📴 Sin conexión — guardado offline ({n} pendiente{'s' if n!=1 else ''})"
+            lbl_aviso.color = "#F59E0B"
         page.update()
 
     view_ticket = ft.Container(
@@ -852,7 +1021,8 @@ def _main(page: ft.Page):
                                         color="#EF4444" if estado=="anulada" else "#94A3B8"),
                             ], spacing=0, horizontal_alignment="end"),
                         ]),
-                        bgcolor="#1E293B", padding=12, border_radius=12
+                        bgcolor="#1E293B", padding=12, border_radius=12,
+                        on_click=lambda e, vid=v.get('id'): ver_detalle_venta(vid)
                     )
                 )
             if not ventas:
@@ -863,6 +1033,119 @@ def _main(page: ft.Page):
             lbl_ventas_total.value = "$ 0.00"
             lbl_ventas_err.value   = f"Sin conexión — {get_api_url()}"
         page.update()
+
+    def ver_detalle_venta(venta_id):
+        if not venta_id: return
+        def _fetch():
+            data = api_get(f"/ventas/{venta_id}")
+            if not data:
+                return
+            items = data.get("items", [])
+            dlg = ft.AlertDialog(
+                modal=True,
+                title=ft.Text(f"Ticket #{data.get('numero','?')}", weight="bold"),
+                content=ft.Column([
+                    ft.Container(
+                        content=ft.Column([
+                            ft.Row([
+                                ft.Text(i.get("nombre","?"), expand=True, size=12),
+                                ft.Text(f"x{i.get('cantidad',1)}", size=12, color="#94A3B8"),
+                                ft.Text(f"${float(i.get('subtotal',0)):,.0f}", size=13,
+                                        weight="bold", color="#38BDF8"),
+                            ]) for i in items
+                        ] + [
+                            ft.Divider(color="#334155"),
+                            ft.Row([
+                                ft.Text("TOTAL", weight="bold", expand=True),
+                                ft.Text(f"${float(data.get('total',0)):,.0f}",
+                                        weight="bold", size=16, color="#10B981"),
+                            ])
+                        ], spacing=6, scroll=ft.ScrollMode.ALWAYS),
+                        height=300
+                    )
+                ], tight=True),
+                actions=[ft.TextButton("Cerrar", on_click=lambda e: cerrar_dlg(dlg))],
+                bgcolor="#1E293B",
+            )
+            abrir_dlg(dlg)
+        import threading
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    # ── PANTALLA: FIADOS ──────────────────────────────────────────────────────
+    lista_fiados_ui   = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=420)
+    lbl_fiados_status = ft.Text("", size=12, color="#94A3B8")
+
+    @en_hilo
+    def cargar_fiados(e=None):
+        lbl_fiados_status.value = "⏳ Cargando..."
+        lista_fiados_ui.controls.clear()
+        page.update()
+        data = api_get("/clientes/")
+        lbl_fiados_status.value = ""
+        if data:
+            con_deuda = [c for c in data if float(c.get("deuda_actual") or 0) > 0]
+            con_deuda.sort(key=lambda c: float(c.get("deuda_actual") or 0), reverse=True)
+            if not con_deuda:
+                lista_fiados_ui.controls.append(
+                    ft.Text("✅ Sin deudas pendientes", color="#10B981", size=14, text_align="center")
+                )
+            for c in con_deuda:
+                deuda = float(c.get("deuda_actual") or 0)
+                in_pago_fiado = ft.TextField(
+                    label="Pago parcial $", keyboard_type=ft.KeyboardType.NUMBER,
+                    filled=True, border_color="transparent", border_radius=8,
+                    content_padding=8, bgcolor="#0F172A", width=130
+                )
+                def _registrar_pago(ev, cli=c, inp=in_pago_fiado):
+                    try: monto = float(inp.value)
+                    except: return
+                    def _put():
+                        r = api_post(f"/fiados/pago", json_data={
+                            "cliente_id": cli["id"], "monto": monto
+                        })
+                        if r:
+                            lbl_fiados_status.value = f"✅ Pago de ${monto:,.0f} registrado para {cli['nombre']}"
+                            lbl_fiados_status.color = "#10B981"
+                            cargar_fiados()
+                        else:
+                            lbl_fiados_status.value = "❌ Error al registrar pago"
+                            lbl_fiados_status.color = "#EF4444"
+                        page.update()
+                    import threading
+                    threading.Thread(target=_put, daemon=True).start()
+
+                lista_fiados_ui.controls.append(
+                    ft.Container(
+                        content=ft.Column([
+                            ft.Row([
+                                ft.Text(c.get("nombre","?"), weight="bold", expand=True, size=14, color="white"),
+                                ft.Text(f"${deuda:,.0f}", size=16, weight="w900", color="#EF4444"),
+                            ]),
+                            ft.Row([
+                                in_pago_fiado,
+                                ft.ElevatedButton("💳 Pagar", bgcolor="#10B981", color="white",
+                                    height=40, on_click=_registrar_pago),
+                            ], spacing=8),
+                        ], spacing=6),
+                        bgcolor="#1E293B", padding=14, border_radius=12
+                    )
+                )
+        else:
+            lbl_fiados_status.value = f"Sin conexión — {get_api_url()}"
+            lbl_fiados_status.color = "#EF4444"
+        page.update()
+
+    view_fiados = ft.Container(
+        content=ft.Column([
+            ft.Text("💸 DEUDAS DE FIADOS", size=20, weight="w900"),
+            ft.Text("Clientes con saldo pendiente", color="#94A3B8", size=12),
+            ft.ElevatedButton("🔄 Actualizar", on_click=cargar_fiados,
+                expand=True, height=40, bgcolor="#1E293B", color="white"),
+            lbl_fiados_status,
+            lista_fiados_ui,
+        ], spacing=10),
+        padding=16, visible=False, expand=True
+    )
 
     def _v_hoy(e):
         h = datetime.now().strftime("%Y-%m-%d")
@@ -906,6 +1189,22 @@ def _main(page: ft.Page):
     lbl_config_status = ft.Text("", size=13)
 
     @en_hilo
+    def detectar_auto(e=None):
+        lbl_config_status.value = "⏳ Buscando servidor en la red..."
+        lbl_config_status.color = "#94A3B8"
+        page.update()
+        ip = detectar_mejor_ip()
+        if _probar_ip(ip):
+            in_ip.value = ip
+            guardar_ip(ip)
+            lbl_config_status.value = f"✅ Encontrado en {ip}"
+            lbl_config_status.color = "#10B981"
+        else:
+            lbl_config_status.value = "❌ No encontrado. Ingresá la IP manualmente."
+            lbl_config_status.color = "#EF4444"
+        page.update()
+
+    @en_hilo
     def guardar_config(e=None):
         ip = in_ip.value.strip().replace("http://", "").replace(":8000", "")
         guardar_ip(ip)
@@ -923,22 +1222,6 @@ def _main(page: ft.Page):
         page.update()
 
     lbl_deteccion = ft.Text("", size=12, color="#94A3B8")
-
-    @en_hilo
-    def detectar_auto(e=None):
-        lbl_deteccion.value = "⏳ Buscando servidor en la red..."
-        lbl_deteccion.color = "#94A3B8"
-        page.update()
-        ip = detectar_mejor_ip()
-        if _probar_conexion(ip):
-            in_ip.value = ip
-            guardar_ip(ip)
-            lbl_deteccion.value = f"✅ Encontrado en {ip}"
-            lbl_deteccion.color = "#10B981"
-        else:
-            lbl_deteccion.value = f"❌ No se encontró servidor. Ingresá la IP manualmente."
-            lbl_deteccion.color = "#EF4444"
-        page.update()
 
     view_config = ft.Container(
         content=ft.Column([
@@ -962,7 +1245,7 @@ def _main(page: ft.Page):
                 bgcolor="#0F172A", color="#38BDF8",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             ),
-            lbl_deteccion,
+            lbl_config_status,
             in_ip,
             ft.ElevatedButton(
                 "💾 GUARDAR Y PROBAR", on_click=guardar_config,
@@ -975,12 +1258,125 @@ def _main(page: ft.Page):
         padding=16, visible=False, expand=True
     )
 
+    # ── PANTALLA 6: MODIFICAR PRECIOS ────────────────────────────────────────
+    in_buscar_precio  = ft.TextField(
+        label="Buscar producto...", filled=True, border_color="transparent",
+        border_radius=12, content_padding=14, bgcolor="#1E293B", expand=True
+    )
+    lista_precios_ui  = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=420)
+    lbl_precio_status = ft.Text("", size=12, color="#94A3B8")
+    PIN_PRECIOS = "1722"
+
+    def _buscar_para_precio(e=None):
+        q = in_buscar_precio.value.strip()
+        lista_precios_ui.controls.clear()
+        if not q:
+            page.update()
+            return
+
+        def _buscar():
+            if productos_cache:
+                q_lower = q.lower()
+                matches = [p for p in productos_cache if q_lower in p["nombre"].lower()][:20]
+            else:
+                matches = api_get("/productos/buscar", params={"q": q}) or []
+
+            lista_precios_ui.controls.clear()
+            for p in matches:
+                precio_actual = float(p.get("precio_venta") or 0)
+                in_nuevo = ft.TextField(
+                    value=f"{precio_actual:.0f}",
+                    width=110, text_align="right",
+                    bgcolor="#0F172A", border_color="transparent",
+                    filled=True, border_radius=8, content_padding=8,
+                    keyboard_type=ft.KeyboardType.NUMBER
+                )
+                in_pin = ft.TextField(
+                    label="PIN", password=True, max_length=6,
+                    width=80, bgcolor="#0F172A", border_color="transparent",
+                    filled=True, border_radius=8, content_padding=8,
+                )
+
+                def _guardar(ev, prod=p, inp=in_nuevo, pinf=in_pin):
+                    if pinf.value.strip() != PIN_PRECIOS:
+                        lbl_precio_status.value = "❌ PIN incorrecto"
+                        lbl_precio_status.color = "#EF4444"
+                        page.update()
+                        return
+                    try:
+                        nuevo = float(inp.value)
+                    except Exception:
+                        lbl_precio_status.value = "❌ Precio inválido"
+                        lbl_precio_status.color = "#EF4444"
+                        page.update()
+                        return
+
+                    def _put():
+                        datos = {k: v for k, v in prod.items()}
+                        datos["precio_venta"] = nuevo
+                        datos["usuario_modificacion"] = "mobile"
+                        r = api_post(f"/productos/{prod['id']}", json_data=datos)
+                        if r:
+                            lbl_precio_status.value = f"✅ {prod['nombre']} → ${nuevo:,.0f}"
+                            lbl_precio_status.color = "#10B981"
+                            cargar_cache_productos()
+                        else:
+                            lbl_precio_status.value = "❌ Error al guardar"
+                            lbl_precio_status.color = "#EF4444"
+                        page.update()
+
+                    import threading
+                    threading.Thread(target=_put, daemon=True).start()
+
+                lista_precios_ui.controls.append(
+                    ft.Container(
+                        content=ft.Column([
+                            ft.Text(p["nombre"], size=12, weight="bold", color="white"),
+                            ft.Row([
+                                ft.Text(f"Actual: ${precio_actual:,.0f}", size=11, color="#94A3B8", expand=True),
+                                in_pin,
+                                in_nuevo,
+                                ft.ElevatedButton("✓", bgcolor="#10B981", color="white",
+                                    width=44, height=40, on_click=_guardar),
+                            ], spacing=4),
+                        ], spacing=4),
+                        bgcolor="#1E293B", padding=12, border_radius=12
+                    )
+                )
+            if not matches:
+                lista_precios_ui.controls.append(
+                    ft.Text("Sin resultados", color="#94A3B8", size=13, text_align="center")
+                )
+            page.update()
+
+        import threading
+        threading.Thread(target=_buscar, daemon=True).start()
+
+    in_buscar_precio.on_submit = _buscar_para_precio
+
+    view_precios_mobile = ft.Container(
+        content=ft.Column([
+            ft.Text("💰 MODIFICAR PRECIOS", size=20, weight="w900"),
+            ft.Text("PIN requerido para cambiar precios — la PC recibirá la alerta", color="#94A3B8", size=11),
+            ft.Row([
+                in_buscar_precio,
+                ft.ElevatedButton("🔍", on_click=_buscar_para_precio,
+                    bgcolor="#3B82F6", color="white", height=48, width=50)
+            ], spacing=8),
+            lbl_precio_status,
+            lista_precios_ui,
+        ], spacing=10),
+        padding=16, visible=False, expand=True
+    )
+
     # ── NAVEGACIÓN ────────────────────────────────────────────────────────────
     vistas = {
         "D": view_dashboard,
         "C": view_cobrar,
         "O": view_ofertas,
         "V": view_ventas,
+        "P": view_precios_mobile,
+        "F": view_fiados,
         "S": view_config,
     }
 
@@ -993,6 +1389,7 @@ def _main(page: ft.Page):
         if key == "D": cargar_dashboard()
         if key == "O": cargar_lista_ofertas()
         if key == "V": cargar_ventas()
+        if key == "F": cargar_fiados()
         page.update()
 
     nav_bar = ft.Container(
@@ -1005,6 +1402,10 @@ def _main(page: ft.Page):
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
             ft.ElevatedButton("📋", data="V", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
+            ft.ElevatedButton("💰", data="P", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
+            ft.ElevatedButton("💸", data="F", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
             ft.ElevatedButton("⚙️", data="S", on_click=nav, expand=True, height=56, bgcolor="#1E293B", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))),
         ], spacing=1),
@@ -1012,7 +1413,7 @@ def _main(page: ft.Page):
     )
 
     all_views = ft.Column(
-        [view_dashboard, view_cobrar, view_ticket, view_ofertas, view_ventas, view_config],
+        [view_dashboard, view_cobrar, view_ticket, view_ofertas, view_ventas, view_precios_mobile, view_fiados, view_config],
         expand=True
     )
 
@@ -1020,6 +1421,8 @@ def _main(page: ft.Page):
     page.update()
     cargar_dashboard()
     cargar_cache_productos()
+    _actualizar_badge()
+    _autoconectar_en_hilo()
 
 
 ft.app(target=main)
