@@ -533,6 +533,8 @@ class MainWindow(QMainWindow):
                 def _update():
                     self.setWindowTitle(self.windowTitle().split(" 📲")[0] + f" 📲 Celular: ${total:,.0f} ({metodo})")
                     QTimer.singleShot(8000, lambda: self.setWindowTitle(self.windowTitle().split(" 📲")[0]))
+                    if hasattr(self.caja_screen, 'actualizar_ventas'):
+                        self.caja_screen.actualizar_ventas()
                 QTimer.singleShot(0, _update)
             except Exception:
                 pass

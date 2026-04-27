@@ -100,6 +100,13 @@ class CobrarDialog(QDialog):
         self.cupon_pct = 0           # porcentaje del cupón
         self.setup_ui()
 
+    def keyPressEvent(self, event):
+        from PyQt6.QtCore import Qt
+        if event.key() == Qt.Key.Key_F4:
+            self.accept()
+        else:
+            super().keyPressEvent(event)
+
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
@@ -303,7 +310,7 @@ class CobrarDialog(QDialog):
             self.vuelto_frame.setVisible(self.metodo_pago == "efectivo")
             nombres = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
             nom_prin = nombres.get(self.metodo_pago, self.metodo_pago)
-            self.btn_cobrar.setText(f"COBRAR - {nom_prin}")
+            self.btn_cobrar.setText(f"F4 - COBRAR {nom_prin}")
             self.calcular_vuelto()
             return
             
@@ -324,10 +331,10 @@ class CobrarDialog(QDialog):
         
         if self.metodo_secundario:
             self.lbl_resumen_mixto.setText(f"Pago: ${monto_prin:.2f} ({nom_prin}) + ${self.monto_secundario:.2f} ({nom_sec})")
-            self.btn_cobrar.setText(f"COBRAR MIXTO")
+            self.btn_cobrar.setText("F4 - COBRAR MIXTO")
         else:
             self.lbl_resumen_mixto.setText("⚠️ Elegí el segundo método de pago")
-            self.btn_cobrar.setText("COBRAR MIXTO")
+            self.btn_cobrar.setText("F4 - COBRAR MIXTO")
             
         # Mostrar el vuelto solo si ALGUNO de los dos métodos es efectivo
         self.vuelto_frame.setVisible((self.metodo_pago == "efectivo") or (self.metodo_secundario == "efectivo"))
