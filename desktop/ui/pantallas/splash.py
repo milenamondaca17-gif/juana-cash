@@ -212,8 +212,10 @@ class SplashScreen(QWidget):
 
     def _set_update_msg(self, msg):
         self._update_msg = msg
-        self.lbl_estado.setText(msg)
-        self.lbl_estado.setStyleSheet("color: #F59E0B; background: transparent;")
+        QTimer.singleShot(0, lambda: (
+            self.lbl_estado.setText(msg),
+            self.lbl_estado.setStyleSheet("color: #F59E0B; background: transparent;")
+        ))
 
     def _avanzar(self):
         if self.paso_actual >= len(self.pasos):
