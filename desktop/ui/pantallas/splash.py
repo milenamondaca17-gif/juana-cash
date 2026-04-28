@@ -201,14 +201,24 @@ class SplashScreen(QWidget):
             u = Updater()
 
             def _preguntar(version):
-                from PyQt6.QtWidgets import QMessageBox
-                msg = QMessageBox()
-                msg.setWindowTitle("🔄 Actualización disponible")
-                msg.setText(f"Hay una nueva versión: <b>v{version}</b>\n\n¿Querés actualizar ahora?")
-                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-                msg.setStyleSheet("background-color: #161925; color: white;")
-                return msg.exec() == QMessageBox.StandardButton.Yes
+                import threading
+                result = [False]
+                done = threading.Event()
+
+                def _mostrar():
+                    from PyQt6.QtWidgets import QMessageBox
+                    msg = QMessageBox()
+                    msg.setWindowTitle("🔄 Actualización disponible")
+                    msg.setText(f"Hay una nueva versión: <b>v{version}</b>\n\n¿Querés actualizar ahora?")
+                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+                    msg.setStyleSheet("background-color: #161925; color: white;")
+                    result[0] = (msg.exec() == QMessageBox.StandardButton.Yes)
+                    done.set()
+
+                QTimer.singleShot(0, _mostrar)
+                done.wait()
+                return result[0]
 
             u.verificar(
                 on_preguntar=_preguntar,
