@@ -1,5 +1,5 @@
 {
-  "version": "3.0.3",
+  "version": "3.0.4",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
   "notas": "v3.0 - cupones, balanza Coura, cierre caja mejorado, exportar Excel, offline mobile, alertas precios, performance fix"
 }
