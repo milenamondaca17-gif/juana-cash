@@ -4,7 +4,7 @@ import os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QFrame, QScrollArea, QGridLayout,
                              QSizePolicy, QTableWidget, QTableWidgetItem, QHeaderView)
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen
 from datetime import datetime
 
@@ -93,17 +93,41 @@ class KPICard(QFrame):
 
 
 class DashboardScreen(QWidget):
+    datos_recibidos = pyqtSignal(dict)  # Señal para actualizar UI desde thread
+
     def __init__(self):
         super().__init__()
         self.datos = None
+        self._cargando = False  # Evita threads acumulados
         self.setup_ui()
+        self.datos_recibidos.connect(self._aplicar_datos)  # Siempre en hilo principal
         self.timer = QTimer()
         self.timer.timeout.connect(self._cargar_datos_hilo)
-        self.timer.start(30000)
+        self.timer.start(30000)  # Refresca cada 30 segundos
 
     def _cargar_datos_hilo(self):
+        if self._cargando:
+            return
+        self._cargando = True
         import threading
-        threading.Thread(target=self.cargar_datos, daemon=True).start()
+        threading.Thread(target=self._fetch_datos, daemon=True).start()
+
+    def _fetch_datos(self):
+        """HTTP en thread separado — nunca toca widgets."""
+        try:
+            r = requests.get(f"{API_URL}/reportes/dashboard", timeout=5)
+            if r.status_code == 200:
+                self.datos_recibidos.emit(r.json())
+        except Exception as e:
+            print(f"[Dashboard] Error: {e}")
+        finally:
+            self._cargando = False
+
+    def _aplicar_datos(self, datos):
+        """Se ejecuta en el hilo principal por la señal."""
+        self.datos = datos
+        self.lbl_hora.setText(f"Actualizado: {datetime.now().strftime('%H:%M:%S')}")
+        self.actualizar_ui()
 
     def setup_ui(self):
         self.setStyleSheet("background-color: #1a1a2e; color: white;")
@@ -274,17 +298,8 @@ class DashboardScreen(QWidget):
         self.contenido_layout.addStretch()
 
     def cargar_datos(self):
-        self.lbl_hora.setText(f"Actualizado: {datetime.now().strftime('%H:%M:%S')}")
-        try:
-            r = requests.get(f"{API_URL}/reportes/dashboard", timeout=5)
-            if r.status_code == 200:
-                self.datos = r.json()
-                self.actualizar_ui()
-            else:
-                self.lbl_hora.setText(f"⚠️ Error del servidor: {r.status_code}")
-        except Exception as e:
-            self.lbl_hora.setText(f"⚠️ Bug: {str(e)[:40]}") 
-            print(f"ERROR: {e}")
+        """Punto de entrada — siempre lanza un thread, nunca bloquea la UI."""
+        self._cargar_datos_hilo()
 
     def actualizar_ui(self):
         if not self.datos or not isinstance(self.datos, dict):
@@ -434,7 +449,7 @@ class DashboardScreen(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.cargar_datos()
+        self._cargar_datos_hilo()
     def cargar_ventas_periodo(self, periodo):
         try:
             # Esta es la ruta que creamos en el servidor

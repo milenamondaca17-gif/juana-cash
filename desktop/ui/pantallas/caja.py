@@ -1,11 +1,65 @@
 import requests
+import threading
+import smtplib
+import json
+import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
-                              QDialog, QComboBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+                              QDialog, QComboBox, QScrollArea, QSizePolicy,
+                              QSpinBox, QCheckBox)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QFont, QColor
 from datetime import datetime
+
+# ─── Config de email ─────────────────────────────────────────────────────────
+EMAIL_CONFIG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "email_config.json")
+
+def leer_email_config():
+    try:
+        if os.path.exists(EMAIL_CONFIG_PATH):
+            with open(EMAIL_CONFIG_PATH) as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {
+        "smtp_user": "",
+        "smtp_pass": "",
+        "destinatarios": ["milenamondaca17@gmail.com"],
+        "habilitado": False
+    }
+
+def guardar_email_config(cfg):
+    try:
+        os.makedirs(os.path.dirname(EMAIL_CONFIG_PATH), exist_ok=True)
+        with open(EMAIL_CONFIG_PATH, "w") as f:
+            json.dump(cfg, f, indent=2)
+    except Exception:
+        pass
+
+def enviar_email_cierre(asunto, cuerpo):
+    """Envía el resumen de cierre por email. Corre en thread."""
+    def _send():
+        cfg = leer_email_config()
+        if not cfg.get("habilitado") or not cfg.get("smtp_user") or not cfg.get("smtp_pass"):
+            return
+        try:
+            destinatarios = cfg.get("destinatarios", ["milenamondaca17@gmail.com"])
+            for dest in destinatarios:
+                msg = MIMEMultipart()
+                msg["From"]    = cfg["smtp_user"]
+                msg["To"]      = dest
+                msg["Subject"] = asunto
+                msg.attach(MIMEText(cuerpo, "plain", "utf-8"))
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as s:
+                    s.login(cfg["smtp_user"], cfg["smtp_pass"])
+                    s.send_message(msg)
+            print(f"[EMAIL OK] Cierre enviado a {destinatarios}")
+        except Exception as e:
+            print(f"[EMAIL ERROR] {e}")
+    threading.Thread(target=_send, daemon=True).start()
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -150,6 +204,25 @@ class CajaScreen(QWidget):
         btn_gasto.setStyleSheet("QPushButton { background: #9b59b6; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; }")
         btn_gasto.clicked.connect(self.registrar_gasto)
         btns.addWidget(btn_gasto)
+
+        btn_empleados = QPushButton("👥 Pago empleados")
+        btn_empleados.setFixedHeight(40)
+        btn_empleados.setStyleSheet("QPushButton { background: #e67e22; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; } QPushButton:hover { background: #d35400; }")
+        btn_empleados.clicked.connect(self.ver_historial_empleados)
+        btns.addWidget(btn_empleados)
+
+        btn_histef = QPushButton("💵 Historial efectivo")
+        btn_histef.setFixedHeight(40)
+        btn_histef.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; } QPushButton:hover { background: #1e8449; }")
+        btn_histef.clicked.connect(self.ver_historial_efectivo)
+        btns.addWidget(btn_histef)
+
+        btn_email_cfg = QPushButton("📧 Email")
+        btn_email_cfg.setFixedHeight(40)
+        btn_email_cfg.setStyleSheet("QPushButton { background: #2980b9; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; } QPushButton:hover { background: #1a6fa3; }")
+        btn_email_cfg.clicked.connect(self.ver_config_email)
+        btns.addWidget(btn_email_cfg)
+
         btns.addStretch()
         layout.addLayout(btns)
         lbl_resumen = QLabel("Ventas del turno")
@@ -203,9 +276,325 @@ class CajaScreen(QWidget):
         self.tabla_historial.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla_historial)
 
+
+
+    def ver_historial_efectivo(self):
+        """Dialog con historial de efectivo día a día."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("💵 Historial de efectivo por día")
+        dialog.setMinimumWidth(820)
+        dialog.setMinimumHeight(500)
+        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dialog)
+        lay.setContentsMargins(20, 16, 20, 16)
+        lay.setSpacing(10)
+
+        titulo = QLabel("💵 Historial de efectivo por día — últimos 30 días")
+        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet("color: white;")
+        lay.addWidget(titulo)
+
+        tabla = QTableWidget()
+        tabla.setColumnCount(7)
+        tabla.setHorizontalHeaderLabels(["Fecha", "💵 Efectivo", "💳 Tarjeta", "📱 QR/MP", "🏦 Transf.", "💸 Fiado", "💰 Total"])
+        tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        for col in range(1, 7):
+            tabla.setColumnWidth(col, 105)
+        tabla.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
+        tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        lay.addWidget(tabla)
+
+        lbl_estado = QLabel("⏳ Cargando...")
+        lbl_estado.setStyleSheet("color: #94A3B8; font-size: 12px;")
+        lay.addWidget(lbl_estado)
+
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.setFixedHeight(38)
+        btn_cerrar.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 8px; padding: 0 20px; }")
+        btn_cerrar.clicked.connect(dialog.accept)
+        lay.addWidget(btn_cerrar)
+
+        def cargar():
+            try:
+                r = requests.get(f"{API_URL}/caja/historial-efectivo?dias=30", timeout=5)
+                datos = r.json() if r.status_code == 200 else []
+            except Exception:
+                datos = []
+            tabla.setRowCount(0)
+            colores = ["white", "#27ae60", "#3498db", "#009ee3", "#9b59b6", "#e74c3c", "#f39c12"]
+            for d in datos:
+                row = tabla.rowCount()
+                tabla.insertRow(row)
+                vals = [
+                    d.get("fecha", ""),
+                    f"${float(d.get('efectivo', 0)):,.0f}",
+                    f"${float(d.get('tarjeta', 0)):,.0f}",
+                    f"${float(d.get('mercadopago_qr', 0)):,.0f}",
+                    f"${float(d.get('transferencia', 0)):,.0f}",
+                    f"${float(d.get('fiado', 0)):,.0f}",
+                    f"${float(d.get('total', 0)):,.0f}",
+                ]
+                for col, (val, color) in enumerate(zip(vals, colores)):
+                    item = QTableWidgetItem(str(val))
+                    item.setForeground(__import__('PyQt6.QtGui', fromlist=['QColor']).QColor(color))
+                    tabla.setItem(row, col, item)
+            lbl_estado.setText(f"✅ {len(datos)} día(s) con ventas" if datos else "Sin datos aún")
+
+        threading.Thread(target=cargar, daemon=True).start()
+        dialog.exec()
+
+    def ver_historial_empleados(self):
+        """Dialog para ver y registrar pagos de empleados del día."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("👥 Pago de empleados")
+        dialog.setMinimumWidth(480)
+        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dialog)
+        lay.setContentsMargins(20, 16, 20, 20)
+        lay.setSpacing(10)
+
+        titulo = QLabel("👥 Registrar pagos de empleados")
+        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet("color: white;")
+        lay.addWidget(titulo)
+
+        sub = QLabel("Los pagos se descontarán del efectivo al cerrar caja.")
+        sub.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        lay.addWidget(sub)
+
+        filas_emp = []
+        for i in range(5):
+            row_e = QHBoxLayout()
+            lbl_n = QLabel(f"Empleado {i+1}:")
+            lbl_n.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+            lbl_n.setFixedWidth(90)
+            in_nombre = QLineEdit()
+            in_nombre.setPlaceholderText("Nombre")
+            in_nombre.setFixedHeight(38)
+            in_nombre.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e67e22; border-radius: 6px; padding: 8px; color: white; font-size: 13px; }")
+            in_monto = QLineEdit()
+            in_monto.setPlaceholderText("$0")
+            in_monto.setFixedWidth(100)
+            in_monto.setFixedHeight(38)
+            in_monto.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e67e22; border-radius: 6px; padding: 8px; color: white; font-size: 13px; }")
+            row_e.addWidget(lbl_n)
+            row_e.addWidget(in_nombre)
+            row_e.addWidget(in_monto)
+            lay.addLayout(row_e)
+            filas_emp.append((in_nombre, in_monto))
+
+        lbl_total_emp = QLabel("Total a pagar: $0")
+        lbl_total_emp.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        lbl_total_emp.setStyleSheet("color: #e67e22;")
+        lay.addWidget(lbl_total_emp)
+
+        # Guardar referencia para que cerrar_caja pueda leerla
+        self._filas_empleados_dialog = filas_emp
+        self._lbl_total_emp_dialog = lbl_total_emp
+
+        def actualizar_total():
+            total = 0
+            for in_n, in_m in filas_emp:
+                try:
+                    if in_n.text().strip():
+                        total += float(in_m.text() or 0)
+                except ValueError:
+                    pass
+            lbl_total_emp.setText(f"Total a pagar: ${total:,.0f}")
+
+        for in_n, in_m in filas_emp:
+            in_m.textChanged.connect(lambda _: actualizar_total())
+            in_n.textChanged.connect(lambda _: actualizar_total())
+
+        btns = QHBoxLayout()
+        btn_c = QPushButton("Cancelar")
+        btn_c.setFixedHeight(40)
+        btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_c.clicked.connect(dialog.reject)
+        btns.addWidget(btn_c)
+        btn_ok = QPushButton("✅ Guardar pagos")
+        btn_ok.setFixedHeight(40)
+        btn_ok.setStyleSheet("QPushButton { background: #e67e22; color: white; border-radius: 8px; font-weight: bold; }")
+        btn_ok.clicked.connect(dialog.accept)
+        btns.addWidget(btn_ok)
+        lay.addLayout(btns)
+
+        if dialog.exec():
+            # Guardar los pagos en la instancia para usarlos en cerrar_caja
+            self._pagos_empleados_guardados = []
+            for in_n, in_m in filas_emp:
+                nombre = in_n.text().strip()
+                if not nombre:
+                    continue
+                try:
+                    monto = float(in_m.text() or 0)
+                    if monto > 0:
+                        self._pagos_empleados_guardados.append({"nombre": nombre, "monto": monto})
+                except ValueError:
+                    pass
+            total = sum(p["monto"] for p in self._pagos_empleados_guardados)
+            if self._pagos_empleados_guardados:
+                QMessageBox.information(self, "✅", f"Pagos guardados: ${total:,.0f}\nSe descontarán al cerrar caja.")
+
+    def ver_config_email(self):
+        """Dialog de configuración de email."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("📧 Configuración de email")
+        dialog.setMinimumWidth(480)
+        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dialog)
+        lay.setContentsMargins(20, 16, 20, 20)
+        lay.setSpacing(10)
+
+        titulo = QLabel("📧 Envío automático al cerrar caja")
+        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet("color: white;")
+        lay.addWidget(titulo)
+
+        cfg_mail = leer_email_config()
+
+        chk_email = QCheckBox("Enviar resumen al cerrar caja")
+        chk_email.setChecked(cfg_mail.get("habilitado", False))
+        chk_email.setStyleSheet("color: white; font-size: 13px;")
+        lay.addWidget(chk_email)
+
+        def fila_input(label, valor, placeholder, echo=False):
+            row = QHBoxLayout()
+            lbl = QLabel(label)
+            lbl.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+            lbl.setFixedWidth(140)
+            inp = QLineEdit(valor)
+            inp.setPlaceholderText(placeholder)
+            inp.setFixedHeight(38)
+            if echo:
+                inp.setEchoMode(QLineEdit.EchoMode.Password)
+            inp.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #3498db; border-radius: 6px; padding: 8px; color: white; }")
+            row.addWidget(lbl)
+            row.addWidget(inp)
+            lay.addLayout(row)
+            return inp
+
+        in_user = fila_input("Gmail remitente:", cfg_mail.get("smtp_user", ""), "tucuenta@gmail.com")
+        in_pass = fila_input("Contraseña de app:", cfg_mail.get("smtp_pass", ""), "Contraseña de aplicación", echo=True)
+        in_dest = fila_input("Destinatarios:", ", ".join(cfg_mail.get("destinatarios", ["milenamondaca17@gmail.com"])), "email1@gmail.com, email2@gmail.com")
+
+        sub = QLabel("💡 La contraseña de app se genera en:\nmyaccount.google.com → Seguridad → Contraseñas de aplicación")
+        sub.setStyleSheet("color: #606880; font-size: 11px;")
+        lay.addWidget(sub)
+
+        lbl_status = QLabel("")
+        lbl_status.setStyleSheet("color: #27ae60; font-size: 12px;")
+        lay.addWidget(lbl_status)
+
+        btns = QHBoxLayout()
+        btn_test = QPushButton("✉️ Probar envío")
+        btn_test.setFixedHeight(38)
+        btn_test.setStyleSheet("QPushButton { background: #0f3460; color: #3498db; border: 1px solid #3498db; border-radius: 8px; font-weight: bold; }")
+        btns.addWidget(btn_test)
+        btn_ok = QPushButton("💾 Guardar")
+        btn_ok.setFixedHeight(38)
+        btn_ok.setStyleSheet("QPushButton { background: #3498db; color: white; border-radius: 8px; font-weight: bold; }")
+        btns.addWidget(btn_ok)
+        lay.addLayout(btns)
+
+        def guardar():
+            cfg = {
+                "smtp_user": in_user.text().strip(),
+                "smtp_pass": in_pass.text().strip(),
+                "destinatarios": [d.strip() for d in in_dest.text().split(",") if d.strip()],
+                "habilitado": chk_email.isChecked()
+            }
+            guardar_email_config(cfg)
+            lbl_status.setText("✅ Guardado correctamente")
+            QTimer.singleShot(2000, lambda: lbl_status.setText(""))
+
+        def probar():
+            guardar()
+            cfg = leer_email_config()
+            if not cfg.get("smtp_user") or not cfg.get("smtp_pass"):
+                lbl_status.setStyleSheet("color: #e74c3c; font-size: 12px;")
+                lbl_status.setText("❌ Completá el Gmail remitente y la contraseña de app")
+                return
+            lbl_status.setStyleSheet("color: #f39c12; font-size: 12px;")
+            lbl_status.setText("⏳ Enviando...")
+
+            def _send():
+                try:
+                    destinatarios = cfg.get("destinatarios", ["milenamondaca17@gmail.com"])
+                    for dest in destinatarios:
+                        msg = MIMEMultipart()
+                        msg["From"]    = cfg["smtp_user"]
+                        msg["To"]      = dest
+                        msg["Subject"] = "Juana Cash - Prueba de email"
+                        msg.attach(MIMEText(
+                            "Este es un email de prueba del sistema Juana Cash.\n\nSi lo recibiste, la configuracion esta correcta.",
+                            "plain", "utf-8"
+                        ))
+                        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as s:
+                            s.login(cfg["smtp_user"], cfg["smtp_pass"])
+                            s.send_message(msg)
+                    QTimer.singleShot(0, lambda: (
+                        lbl_status.setStyleSheet("color: #27ae60; font-size: 12px;"),
+                        lbl_status.setText(f"✅ Enviado a {', '.join(destinatarios)}")
+                    ))
+                except Exception as e:
+                    err = str(e)
+                    QTimer.singleShot(0, lambda: (
+                        lbl_status.setStyleSheet("color: #e74c3c; font-size: 12px;"),
+                        lbl_status.setText(f"❌ Error: {err}")
+                    ))
+
+            threading.Thread(target=_send, daemon=True).start()
+
+        btn_ok.clicked.connect(guardar)
+        btn_test.clicked.connect(probar)
+        dialog.exec()
+
+    def guardar_config_email(self):
+        cfg = {
+            "smtp_user": self.in_email_user.text().strip(),
+            "smtp_pass": self.in_email_pass.text().strip(),
+            "destinatarios": [d.strip() for d in self.in_email_dest.text().split(",") if d.strip()],
+            "habilitado": self.chk_email.isChecked()
+        }
+        guardar_email_config(cfg)
+        self.lbl_mail_status.setText("✅ Configuración guardada")
+        QTimer.singleShot(3000, lambda: self.lbl_mail_status.setText(""))
+
+    def cargar_historial_efectivo(self):
+        def _fetch():
+            try:
+                r = requests.get(f"{API_URL}/caja/historial-efectivo?dias=30", timeout=5)
+                datos = r.json() if r.status_code == 200 else []
+            except Exception:
+                datos = []
+            QTimer.singleShot(0, lambda: self._actualizar_tabla_efectivo(datos))
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _actualizar_tabla_efectivo(self, datos):
+        self.tabla_efectivo.setRowCount(0)
+        for d in datos:
+            row = self.tabla_efectivo.rowCount()
+            self.tabla_efectivo.insertRow(row)
+            valores = [
+                d.get("fecha", ""),
+                f"${float(d.get('efectivo', 0)):,.0f}",
+                f"${float(d.get('tarjeta', 0)):,.0f}",
+                f"${float(d.get('mercadopago_qr', 0)):,.0f}",
+                f"${float(d.get('transferencia', 0)):,.0f}",
+                f"${float(d.get('fiado', 0)):,.0f}",
+                f"${float(d.get('total', 0)):,.0f}",
+            ]
+            colores = ["white", "#27ae60", "#3498db", "#009ee3", "#9b59b6", "#e74c3c", "#f39c12"]
+            for col, (val, color) in enumerate(zip(valores, colores)):
+                item = QTableWidgetItem(str(val))
+                item.setForeground(QColor(color))
+                self.tabla_efectivo.setItem(row, col, item)
+
     def showEvent(self, event):
         super().showEvent(event)
         self.cargar_historial()
+        self.cargar_historial_efectivo()
 
     def cargar_historial(self):
         try:
@@ -296,7 +685,8 @@ class CajaScreen(QWidget):
         except Exception:
             monto_apertura = 0
 
-        efectivo_esperado = monto_apertura + totales["efectivo"] - total_gastos
+        total_emp_previo = sum(p["monto"] for p in getattr(self, '_pagos_empleados_guardados', []))
+        efectivo_esperado = monto_apertura + totales["efectivo"] - total_gastos - total_emp_previo
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Cierre de caja")
@@ -382,6 +772,64 @@ class CajaScreen(QWidget):
             res_lay.addLayout(rw)
         lay.addWidget(resumen_frame)
 
+        # ── PAGO DE EMPLEADOS ─────────────────────────────────────────────
+        sep_emp = QFrame(); sep_emp.setFixedHeight(1)
+        sep_emp.setStyleSheet("background: #0f3460; border: none;")
+        lay.addWidget(sep_emp)
+
+        lbl_emp = QLabel("👥 Pago de empleados (opcional)")
+        lbl_emp.setStyleSheet("color: #a0a0b0; font-size: 13px; font-weight: bold;")
+        lay.addWidget(lbl_emp)
+
+        emp_frame = QFrame()
+        emp_frame.setStyleSheet("QFrame { background: #0f3460; border-radius: 8px; }")
+        emp_lay = QVBoxLayout(emp_frame)
+        emp_lay.setContentsMargins(12, 10, 12, 10)
+        emp_lay.setSpacing(6)
+
+        # Hasta 5 filas de empleados: nombre + monto
+        filas_emp = []
+        for i in range(5):
+            row_e = QHBoxLayout()
+            lbl_n = QLabel(f"Empleado {i+1}:")
+            lbl_n.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+            lbl_n.setFixedWidth(90)
+            in_nombre = QLineEdit()
+            in_nombre.setPlaceholderText("Nombre")
+            in_nombre.setFixedHeight(34)
+            in_nombre.setStyleSheet("QLineEdit { background: #16213e; border: 1px solid #9b59b6; border-radius: 6px; padding: 6px; color: white; font-size: 12px; }")
+            in_monto = QLineEdit()
+            in_monto.setPlaceholderText("$0")
+            in_monto.setFixedWidth(90)
+            in_monto.setFixedHeight(34)
+            in_monto.setStyleSheet("QLineEdit { background: #16213e; border: 1px solid #9b59b6; border-radius: 6px; padding: 6px; color: white; font-size: 12px; }")
+            row_e.addWidget(lbl_n)
+            row_e.addWidget(in_nombre)
+            row_e.addWidget(in_monto)
+            emp_lay.addLayout(row_e)
+            filas_emp.append((in_nombre, in_monto))
+
+        lbl_total_emp = QLabel("Total empleados: $0")
+        lbl_total_emp.setStyleSheet("color: #9b59b6; font-size: 13px; font-weight: bold;")
+        emp_lay.addWidget(lbl_total_emp)
+        lay.addWidget(emp_frame)
+
+        def actualizar_total_emp():
+            total = 0
+            for in_n, in_m in filas_emp:
+                try:
+                    if in_n.text().strip() and in_m.text().strip():
+                        total += float(in_m.text())
+                except ValueError:
+                    pass
+            lbl_total_emp.setText(f"Total empleados: ${total:,.0f}")
+            # Actualizar efectivo esperado con descuento de empleados
+            ef_neto = efectivo_esperado - total
+            input_declarado.setPlaceholderText(f"{ef_neto:.2f}")
+
+        for in_n, in_m in filas_emp:
+            in_m.textChanged.connect(lambda _: actualizar_total_emp())
+
         row_decl = QHBoxLayout()
         lbl_d = QLabel("Efectivo contado ($):"); lbl_d.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         row_decl.addWidget(lbl_d)
@@ -406,9 +854,28 @@ class CajaScreen(QWidget):
         btns.addWidget(btn_ok)
         lay.addLayout(btns)
 
+        def _obtener_pagos_empleados():
+            pagos = []
+            for in_n, in_m in filas_emp:
+                nombre = in_n.text().strip()
+                if not nombre:
+                    continue
+                try:
+                    monto = float(in_m.text())
+                    if monto > 0:
+                        pagos.append({"nombre": nombre, "monto": monto})
+                except ValueError:
+                    pass
+            return pagos
+
         def _txt_cierre(decl=None, diff=None):
             from datetime import datetime
             ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            # Usar pagos del dialog de empleados si los hay
+            pagos_emp = getattr(self, '_pagos_empleados_guardados', [])
+            # Limpiar después de usar
+            self._pagos_empleados_guardados = []
+            total_emp = sum(p["monto"] for p in pagos_emp)
             ls = ["="*40, "   JUANA CASH - CIERRE DE CAJA", "="*40,
                   f"Fecha:       {ts}", f"Cajero:      {getattr(self,'nombre_cajero','?')}",
                   f"Tickets:     {cant_tickets}", f"Prom ticket: ${ticket_prom:,.2f}",
@@ -427,8 +894,15 @@ class CajaScreen(QWidget):
                   f"Ef. esperad: ${efectivo_esperado:,.2f}"]
             if decl is not None:
                 ls += [f"Ef. contado: ${decl:,.2f}", f"Diferencia:  ${diff:+,.2f}"]
+            if pagos_emp:
+                ls += ["-"*40, "PAGOS DE EMPLEADOS:"]
+                for p in pagos_emp:
+                    ls.append(f"  {p['nombre']:20s} ${p['monto']:,.2f}")
+                ls.append(f"  Total empleados:     ${total_emp:,.2f}")
+                ls.append(f"  Efectivo neto:       ${(efectivo_esperado if decl is None else decl) - total_emp:,.2f}")
             ls += ["="*40]
             return "\n".join(ls)
+
 
         def exportar():
             import os; from datetime import datetime
