@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('backend', 'backend'), ('desktop', 'desktop'), ('version.json', '.'), ('updater.py', '.')]
 binaries = []
-hiddenimports = ['uvicorn.lifespan.on', 'uvicorn.loops.auto', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets.auto', 'passlib.handlers.bcrypt', 'sqlalchemy.dialects.sqlite', 'reportlab.pdfgen', 'reportlab.lib.pagesizes']
+hiddenimports = ['uvicorn.lifespan.on', 'uvicorn.loops.auto', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets.auto', 'passlib.handlers.bcrypt', 'sqlalchemy.dialects.sqlite', 'reportlab.pdfgen', 'reportlab.lib.pagesizes', 'email.mime.text', 'email.mime.multipart', 'email.mime.base', 'email.mime.application', 'smtplib']
 tmp_ret = collect_all('uvicorn')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('fastapi')
