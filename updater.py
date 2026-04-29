@@ -43,12 +43,19 @@ def guardar_version_local(version):
     except Exception as e:
         _log(f"Error guardando version local: {e}")
 
+def _ssl_context():
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
 def obtener_version_github():
     import urllib.request
     url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main/version.json"
     _log(f"Consultando GitHub: {url}")
     try:
-        req = urllib.request.urlopen(url, timeout=TIMEOUT_RED)
+        req = urllib.request.urlopen(url, timeout=TIMEOUT_RED, context=_ssl_context())
         data = json.loads(req.read().decode())
         version = data.get("version")
         installer_url = data.get("installer_url", "")
@@ -73,7 +80,9 @@ def descargar_e_instalar(installer_url, version_nueva, callback_ok=None, callbac
     try:
         tmp = tempfile.mktemp(suffix=".exe", prefix="JuanaCash_Update_")
         _log(f"Iniciando descarga de {installer_url} -> {tmp}")
-        urllib.request.urlretrieve(installer_url, tmp)
+        with urllib.request.urlopen(installer_url, context=_ssl_context()) as r:
+            with open(tmp, "wb") as f:
+                f.write(r.read())
         _log(f"Descarga completada. Tamanio: {os.path.getsize(tmp)} bytes")
         guardar_version_local(version_nueva)
         _log(f"Ejecutando instalador: {tmp}")
