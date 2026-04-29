@@ -63,49 +63,61 @@ def enviar_email_cierre(asunto, cuerpo):
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _get_tema, TEMAS, guardar_tema
+_T = _get_tema()
+
+BG_MAIN  = _T["bg_app"]
+BG_CARD  = _T["bg_card"]
+BORDER   = _T["border"]
+TEXT_MAIN  = _T["text_main"]
+TEXT_MUTED = _T["text_muted"]
+PRIMARY    = _T["primary"]
+DANGER     = _T["danger"]
+SUCCESS    = _T["success"]
+WARNING    = _T["warning"]
+
 class AnularDialog(QDialog):
     def __init__(self, parent=None, ticket=""):
         super().__init__(parent)
         self.setWindowTitle(f"🚫 Anular ticket {ticket}")
-        self.setMinimumWidth(380)
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setMinimumWidth(400)
+        self.setStyleSheet(f"background-color: {BG_CARD}; color: {TEXT_MAIN};")
         self.setup_ui(ticket)
 
     def setup_ui(self, ticket):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
+        layout.setContentsMargins(24, 24, 24, 24)
         lbl = QLabel(f"⚠️ Anular ticket #{ticket}")
-        lbl.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        lbl.setStyleSheet("color: #e94560;")
+        lbl.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        lbl.setStyleSheet(f"color: {DANGER}; background: transparent;")
         layout.addWidget(lbl)
         lbl2 = QLabel("Esta acción devuelve el stock y no puede deshacerse.")
-        lbl2.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        lbl2.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; background: transparent;")
         layout.addWidget(lbl2)
         lbl_m = QLabel("Motivo de anulación:")
-        lbl_m.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lbl_m.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
         layout.addWidget(lbl_m)
         self.combo_motivo = QComboBox()
         self.combo_motivo.addItems(["Error de carga", "Producto devuelto", "Error de precio", "Solicitud del cliente", "Otro"])
-        self.combo_motivo.setFixedHeight(40)
-        self.combo_motivo.setStyleSheet("QComboBox { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; } QComboBox QAbstractItemView { background: #0f3460; color: white; selection-background-color: #e94560; }")
+        self.combo_motivo.setFixedHeight(42)
         layout.addWidget(self.combo_motivo)
         lbl_p = QLabel("Contraseña de admin o encargado:")
-        lbl_p.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lbl_p.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
         layout.addWidget(lbl_p)
         self.input_password = QLineEdit()
         self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.input_password.setFixedHeight(44)
-        self.input_password.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 10px; color: white; font-size: 16px; }")
         layout.addWidget(self.input_password)
         btns = QHBoxLayout()
         btn_c = QPushButton("Cancelar")
         btn_c.setFixedHeight(40)
-        btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }} QPushButton:hover {{ background: {BG_MAIN}; }}")
         btn_c.clicked.connect(self.reject)
         btns.addWidget(btn_c)
         btn_ok = QPushButton("🚫 Confirmar anulación")
         btn_ok.setFixedHeight(40)
-        btn_ok.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btn_ok.setStyleSheet(f"QPushButton {{ background: {DANGER}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: #b91c1c; }}")
         btn_ok.clicked.connect(self.accept)
         btns.addWidget(btn_ok)
         layout.addLayout(btns)
@@ -125,110 +137,112 @@ class CajaScreen(QWidget):
         self.nombre_cajero = usuario.get("nombre", "")
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
+
         titulo = QLabel("🏧 Caja")
-        titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: white;")
+        titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {TEXT_MAIN}; background: transparent;")
         layout.addWidget(titulo)
+
+        # Card estado
+        CARD_SS = f"QFrame {{ background: {BG_CARD}; border-radius: 14px; border: 1.5px solid {BORDER}; border-left: 5px solid {DANGER}; }}"
         self.card_estado = QFrame()
-        self.card_estado.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; border-left: 4px solid #e94560; }")
+        self.card_estado.setStyleSheet(CARD_SS)
         self.card_estado.setMinimumHeight(110)
         card_layout = QVBoxLayout(self.card_estado)
         card_layout.setContentsMargins(24, 16, 24, 16)
         self.lbl_estado = QLabel("⚪ Caja cerrada")
-        self.lbl_estado.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        self.lbl_estado.setStyleSheet("color: #a0a0b0;")
+        self.lbl_estado.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
         card_layout.addWidget(self.lbl_estado)
         self.lbl_apertura = QLabel("")
-        self.lbl_apertura.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        self.lbl_apertura.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
         card_layout.addWidget(self.lbl_apertura)
         self.lbl_total_caja = QLabel("Total acumulado: $0.00")
-        self.lbl_total_caja.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        self.lbl_total_caja.setStyleSheet("color: #e94560;")
+        self.lbl_total_caja.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        self.lbl_total_caja.setStyleSheet(f"color: {DANGER}; background: transparent;")
         card_layout.addWidget(self.lbl_total_caja)
         layout.addWidget(self.card_estado)
+
+        # Desglose por método
         desglose_frame = QFrame()
-        desglose_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 10px; }")
+        desglose_frame.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 12px; border: 1.5px solid {BORDER}; }}")
         desglose_layout = QHBoxLayout(desglose_frame)
         desglose_layout.setContentsMargins(16, 12, 16, 12)
         desglose_layout.setSpacing(8)
         self.cards_metodo = {}
         metodos = [
-            ("💵", "Efectivo",      "efectivo",        "#27ae60"),
-            ("💳", "Tarjeta",       "tarjeta",          "#3498db"),
-            ("📱", "QR / MP",       "mercadopago_qr",   "#009ee3"),
-            ("🏦", "Transf.",       "transferencia",    "#9b59b6"),
-            ("💸", "Fiado",         "fiado",            "#e74c3c"),
+            ("💵", "Efectivo",    "efectivo",       "#16a34a"),
+            ("💳", "Tarjeta",     "tarjeta",         "#2563eb"),
+            ("📱", "QR / MP",     "mercadopago_qr",  "#0284c7"),
+            ("🏦", "Transf.",     "transferencia",   "#7c3aed"),
+            ("💸", "Fiado",       "fiado",           "#dc2626"),
         ]
         for icono, nombre, key, color in metodos:
             card = QFrame()
-            card.setStyleSheet(f"QFrame {{ background: #0f3460; border-radius: 8px; border-left: 3px solid {color}; }}")
+            card.setStyleSheet(f"QFrame {{ background: {BG_MAIN}; border-radius: 10px; border-left: 4px solid {color}; }}")
             c_layout = QVBoxLayout(card)
-            c_layout.setContentsMargins(10, 8, 10, 8)
+            c_layout.setContentsMargins(12, 10, 12, 10)
             lbl_n = QLabel(f"{icono} {nombre}")
-            lbl_n.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: bold;")
+            lbl_n.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: bold; background: transparent;")
             c_layout.addWidget(lbl_n)
             lbl_v = QLabel("$0.00")
-            lbl_v.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-            lbl_v.setStyleSheet(f"color: {color};")
+            lbl_v.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+            lbl_v.setStyleSheet(f"color: {color}; background: transparent;")
             c_layout.addWidget(lbl_v)
             desglose_layout.addWidget(card)
             self.cards_metodo[key] = lbl_v
         layout.addWidget(desglose_frame)
+
+        # Botones de acción
+        BTN_H = 40
         btns = QHBoxLayout()
+        btns.setSpacing(8)
+
         lbl_monto = QLabel("Monto inicial ($):")
-        lbl_monto.setStyleSheet("color: #a0a0b0; font-size: 14px;")
+        lbl_monto.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 14px; background: transparent;")
         btns.addWidget(lbl_monto)
+
         self.input_monto = QLineEdit()
         self.input_monto.setPlaceholderText("5000")
-        self.input_monto.setFixedWidth(130)
-        self.input_monto.setFixedHeight(40)
-        self.input_monto.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }")
+        self.input_monto.setFixedWidth(120)
+        self.input_monto.setFixedHeight(BTN_H)
         btns.addWidget(self.input_monto)
-        self.btn_abrir = QPushButton("🔓 Abrir caja")
-        self.btn_abrir.setFixedHeight(40)
-        self.btn_abrir.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; padding: 0 20px; font-size: 14px; font-weight: bold; }")
-        self.btn_abrir.clicked.connect(self.abrir_caja)
-        btns.addWidget(self.btn_abrir)
-        self.btn_cerrar = QPushButton("🔒 Cerrar caja")
-        self.btn_cerrar.setFixedHeight(40)
-        self.btn_cerrar.setEnabled(False)
-        self.btn_cerrar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; padding: 0 20px; font-size: 14px; font-weight: bold; } QPushButton:disabled { background: #555; color: #888; }")
-        self.btn_cerrar.clicked.connect(self.cerrar_caja)
-        btns.addWidget(self.btn_cerrar)
-        btn_gasto = QPushButton("💸 Registrar gasto")
-        btn_gasto.setFixedHeight(40)
-        btn_gasto.setStyleSheet("QPushButton { background: #9b59b6; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; }")
-        btn_gasto.clicked.connect(self.registrar_gasto)
-        btns.addWidget(btn_gasto)
 
-        btn_empleados = QPushButton("👥 Pago empleados")
-        btn_empleados.setFixedHeight(40)
-        btn_empleados.setStyleSheet("QPushButton { background: #e67e22; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; } QPushButton:hover { background: #d35400; }")
-        btn_empleados.clicked.connect(self.ver_historial_empleados)
-        btns.addWidget(btn_empleados)
+        def _btn(texto, color_bg, slot, enabled=True):
+            b = QPushButton(texto)
+            b.setFixedHeight(BTN_H)
+            b.setStyleSheet(f"QPushButton {{ background: {color_bg}; color: white; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ opacity: 0.85; }} QPushButton:disabled {{ background: {BORDER}; color: {TEXT_MUTED}; }}")
+            b.clicked.connect(slot)
+            b.setEnabled(enabled)
+            return b
 
-        btn_histef = QPushButton("💵 Historial efectivo")
-        btn_histef.setFixedHeight(40)
-        btn_histef.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; } QPushButton:hover { background: #1e8449; }")
-        btn_histef.clicked.connect(self.ver_historial_efectivo)
-        btns.addWidget(btn_histef)
+        self.btn_abrir  = _btn("🔓 Abrir caja",       SUCCESS,   self.abrir_caja)
+        self.btn_cerrar = _btn("🔒 Cerrar caja",       DANGER,    self.cerrar_caja, enabled=False)
+        btn_gasto       = _btn("💸 Gasto",             "#7c3aed", self.registrar_gasto)
+        btn_empleados   = _btn("👥 Empleados",         "#ea580c", self.ver_historial_empleados)
+        btn_histef      = _btn("💵 Hist. efectivo",    SUCCESS,   self.ver_historial_efectivo)
+        btn_email_cfg   = _btn("📧 Email",             "#2563eb", self.ver_config_email)
 
-        btn_email_cfg = QPushButton("📧 Email")
-        btn_email_cfg.setFixedHeight(40)
-        btn_email_cfg.setStyleSheet("QPushButton { background: #2980b9; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; } QPushButton:hover { background: #1a6fa3; }")
-        btn_email_cfg.clicked.connect(self.ver_config_email)
-        btns.addWidget(btn_email_cfg)
+        btn_paleta = QPushButton("🎨 Paleta")
+        btn_paleta.setFixedHeight(BTN_H)
+        btn_paleta.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+        btn_paleta.clicked.connect(self.elegir_paleta)
 
+        for b in [self.btn_abrir, self.btn_cerrar, btn_gasto, btn_empleados, btn_histef, btn_email_cfg, btn_paleta]:
+            btns.addWidget(b)
         btns.addStretch()
         layout.addLayout(btns)
+
+        # Label y tabla ventas turno
         lbl_resumen = QLabel("Ventas del turno")
-        lbl_resumen.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        lbl_resumen.setStyleSheet("color: #a0a0b0;")
+        lbl_resumen.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        lbl_resumen.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
         layout.addWidget(lbl_resumen)
+
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(7)
         self.tabla.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Estado", "Hora", "Anular"])
@@ -240,24 +254,24 @@ class CajaScreen(QWidget):
         self.tabla.setColumnWidth(5, 60)
         self.tabla.setColumnWidth(6, 90)
         self.tabla.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        self.tabla.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; } QTableWidgetItem { color: white; padding: 8px; }")
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla)
 
-        # ── HISTORIAL DE CIERRES ─────────────────────────────────────────────
-        sep_h = QFrame(); sep_h.setFixedHeight(1)
-        sep_h.setStyleSheet("background: #0f3460; border: none;")
+        # Historial de cierres
+        sep_h = QFrame()
+        sep_h.setFixedHeight(1)
+        sep_h.setStyleSheet(f"background: {BORDER}; border: none;")
         layout.addWidget(sep_h)
 
         hdr_hist = QHBoxLayout()
         lbl_hist = QLabel("📋 Historial de cierres")
-        lbl_hist.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        lbl_hist.setStyleSheet("color: #a0a0b0;")
+        lbl_hist.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        lbl_hist.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
         hdr_hist.addWidget(lbl_hist)
         hdr_hist.addStretch()
         btn_hist_ref = QPushButton("🔄")
-        btn_hist_ref.setFixedSize(32, 32)
-        btn_hist_ref.setStyleSheet("QPushButton { background: #16213e; color: white; border-radius: 6px; }")
+        btn_hist_ref.setFixedSize(34, 34)
+        btn_hist_ref.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; border: 1.5px solid {BORDER}; }}")
         btn_hist_ref.clicked.connect(self.cargar_historial)
         hdr_hist.addWidget(btn_hist_ref)
         layout.addLayout(hdr_hist)
@@ -272,11 +286,81 @@ class CajaScreen(QWidget):
         self.tabla_historial.setColumnWidth(4, 110)
         self.tabla_historial.setColumnWidth(5, 100)
         self.tabla_historial.setMaximumHeight(220)
-        self.tabla_historial.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
         self.tabla_historial.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla_historial)
 
 
+
+    def elegir_paleta(self):
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
+        from PyQt6.QtGui import QFont
+        dlg = QDialog(self)
+        dlg.setWindowTitle("🎨 Elegir paleta de colores")
+        dlg.setMinimumWidth(480)
+        dlg.setStyleSheet(f"background: {BG_CARD}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dlg)
+        lay.setSpacing(12)
+        lay.setContentsMargins(24, 24, 24, 24)
+        titulo = QLabel("🎨 Paleta de colores")
+        titulo.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {TEXT_MAIN}; background: transparent;")
+        lay.addWidget(titulo)
+        sub = QLabel("Elegí un tema. La app se reinicia para aplicarlo.")
+        sub.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; background: transparent; margin-bottom: 8px;")
+        lay.addWidget(sub)
+
+        from ui.theme import get_tema_key
+        actual = get_tema_key()
+
+        previews = {
+            "violeta_calido": ("#7C3AED", "#10B981", "#F5F3FF"),
+            "naranja_cielo":  ("#EA580C", "#0EA5E9", "#FFFBF5"),
+            "rosa_sage":      ("#DB2777", "#4ADE80", "#FDF2F8"),
+            "lila_sol":       ("#9333EA", "#FDE047", "#FAFAF9"),
+            "clasico_oscuro": ("#556EE6", "#34C38F", "#050e1a"),
+        }
+
+        for key, tema in TEMAS.items():
+            colores = previews.get(key, ("#888", "#888", "#fff"))
+            fila = QFrame()
+            es_actual = (key == actual)
+            borde = PRIMARY if es_actual else BORDER
+            fila.setStyleSheet(f"QFrame {{ background: {BG_MAIN}; border-radius: 12px; border: 2px solid {borde}; }}")
+            fila_lay = QHBoxLayout(fila)
+            fila_lay.setContentsMargins(14, 10, 14, 10)
+            # Muestra de colores
+            for c in colores:
+                dot = QFrame()
+                dot.setFixedSize(18, 18)
+                dot.setStyleSheet(f"background: {c}; border-radius: 9px; border: none;")
+                fila_lay.addWidget(dot)
+            lbl = QLabel(tema["nombre"])
+            lbl.setStyleSheet(f"color: {TEXT_MAIN}; font-size: 14px; font-weight: {'bold' if es_actual else 'normal'}; background: transparent; margin-left: 8px;")
+            fila_lay.addWidget(lbl)
+            if es_actual:
+                lbl_act = QLabel("✓ Activo")
+                lbl_act.setStyleSheet(f"color: {SUCCESS}; font-size: 12px; font-weight: bold; background: transparent;")
+                fila_lay.addWidget(lbl_act)
+            fila_lay.addStretch()
+            btn_sel = QPushButton("Aplicar")
+            btn_sel.setFixedHeight(32)
+            btn_sel.setEnabled(not es_actual)
+            btn_sel.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 6px; font-size: 12px; font-weight: bold; padding: 0 14px; }} QPushButton:disabled {{ background: {BORDER}; color: {TEXT_MUTED}; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+            def _aplicar(k=key):
+                guardar_tema(k)
+                QMessageBox.information(dlg, "Paleta guardada",
+                    f"Paleta '{TEMAS[k]['nombre']}' guardada.\nReiniciá la app para aplicarla.")
+                dlg.accept()
+            btn_sel.clicked.connect(_aplicar)
+            fila_lay.addWidget(btn_sel)
+            lay.addWidget(fila)
+
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.setFixedHeight(38)
+        btn_cerrar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_cerrar.clicked.connect(dlg.reject)
+        lay.addWidget(btn_cerrar)
+        dlg.exec()
 
     def ver_historial_efectivo(self):
         """Dialog con historial de efectivo día a día."""

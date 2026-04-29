@@ -53,6 +53,11 @@ from ui.main_window import MainWindow
 app = QApplication(sys.argv)
 app.setApplicationName("Juana Cash")
 app.setStyle("Fusion")
+try:
+    from ui.theme import get_qss
+    app.setStyleSheet(get_qss())
+except Exception:
+    pass
 splash = SplashScreen()
 splash.show()
 app.processEvents()

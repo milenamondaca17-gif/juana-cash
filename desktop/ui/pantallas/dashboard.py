@@ -7,6 +7,9 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPainter, QColor, QPen
 from datetime import datetime
+from ui.theme import get_tema
+
+_T = get_tema()
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -54,34 +57,35 @@ class KPICard(QFrame):
         super().__init__(parent)
         self.setStyleSheet(f"""
             QFrame {{
-                background: #16213e;
-                border-radius: 12px;
-                border-left: 4px solid {color};
+                background: {_T['bg_card']};
+                border-radius: 14px;
+                border: 1.5px solid {_T['border_card']};
+                border-left: 5px solid {color};
             }}
         """)
-        self.setMinimumHeight(100)
+        self.setMinimumHeight(110)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setContentsMargins(18, 14, 18, 14)
         layout.setSpacing(4)
 
         header = QHBoxLayout()
         lbl_icon = QLabel(icono)
-        lbl_icon.setStyleSheet("color: white; font-size: 18px; background: transparent; border: none;")
+        lbl_icon.setStyleSheet("font-size: 20px; background: transparent; border: none;")
         header.addWidget(lbl_icon)
         header.addStretch()
         self.lbl_titulo = QLabel(titulo)
-        self.lbl_titulo.setStyleSheet(f"color: #a0a0b0; font-size: 11px; background: transparent; border: none;")
+        self.lbl_titulo.setStyleSheet(f"color: {_T['text_muted']}; font-size: 11px; font-weight: bold; background: transparent; border: none; letter-spacing: 0.5px;")
         layout.addLayout(header)
         layout.addWidget(self.lbl_titulo)
 
         self.lbl_valor = QLabel(valor)
-        self.lbl_valor.setFont(QFont("Arial", 22, QFont.Weight.Bold))
+        self.lbl_valor.setFont(QFont("Segoe UI", 22, QFont.Weight.Bold))
         self.lbl_valor.setStyleSheet(f"color: {color}; background: transparent; border: none;")
         layout.addWidget(self.lbl_valor)
 
         if subtitulo:
             self.lbl_sub = QLabel(subtitulo)
-            self.lbl_sub.setStyleSheet("color: #555; font-size: 10px; background: transparent; border: none;")
+            self.lbl_sub.setStyleSheet(f"color: {_T['text_muted']}; font-size: 10px; background: transparent; border: none;")
             layout.addWidget(self.lbl_sub)
         else:
             self.lbl_sub = None
@@ -130,27 +134,27 @@ class DashboardScreen(QWidget):
         self.actualizar_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {_T['bg_app']}; color: {_T['text_main']};")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(14)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
 
         # ── Header ────────────────────────────────────────────────────────────
         header = QHBoxLayout()
         titulo = QLabel("📊 Dashboard")
-        titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: white;")
+        titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_T['text_main']}; background: transparent;")
         header.addWidget(titulo)
         header.addStretch()
         self.lbl_hora = QLabel("")
-        self.lbl_hora.setStyleSheet("color: #555; font-size: 11px;")
+        self.lbl_hora.setStyleSheet(f"color: {_T['text_muted']}; font-size: 11px; background: transparent;")
         header.addWidget(self.lbl_hora)
         btn_refresh = QPushButton("⟳ Actualizar")
         btn_refresh.setFixedHeight(34)
-        btn_refresh.setStyleSheet("""
-            QPushButton { background: #0f3460; color: #3498db; border-radius: 8px;
-                          font-size: 12px; padding: 0 14px; border: 1px solid #3498db; }
-            QPushButton:hover { background: #3498db; color: white; }
+        btn_refresh.setStyleSheet(f"""
+            QPushButton {{ background: {_T['primary_light']}; color: {_T['primary']}; border-radius: 8px;
+                          font-size: 12px; padding: 0 14px; border: 1.5px solid {_T['primary']}; font-weight: bold; }}
+            QPushButton:hover {{ background: {_T['primary']}; color: white; }}
         """)
         btn_refresh.clicked.connect(self.cargar_datos)
         header.addWidget(btn_refresh)
@@ -159,9 +163,9 @@ class DashboardScreen(QWidget):
         # ── Scroll area ───────────────────────────────────────────────────────
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        scroll.setStyleSheet(f"QScrollArea {{ border: none; background: {_T['bg_app']}; }}")
         contenido = QWidget()
-        contenido.setStyleSheet("background: transparent;")
+        contenido.setStyleSheet(f"background: {_T['bg_app']};")
         self.contenido_layout = QVBoxLayout(contenido)
         self.contenido_layout.setSpacing(14)
         self.contenido_layout.setContentsMargins(0, 0, 0, 0)
@@ -188,14 +192,17 @@ class DashboardScreen(QWidget):
         fila2 = QHBoxLayout()
         fila2.setSpacing(10)
 
+        CARD_SS = f"QFrame {{ background: {_T['bg_card']}; border-radius: 14px; border: 1.5px solid {_T['border_card']}; }}"
+        LABEL_TITLE = f"color: {_T['text_muted']}; font-size: 12px; font-weight: bold; background: transparent; border: none; letter-spacing: 0.5px;"
+
         self.panel_metodos = QFrame()
-        self.panel_metodos.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        self.panel_metodos.setStyleSheet(CARD_SS)
         self.panel_metodos.setMinimumHeight(180)
         self.metodos_layout = QVBoxLayout(self.panel_metodos)
-        self.metodos_layout.setContentsMargins(16, 14, 16, 14)
+        self.metodos_layout.setContentsMargins(18, 16, 18, 16)
         self.metodos_layout.setSpacing(8)
         lbl_m = QLabel("💳 Desglose por método")
-        lbl_m.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
+        lbl_m.setStyleSheet(LABEL_TITLE)
         self.metodos_layout.addWidget(lbl_m)
         self.metodos_contenido = QVBoxLayout()
         self.metodos_contenido.setSpacing(6)
@@ -204,13 +211,13 @@ class DashboardScreen(QWidget):
         fila2.addWidget(self.panel_metodos, 1)
 
         self.panel_top = QFrame()
-        self.panel_top.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        self.panel_top.setStyleSheet(CARD_SS)
         self.panel_top.setMinimumHeight(480)
         self.top_layout = QVBoxLayout(self.panel_top)
-        self.top_layout.setContentsMargins(16, 14, 16, 14)
+        self.top_layout.setContentsMargins(18, 16, 18, 16)
         self.top_layout.setSpacing(6)
         lbl_t = QLabel("🏆 Top productos del año")
-        lbl_t.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
+        lbl_t.setStyleSheet(LABEL_TITLE)
         self.top_layout.addWidget(lbl_t)
         self.top_contenido = QVBoxLayout()
         self.top_contenido.setSpacing(4)
@@ -222,18 +229,18 @@ class DashboardScreen(QWidget):
 
         # ── Horario pico ──────────────────────────────────────────────────────
         self.panel_horario = QFrame()
-        self.panel_horario.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        self.panel_horario.setStyleSheet(CARD_SS)
         horario_layout = QVBoxLayout(self.panel_horario)
-        horario_layout.setContentsMargins(16, 14, 16, 14)
+        horario_layout.setContentsMargins(18, 16, 18, 16)
         horario_layout.setSpacing(8)
 
         h_header = QHBoxLayout()
         lbl_h = QLabel("🕐 Horario pico de hoy")
-        lbl_h.setStyleSheet("color: #a0a0b0; font-size: 12px; font-weight: bold;")
+        lbl_h.setStyleSheet(LABEL_TITLE)
         h_header.addWidget(lbl_h)
         h_header.addStretch()
         self.lbl_pico = QLabel("")
-        self.lbl_pico.setStyleSheet("color: #e94560; font-size: 12px; font-weight: bold;")
+        self.lbl_pico.setStyleSheet(f"color: {_T['danger']}; font-size: 12px; font-weight: bold; background: transparent;")
         h_header.addWidget(self.lbl_pico)
         horario_layout.addLayout(h_header)
 
@@ -243,48 +250,44 @@ class DashboardScreen(QWidget):
         horario_layout.addLayout(self.barras_container)
 
         leyenda = QLabel("🔴 Pico alto   🟡 Moderado   🔵 Bajo")
-        leyenda.setStyleSheet("color: #555; font-size: 10px;")
+        leyenda.setStyleSheet(f"color: {_T['text_muted']}; font-size: 10px; background: transparent;")
         horario_layout.addWidget(leyenda)
 
         self.contenido_layout.addWidget(self.panel_horario)
-        # ── SECCIÓN: HISTORIAL DETALLADO DÍA TRAS DÍA ──────────────────
+
+        # ── Historial detallado ───────────────────────────────────────────────
         self.panel_detallado = QFrame()
-        self.panel_detallado.setStyleSheet("QFrame { background: #16213e; border-radius: 12px; }")
+        self.panel_detallado.setStyleSheet(CARD_SS)
         detallado_layout = QVBoxLayout(self.panel_detallado)
-        detallado_layout.setContentsMargins(16, 14, 16, 14)
+        detallado_layout.setContentsMargins(18, 16, 18, 16)
 
         header_det = QHBoxLayout()
         lbl_det = QLabel("📋 Historial de Productos Vendidos")
-        lbl_det.setStyleSheet("color: #a0a0b0; font-size: 14px; font-weight: bold;")
+        lbl_det.setStyleSheet(f"color: {_T['text_main']}; font-size: 14px; font-weight: bold; background: transparent;")
         header_det.addWidget(lbl_det)
         header_det.addStretch()
 
-        # Botones de Filtro
+        BTN_FILTRO = f"""
+            QPushButton {{ background: {_T['primary_light']}; color: {_T['primary']}; border-radius: 6px; font-size: 10px; font-weight: bold; border: 1.5px solid {_T['primary']}; }}
+            QPushButton:hover {{ background: {_T['primary']}; color: white; }}
+        """
         self.btn_ver_dia = QPushButton("Día")
         self.btn_ver_sem = QPushButton("Semana")
         self.btn_ver_mes = QPushButton("Mes")
         for b in [self.btn_ver_dia, self.btn_ver_sem, self.btn_ver_mes]:
-            b.setFixedSize(70, 25)
-            b.setStyleSheet("""
-                QPushButton { background: #0f3460; color: white; border-radius: 5px; font-size: 10px; border: 1px solid #3498db; }
-                QPushButton:hover { background: #3498db; }
-            """)
-        
+            b.setFixedSize(70, 28)
+            b.setStyleSheet(BTN_FILTRO)
+
         header_det.addWidget(self.btn_ver_dia)
         header_det.addWidget(self.btn_ver_sem)
         header_det.addWidget(self.btn_ver_mes)
         detallado_layout.addLayout(header_det)
 
-        # La Tabla
         self.tabla_detallada = QTableWidget()
         self.tabla_detallada.setColumnCount(4)
         self.tabla_detallada.setHorizontalHeaderLabels(["Fecha", "Producto", "Cant.", "Total $"])
-        self.tabla_detallada.setStyleSheet("""
-            QTableWidget { background: transparent; color: white; gridline-color: #1a1a2e; border: none; font-size: 11px; }
-            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 5px; border: none; font-weight: bold; }
-        """)
         self.tabla_detallada.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tabla_detallada.setMinimumHeight(400) # Para que se vea bien grande
+        self.tabla_detallada.setMinimumHeight(400)
         detallado_layout.addWidget(self.tabla_detallada)
 
         self.contenido_layout.addWidget(self.panel_detallado)

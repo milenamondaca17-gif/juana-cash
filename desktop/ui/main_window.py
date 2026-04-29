@@ -6,6 +6,9 @@ from PyQt6.QtWidgets import (QMainWindow, QStackedWidget, QWidget, QHBoxLayout,
                              QDialog, QTableWidget, QTableWidgetItem, QHeaderView, QFrame)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QIcon
+from ui.theme import get_tema, TEMAS, guardar_tema
+
+_T = get_tema()
 
 # Importaciones de tus pantallas
 from ui.pantallas.login import LoginScreen
@@ -40,41 +43,41 @@ class AlertaCumpleanosDialog(QDialog):
     def __init__(self, parent=None, clientes=None):
         super().__init__(parent)
         self.setWindowTitle("🎂 Cumpleaños")
-        self.setMinimumWidth(400)
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setMinimumWidth(420)
+        self.setStyleSheet(f"background-color: {_T['bg_card']}; color: {_T['text_main']};")
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 24, 24, 24)
 
         titulo = QLabel("🎂 Clientes con cumpleaños")
-        titulo.setFont(QFont("Arial", 15, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #f39c12;")
+        titulo.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_T['accent_yellow']}; background: transparent;")
         layout.addWidget(titulo)
 
         hoy = [c for c in clientes if c.get("tipo") == "hoy"]
         proximos = [c for c in clientes if c.get("tipo") == "proximo"]
 
         if hoy:
-            lbl = QLabel("🎉 ¡HOY es el cumpleaños de:")
-            lbl.setStyleSheet("color: #27ae60; font-size: 13px; font-weight: bold;")
+            lbl = QLabel("🎉 HOY es el cumpleaños de:")
+            lbl.setStyleSheet(f"color: {_T['success']}; font-size: 13px; font-weight: bold; background: transparent;")
             layout.addWidget(lbl)
             for c in hoy:
                 fila = QLabel(f"   🎂 {c['nombre']}" + (f"  — {c['telefono']}" if c.get("telefono") else ""))
-                fila.setStyleSheet("color: white; font-size: 13px; padding: 2px 0;")
+                fila.setStyleSheet(f"color: {_T['text_main']}; font-size: 13px; padding: 2px 0; background: transparent;")
                 layout.addWidget(fila)
 
         if proximos:
             lbl2 = QLabel("📅 Próximos cumpleaños (7 días):")
-            lbl2.setStyleSheet("color: #3498db; font-size: 12px; font-weight: bold; margin-top: 8px;")
+            lbl2.setStyleSheet(f"color: {_T['primary']}; font-size: 12px; font-weight: bold; margin-top: 8px; background: transparent;")
             layout.addWidget(lbl2)
             for c in proximos:
                 fila = QLabel(f"   📆 {c['nombre']}  —  {c['dia']:02d}/{c['mes']:02d}")
-                fila.setStyleSheet("color: #a0a0b0; font-size: 12px; padding: 2px 0;")
+                fila.setStyleSheet(f"color: {_T['text_muted']}; font-size: 12px; padding: 2px 0; background: transparent;")
                 layout.addWidget(fila)
 
         btn = QPushButton("OK")
         btn.setFixedHeight(40)
-        btn.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btn.setStyleSheet(f"QPushButton {{ background: {_T['accent_yellow']}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: {_T['warning']}; }}")
         btn.clicked.connect(self.accept)
         layout.addWidget(btn)
 
@@ -83,20 +86,20 @@ class AlertaDeudoresDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("💸 Deudores")
         self.setMinimumWidth(520)
-        self.setMinimumHeight(360)
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setMinimumHeight(380)
+        self.setStyleSheet(f"background-color: {_T['bg_card']}; color: {_T['text_main']};")
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 24, 24, 24)
 
         titulo = QLabel(f"💸 {len(deudores)} clientes con deuda pendiente")
-        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #e94560;")
+        titulo.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_T['danger']}; background: transparent;")
         layout.addWidget(titulo)
 
         total_deuda = sum(float(d.get("deuda_actual", 0)) for d in deudores)
         lbl_total = QLabel(f"Total adeudado: ${total_deuda:,.2f}")
-        lbl_total.setStyleSheet("color: #f39c12; font-size: 14px; font-weight: bold;")
+        lbl_total.setStyleSheet(f"color: {_T['accent_orange']}; font-size: 14px; font-weight: bold; background: transparent;")
         layout.addWidget(lbl_total)
 
         tabla = QTableWidget()
@@ -105,18 +108,14 @@ class AlertaDeudoresDialog(QDialog):
         tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         tabla.setColumnWidth(1, 110)
         tabla.setColumnWidth(2, 120)
-        tabla.setStyleSheet("""
-            QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
-            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; }
-            QTableWidgetItem { color: white; padding: 6px; }
-        """)
         tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         tabla.setRowCount(len(deudores))
 
+        from PyQt6.QtGui import QColor
         for i, d in enumerate(deudores):
             tabla.setItem(i, 0, QTableWidgetItem(d["nombre"]))
             item_deuda = QTableWidgetItem(f"${float(d['deuda_actual']):,.2f}")
-            item_deuda.setForeground(Qt.GlobalColor.red)
+            item_deuda.setForeground(QColor(_T['danger']))
             tabla.setItem(i, 1, item_deuda)
             tabla.setItem(i, 2, QTableWidgetItem(d.get("telefono") or "-"))
 
@@ -124,7 +123,7 @@ class AlertaDeudoresDialog(QDialog):
 
         btn = QPushButton("Cerrar")
         btn.setFixedHeight(40)
-        btn.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }")
+        btn.setStyleSheet(f"QPushButton {{ background: {_T['danger']}; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: #b91c1c; }}")
         btn.clicked.connect(self.accept)
         layout.addWidget(btn)
 
@@ -137,7 +136,7 @@ class MainWindow(QMainWindow):
         self.cajero_actual = None
 
         central = QWidget()
-        central.setStyleSheet("background-color: #050e1a;") 
+        central.setStyleSheet(f"background-color: {_T['bg_app']};")
         self.setCentralWidget(central)
         
         self.main_layout = QVBoxLayout(central)
@@ -147,7 +146,9 @@ class MainWindow(QMainWindow):
         # ── Navbar Horizontal Superior ───────────────
         self.navbar = QFrame()
         self.navbar.setFixedHeight(60)
-        self.navbar.setStyleSheet("background-color: #0a1628; border-bottom: 1px solid #1a2744;")
+        self.navbar.setStyleSheet(
+            f"background-color: {_T['bg_navbar']}; border-bottom: 2px solid {_T['border']};"
+        )
         self.navbar.hide()
         
         navbar_layout = QHBoxLayout(self.navbar)
@@ -156,7 +157,7 @@ class MainWindow(QMainWindow):
 
         logo = QLabel("JUANA CASH")
         logo.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        logo.setStyleSheet("color: #e63946; border: none; font-weight: bold;")
+        logo.setStyleSheet(f"color: {_T['logo_color']}; border: none; font-weight: bold; letter-spacing: 1px;")
         navbar_layout.addWidget(logo)
 
         navbar_layout.addSpacing(30)
@@ -186,15 +187,15 @@ class MainWindow(QMainWindow):
             ("👤 Usuarios",   "usuarios"),
         ]
 
-        ESTILO_BTN = """
-            QPushButton { background: transparent; color: #8899aa; font-size: 13px; font-weight: bold; border: none; padding: 0 12px; border-bottom: 3px solid transparent;}
-            QPushButton:hover { color: #f0f0f0; background: #111d33; border-bottom: 3px solid #8899aa;}
-            QPushButton:checked { color: white; background: #111d33; border-bottom: 3px solid #e63946;}
+        ESTILO_BTN = f"""
+            QPushButton {{ background: transparent; color: {_T['navbar_text']}; font-size: 13px; font-weight: bold; border: none; padding: 0 12px; border-bottom: 3px solid transparent; border-radius: 0px; }}
+            QPushButton:hover {{ color: {_T['text_main']}; background: {_T['bg_hover']}; border-bottom: 3px solid {_T['border']}; }}
+            QPushButton:checked {{ color: {_T['navbar_active']}; background: {_T['navbar_active_bg']}; border-bottom: 3px solid {_T['navbar_border']}; }}
         """
-        ESTILO_CONFIG = """
-            QPushButton { background: #0d1b30; color: #8899aa; font-size: 12px; font-weight: bold; border: none; padding: 0 10px; border-bottom: 3px solid transparent; border-left: 2px solid #1a2744;}
-            QPushButton:hover { color: #f0f0f0; background: #111d33; border-bottom: 3px solid #8899aa;}
-            QPushButton:checked { color: white; background: #111d33; border-bottom: 3px solid #e63946;}
+        ESTILO_CONFIG = f"""
+            QPushButton {{ background: {_T['bg_hover']}; color: {_T['navbar_text']}; font-size: 12px; font-weight: bold; border: none; padding: 0 10px; border-bottom: 3px solid transparent; border-left: 3px solid {_T['border']}; border-radius: 0px; }}
+            QPushButton:hover {{ color: {_T['text_main']}; background: {_T['bg_selected']}; border-bottom: 3px solid {_T['border']}; }}
+            QPushButton:checked {{ color: {_T['navbar_active']}; background: {_T['navbar_active_bg']}; border-bottom: 3px solid {_T['navbar_border']}; }}
         """
 
         for texto, key in menus_principales:
@@ -260,19 +261,19 @@ class MainWindow(QMainWindow):
             _ver = ""
         if _ver:
             lbl_ver = QLabel(f"v{_ver}")
-            lbl_ver.setStyleSheet("color: #2a4a6a; font-size: 11px; border: none; margin-right: 10px;")
+            lbl_ver.setStyleSheet(f"color: {_T['text_muted']}; font-size: 11px; border: none; margin-right: 10px;")
             navbar_layout.addWidget(lbl_ver)
 
         self.lbl_cajero_navbar = QLabel("")
-        self.lbl_cajero_navbar.setStyleSheet("color: #f0f0f0; font-size: 13px; border: none; margin-right: 15px;")
+        self.lbl_cajero_navbar.setStyleSheet(f"color: {_T['text_main']}; font-size: 13px; border: none; margin-right: 15px; font-weight: bold;")
         navbar_layout.addWidget(self.lbl_cajero_navbar)
 
         btn_salir = QPushButton("Salir")
-        btn_salir.setFixedHeight(36)
+        btn_salir.setFixedHeight(34)
         btn_salir.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_salir.setStyleSheet("""
-            QPushButton { background: transparent; color: #8899aa; font-size: 13px; font-weight: bold; border: 1px solid #1a2744; border-radius: 6px; padding: 0 15px;}
-            QPushButton:hover { background: #e63946; color: white; border-color: #e63946;}
+        btn_salir.setStyleSheet(f"""
+            QPushButton {{ background: transparent; color: {_T['text_muted']}; font-size: 13px; font-weight: bold; border: 1.5px solid {_T['border']}; border-radius: 8px; padding: 0 15px; }}
+            QPushButton:hover {{ background: {_T['danger']}; color: white; border-color: {_T['danger']}; }}
         """)
         btn_salir.clicked.connect(self.on_logout)
         navbar_layout.addWidget(btn_salir)

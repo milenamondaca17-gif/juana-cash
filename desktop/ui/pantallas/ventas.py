@@ -29,6 +29,9 @@ except Exception:
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _get_tema
+_T = _get_tema()
+
 DEPARTAMENTOS = {
     "930":  {"nombre": "Carnicería", "icono": "🥩", "color": "#e74c3c"},
     "1003": {"nombre": "Fiambrería", "icono": "🧀", "color": "#f39c12"},
@@ -41,14 +44,14 @@ DEPARTAMENTOS = {
     "909":  {"nombre": "Varios",     "icono": "📦", "color": "#95a5a6"},
 }
 
-BG_MAIN = "#161925"
-BG_PANEL = "#222738"
-BORDER = "#343B54"
-TEXT_MAIN = "#F0F0F0"
-TEXT_MUTED = "#8D99AE"
-ACCENT_OFERTAS = "#F1B44C"
-ACCENT_TOTAL = "#34C38F"
-ACCENT_BOTON = "#556EE6"
+BG_MAIN      = _T["bg_app"]
+BG_PANEL     = _T["bg_card"]
+BORDER       = _T["border"]
+TEXT_MAIN    = _T["text_main"]
+TEXT_MUTED   = _T["text_muted"]
+ACCENT_OFERTAS = _T["accent_yellow"]
+ACCENT_TOTAL   = _T["accent_green"]
+ACCENT_BOTON   = _T["primary"]
 
 from PyQt6.QtWidgets import QCheckBox
 
