@@ -244,6 +244,25 @@ class MainWindow(QMainWindow):
 
         navbar_layout.addStretch()
 
+        try:
+            import json, sys
+            _candidatos = [
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "version.json"),
+                os.path.join(os.path.dirname(sys.executable), "version.json"),
+            ]
+            _ver = ""
+            for _p in _candidatos:
+                _p = os.path.normpath(_p)
+                if os.path.exists(_p):
+                    _ver = json.load(open(_p)).get("version", "")
+                    break
+        except Exception:
+            _ver = ""
+        if _ver:
+            lbl_ver = QLabel(f"v{_ver}")
+            lbl_ver.setStyleSheet("color: #2a4a6a; font-size: 11px; border: none; margin-right: 10px;")
+            navbar_layout.addWidget(lbl_ver)
+
         self.lbl_cajero_navbar = QLabel("")
         self.lbl_cajero_navbar.setStyleSheet("color: #f0f0f0; font-size: 13px; border: none; margin-right: 15px;")
         navbar_layout.addWidget(self.lbl_cajero_navbar)

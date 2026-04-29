@@ -61,16 +61,7 @@ main_window = MainWindow()
 def _terminar():
     splash.lbl_estado.setText("Bienvenido a Juana Cash")
     splash.lbl_estado.setStyleSheet("color: #27AE60; background: transparent; font-weight: bold;")
-    def _abrir():
-        splash.close()
-        main_window.show()
-        from PyQt6.QtWidgets import QMessageBox
-        msg = QMessageBox()
-        msg.setWindowTitle("🔵🔴 Importante")
-        msg.setText("¡Aguante San Lorenzo!")
-        msg.setStyleSheet("background-color: #1a1a2e; color: white; font-size: 16px;")
-        msg.exec()
-    QTimer.singleShot(600, _abrir)
+    QTimer.singleShot(600, lambda: (splash.close(), main_window.show()))
 
 splash._terminar = _terminar
 sys.exit(app.exec())
