@@ -12,7 +12,7 @@ GITHUB_REPO  = "juana-cash"
 VERSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.json")
 TIMEOUT_RED  = 8
 
-LOG_FILE = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "update.log")
+LOG_FILE = os.path.join(os.path.expanduser("~"), "Desktop", "juana_update.log")
 
 def _log(msg):
     try:

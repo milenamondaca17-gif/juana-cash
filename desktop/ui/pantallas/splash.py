@@ -207,8 +207,15 @@ class SplashScreen(QWidget):
                 on_sin_internet=lambda: None,
                 on_no_hay_update=lambda: None,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            try:
+                import traceback
+                _log_path = os.path.join(os.path.expanduser("~"), "Desktop", "juana_update.log")
+                os.makedirs(os.path.dirname(_log_path), exist_ok=True)
+                with open(_log_path, "a", encoding="utf-8") as f:
+                    f.write(f"[SPLASH ERROR] {e}\n{traceback.format_exc()}\n")
+            except Exception:
+                pass
 
     def _set_update_msg(self, msg):
         self._update_msg = msg
