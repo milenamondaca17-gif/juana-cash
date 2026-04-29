@@ -369,9 +369,33 @@ class MainWindow(QMainWindow):
 
     def on_login_exitoso(self, usuario):
         self.usuario_actual = usuario
-        self.turno_screen = TurnoScreen(self.on_turno_seleccionado, usuario)
-        self.stack.addWidget(self.turno_screen)
-        self.stack.setCurrentWidget(self.turno_screen)
+        from datetime import datetime as _dt
+        _hora = _dt.now().hour * 60 + _dt.now().minute
+        if 9*60+30 <= _hora <= 13*60+30:
+            turno = "Mañana (09:30 - 13:30)"
+        elif 18*60 <= _hora <= 22*60:
+            turno = "Tarde (18:00 - 22:00)"
+        elif _hora < 9*60+30:
+            turno = "Mañana (09:30 - 13:30)"
+        else:
+            turno = "Tarde (18:00 - 22:00)"
+        cajero = {
+            "nombre": usuario.get("nombre", ""),
+            "turno": turno,
+            "rol":   usuario.get("rol", "cajero"),
+            "id":    usuario.get("id", 1)
+        }
+        try:
+            requests.post(f"{API_URL}/sesiones/registrar", json={
+                "usuario_id": cajero["id"],
+                "nombre_cajero": cajero["nombre"],
+                "turno": turno,
+                "accion": "APERTURA_TURNO",
+                "detalle": f"Turno iniciado: {turno}"
+            }, timeout=3)
+        except Exception:
+            pass
+        self.on_turno_seleccionado(cajero)
 
     def on_turno_seleccionado(self, cajero):
         if cajero is None:

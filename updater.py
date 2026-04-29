@@ -86,7 +86,7 @@ def descargar_e_instalar(installer_url, version_nueva, callback_ok=None, callbac
         _log(f"Descarga completada. Tamanio: {os.path.getsize(tmp)} bytes")
         guardar_version_local(version_nueva)
         _log(f"Ejecutando instalador: {tmp}")
-        subprocess.Popen([tmp, "/SILENT", "/NORESTART", "/CLOSEAPPLICATIONS"])
+        subprocess.Popen([tmp, "/VERYSILENT", "/NORESTART", "/CLOSEAPPLICATIONS"])
         _log("Instalador lanzado correctamente")
         if callback_ok:
             callback_ok(version_nueva)
