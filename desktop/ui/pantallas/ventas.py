@@ -1482,11 +1482,14 @@ class VentasScreen(QWidget):
         monto_secundario = dialog.monto_secundario
         descuento_monto = total_original - total_final
         vuelto = 0
-        if metodo_pago == "efectivo":
-            try:
-                entrega = float(dialog.input_entrega.text().replace(",", "."))
+        try:
+            entrega = float(dialog.input_entrega.text().replace(",", "."))
+            if metodo_pago == "efectivo":
                 vuelto = max(0, entrega - (total_final - monto_secundario))
-            except ValueError: pass
+            elif metodo_secundario == "efectivo":
+                vuelto = max(0, entrega - monto_secundario)
+        except (ValueError, TypeError):
+            pass
         items_backend = [i for i in self.items_venta if i["producto_id"] != 0]
         if not items_backend:
             items_backend = [{"producto_id": 1, "cantidad": 1, "precio_unitario": total_final, "descuento": 0}]
@@ -1559,11 +1562,14 @@ class VentasScreen(QWidget):
         monto_secundario = dialog.monto_secundario
         descuento_monto = total_original - total_final
         vuelto = 0
-        if metodo_pago == "efectivo":
-            try:
-                entrega = float(dialog.input_entrega.text().replace(",", "."))
+        try:
+            entrega = float(dialog.input_entrega.text().replace(",", "."))
+            if metodo_pago == "efectivo":
                 vuelto = max(0, entrega - (total_final - monto_secundario))
-            except ValueError: pass
+            elif metodo_secundario == "efectivo":
+                vuelto = max(0, entrega - monto_secundario)
+        except (ValueError, TypeError):
+            pass
         items_backend = [i for i in self.items_venta if i["producto_id"] != 0]
         if not items_backend:
             items_backend = [{"producto_id": 1, "cantidad": 1, "precio_unitario": total_final, "descuento": 0}]

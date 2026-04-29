@@ -88,7 +88,8 @@ class UsuariosScreen(QWidget):
                     btn_del.setStyleSheet("background: #334155; padding: 5px;")
                     btn_del.clicked.connect(lambda _, uid=u["id"]: self.borrar_usuario(uid))
                     self.tabla.setCellWidget(i, 2, btn_del)
-        except: pass
+        except Exception:
+            pass
 
     def nuevo_usuario(self):
         dialog = UsuarioDialog(self)
