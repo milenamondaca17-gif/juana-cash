@@ -319,7 +319,8 @@ def _main(page: ft.Page):
 
         threading.Thread(target=_upload, daemon=True).start()
 
-    file_picker = ft.FilePicker(on_result=_on_file_picked)
+    file_picker = ft.FilePicker()
+    file_picker.on_result = _on_file_picked
     page.overlay.append(file_picker)
     page.update()
 
@@ -1188,7 +1189,6 @@ def _main(page: ft.Page):
         file_picker.pick_files(
             dialog_title="Seleccionar imagen",
             allowed_extensions=["jpg", "jpeg", "png", "webp"],
-            file_type=ft.FilePickerFileType.IMAGE,
         )
 
     view_ofertas = ft.Container(
