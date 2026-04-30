@@ -11,6 +11,11 @@ from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _gt
+_T = _gt()
+_BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
+_MUT = _T["text_muted"]; _PRI = _T["primary"]; _BOR = _T["border"]
+_OK = _T["success"]; _DGR = _T["danger"]; _INP = _T["bg_input"]
 
 class ConfigScreen(QWidget):
     def __init__(self):
@@ -19,41 +24,41 @@ class ConfigScreen(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(14)
 
         header = QHBoxLayout()
         titulo = QLabel("⚙️ Configuración del Sistema")
-        titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: white;")
+        titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT}; background: transparent;")
         header.addWidget(titulo)
         header.addStretch()
         btn_guardar = QPushButton("💾 Guardar todo")
-        btn_guardar.setFixedHeight(36)
+        btn_guardar.setFixedHeight(38)
         btn_guardar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_guardar.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; padding: 0 16px; } QPushButton:hover { background: #1e8449; }")
+        btn_guardar.setStyleSheet(f"QPushButton {{ background: {_OK}; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; padding: 0 16px; }} QPushButton:hover {{ background: #059669; }}")
         btn_guardar.clicked.connect(self.guardar_config)
         header.addWidget(btn_guardar)
         layout.addLayout(header)
 
         tabs = QTabWidget()
-        tabs.setStyleSheet("""
-            QTabWidget::pane { border: 1px solid #0f3460; background: #16213e; border-radius: 8px; }
-            QTabBar::tab { background: #0f3460; color: #a0a0b0; padding: 8px 16px; border-radius: 4px; margin-right: 4px; }
-            QTabBar::tab:selected { background: #e94560; color: white; }
+        tabs.setStyleSheet(f"""
+            QTabWidget::pane {{ border: 1.5px solid {_BOR}; background: {_CARD}; border-radius: 10px; }}
+            QTabBar::tab {{ background: {_BG}; color: {_MUT}; padding: 8px 16px; border-radius: 0px; border-bottom: 2px solid transparent; font-weight: bold; }}
+            QTabBar::tab:selected {{ color: {_PRI}; border-bottom: 2px solid {_PRI}; background: {_CARD}; }}
+            QTabBar::tab:hover {{ color: {_TXT}; background: {_T['bg_hover']}; }}
         """)
 
-        # ── Tab 1: Datos del negocio ──────────────────────────────────────
         tab_negocio = QWidget()
-        tab_negocio.setStyleSheet("background: transparent;")
+        tab_negocio.setStyleSheet(f"background: {_CARD};")
         neg_layout = QFormLayout(tab_negocio)
         neg_layout.setContentsMargins(20, 20, 20, 20)
         neg_layout.setSpacing(12)
         neg_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
 
-        estilo_input = "QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 13px; }"
+        estilo_input = f"QLineEdit {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 13px; }}"
 
         self.inp_nombre      = QLineEdit(); self.inp_nombre.setStyleSheet(estilo_input); self.inp_nombre.setFixedHeight(38)
         self.inp_direccion   = QLineEdit(); self.inp_direccion.setStyleSheet(estilo_input); self.inp_direccion.setFixedHeight(38)
@@ -65,7 +70,7 @@ class ConfigScreen(QWidget):
         self.combo_iva = QComboBox()
         self.combo_iva.addItems(["Responsable Inscripto", "Monotributista", "Exento", "Consumidor Final"])
         self.combo_iva.setFixedHeight(38)
-        self.combo_iva.setStyleSheet("QComboBox { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 13px; } QComboBox::drop-down { border: none; } QComboBox QAbstractItemView { background: #0f3460; color: white; selection-background-color: #e94560; }")
+        self.combo_iva.setStyleSheet(f"QComboBox {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 13px; }} QComboBox::drop-down {{ border: none; }} QComboBox QAbstractItemView {{ background: {_CARD}; color: {_TXT}; selection-background-color: {_PRI}; }}")
 
         for label, widget in [
             ("Nombre del negocio *:", self.inp_nombre),
@@ -77,27 +82,27 @@ class ConfigScreen(QWidget):
             ("Condición IVA:", self.combo_iva),
         ]:
             lbl = QLabel(label)
-            lbl.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+            lbl.setStyleSheet(f"color: {_MUT}; font-size: 13px;")
             neg_layout.addRow(lbl, widget)
 
         tabs.addTab(tab_negocio, "🏪 Negocio")
 
         # ── Tab 2: Sucursales ─────────────────────────────────────────────
         tab_suc = QWidget()
-        tab_suc.setStyleSheet("background: transparent;")
+        tab_suc.setStyleSheet(f"background: {_CARD};")
         suc_layout = QVBoxLayout(tab_suc)
         suc_layout.setContentsMargins(20, 20, 20, 20)
         suc_layout.setSpacing(12)
 
         suc_header = QHBoxLayout()
         lbl_suc = QLabel("Sucursales del negocio")
-        lbl_suc.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
+        lbl_suc.setStyleSheet(f"color: {_TXT}; font-size: 14px; font-weight: bold;")
         suc_header.addWidget(lbl_suc)
         suc_header.addStretch()
         btn_nueva_suc = QPushButton("+ Nueva sucursal")
         btn_nueva_suc.setFixedHeight(32)
         btn_nueva_suc.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_nueva_suc.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 6px; font-size: 12px; padding: 0 12px; }")
+        btn_nueva_suc.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 6px; font-size: 12px; padding: 0 12px; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_nueva_suc.clicked.connect(self.nueva_sucursal)
         suc_header.addWidget(btn_nueva_suc)
         suc_layout.addLayout(suc_header)
@@ -108,16 +113,15 @@ class ConfigScreen(QWidget):
         self.tabla_suc.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_suc.setColumnWidth(0, 60)
         self.tabla_suc.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.tabla_suc.setStyleSheet("QTableWidget { background: #0f3460; border: 1px solid #16213e; border-radius: 8px; color: white; } QHeaderView::section { background: #16213e; color: #a0a0b0; padding: 6px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
         self.tabla_suc.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         suc_layout.addWidget(self.tabla_suc)
 
         lbl_suc_actual = QLabel("Sucursal activa:")
-        lbl_suc_actual.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lbl_suc_actual.setStyleSheet(f"color: {_MUT}; font-size: 13px;")
         suc_layout.addWidget(lbl_suc_actual)
         self.combo_suc_actual = QComboBox()
         self.combo_suc_actual.setFixedHeight(38)
-        self.combo_suc_actual.setStyleSheet("QComboBox { background: #0f3460; border: 1px solid #3498db; border-radius: 8px; padding: 8px; color: white; font-size: 13px; } QComboBox::drop-down { border: none; } QComboBox QAbstractItemView { background: #0f3460; color: white; selection-background-color: #e94560; }")
+        self.combo_suc_actual.setStyleSheet(f"QComboBox {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 13px; }} QComboBox::drop-down {{ border: none; }} QComboBox QAbstractItemView {{ background: {_CARD}; color: {_TXT}; selection-background-color: {_PRI}; }}")
         suc_layout.addWidget(self.combo_suc_actual)
         suc_layout.addStretch()
 
@@ -125,25 +129,25 @@ class ConfigScreen(QWidget):
 
         # ── Tab 3: Sistema ────────────────────────────────────────────────
         tab_sis = QWidget()
-        tab_sis.setStyleSheet("background: transparent;")
+        tab_sis.setStyleSheet(f"background: {_CARD};")
         sis_layout = QVBoxLayout(tab_sis)
         sis_layout.setContentsMargins(20, 20, 20, 20)
         sis_layout.setSpacing(16)
 
         # Timeout
         timeout_frame = QFrame()
-        timeout_frame.setStyleSheet("QFrame { background: #0f3460; border-radius: 10px; }")
+        timeout_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
         tf_lay = QVBoxLayout(timeout_frame)
         tf_lay.setContentsMargins(16, 12, 16, 12)
         lbl_to = QLabel("⏱ Timeout de sesión automático")
-        lbl_to.setStyleSheet("color: white; font-size: 13px; font-weight: bold;")
+        lbl_to.setStyleSheet(f"color: {_TXT}; font-size: 13px; font-weight: bold;")
         tf_lay.addWidget(lbl_to)
         lbl_to_desc = QLabel("Cierra la sesión automáticamente después de X minutos sin actividad.")
-        lbl_to_desc.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        lbl_to_desc.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
         tf_lay.addWidget(lbl_to_desc)
         to_fila = QHBoxLayout()
         lbl_min = QLabel("Minutos de inactividad:")
-        lbl_min.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lbl_min.setStyleSheet(f"color: {_MUT}; font-size: 13px;")
         to_fila.addWidget(lbl_min)
         self.spin_timeout = QSpinBox()
         self.spin_timeout.setRange(1, 480)
@@ -151,7 +155,7 @@ class ConfigScreen(QWidget):
         self.spin_timeout.setSuffix(" min")
         self.spin_timeout.setFixedHeight(38)
         self.spin_timeout.setFixedWidth(120)
-        self.spin_timeout.setStyleSheet("QSpinBox { background: #1a1a2e; border: 1px solid #e94560; border-radius: 8px; padding: 6px; color: white; font-size: 14px; }")
+        self.spin_timeout.setStyleSheet(f"QSpinBox {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 6px; color: {_TXT}; font-size: 14px; }}")
         to_fila.addWidget(self.spin_timeout)
         to_fila.addStretch()
         tf_lay.addLayout(to_fila)
@@ -159,48 +163,48 @@ class ConfigScreen(QWidget):
 
         # Modo offline
         offline_frame = QFrame()
-        offline_frame.setStyleSheet("QFrame { background: #0f3460; border-radius: 10px; }")
+        offline_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
         of_lay = QVBoxLayout(offline_frame)
         of_lay.setContentsMargins(16, 12, 16, 12)
         lbl_of = QLabel("📡 Modo offline robusto")
-        lbl_of.setStyleSheet("color: white; font-size: 13px; font-weight: bold;")
+        lbl_of.setStyleSheet(f"color: {_TXT}; font-size: 13px; font-weight: bold;")
         of_lay.addWidget(lbl_of)
         lbl_of_desc = QLabel("Cuando el servidor no responde, las ventas se guardan localmente\ny se sincronizan automáticamente cuando vuelve la conexión.")
-        lbl_of_desc.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        lbl_of_desc.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
         of_lay.addWidget(lbl_of_desc)
         self.chk_offline = QCheckBox("Activar modo offline")
-        self.chk_offline.setStyleSheet("QCheckBox { color: white; font-size: 13px; } QCheckBox::indicator { width: 18px; height: 18px; }")
+        self.chk_offline.setStyleSheet(f"QCheckBox {{ color: {_TXT}; font-size: 13px; }} QCheckBox::indicator {{ width: 18px; height: 18px; }}")
         self.chk_offline.setChecked(True)
         of_lay.addWidget(self.chk_offline)
         sis_layout.addWidget(offline_frame)
 
         # AFIP
         afip_frame = QFrame()
-        afip_frame.setStyleSheet("QFrame { background: #0f3460; border-radius: 10px; border: 1px solid #3498db; }")
+        afip_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_PRI}; }}")
         af_lay = QVBoxLayout(afip_frame)
         af_lay.setContentsMargins(16, 12, 16, 12)
         lbl_af = QLabel("🧾 Facturación ARCA/AFIP")
-        lbl_af.setStyleSheet("color: #3498db; font-size: 13px; font-weight: bold;")
+        lbl_af.setStyleSheet(f"color: {_PRI}; font-size: 13px; font-weight: bold;")
         af_lay.addWidget(lbl_af)
         lbl_af_desc = QLabel("Generá tickets fiscales B para consumidor final.\nRequiere CUIT cargado y punto de venta configurado.")
-        lbl_af_desc.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        lbl_af_desc.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
         af_lay.addWidget(lbl_af_desc)
 
         af_fila = QHBoxLayout()
         lbl_pv = QLabel("Punto de venta:")
-        lbl_pv.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lbl_pv.setStyleSheet(f"color: {_MUT}; font-size: 13px;")
         af_fila.addWidget(lbl_pv)
         self.inp_punto_venta = QLineEdit()
         self.inp_punto_venta.setPlaceholderText("0001")
         self.inp_punto_venta.setFixedWidth(80)
         self.inp_punto_venta.setFixedHeight(36)
-        self.inp_punto_venta.setStyleSheet("QLineEdit { background: #1a1a2e; border: 1px solid #3498db; border-radius: 6px; padding: 6px; color: white; font-size: 13px; }")
+        self.inp_punto_venta.setStyleSheet(f"QLineEdit {{ background: {_BG}; border: 1.5px solid {_PRI}; border-radius: 6px; padding: 6px; color: {_TXT}; font-size: 13px; }}")
         af_fila.addWidget(self.inp_punto_venta)
         af_fila.addStretch()
         af_lay.addLayout(af_fila)
 
         self.chk_afip = QCheckBox("Activar facturación (genera comprobantes B)")
-        self.chk_afip.setStyleSheet("QCheckBox { color: white; font-size: 13px; } QCheckBox::indicator { width: 18px; height: 18px; }")
+        self.chk_afip.setStyleSheet(f"QCheckBox {{ color: {_TXT}; font-size: 13px; }} QCheckBox::indicator {{ width: 18px; height: 18px; }}")
         af_lay.addWidget(self.chk_afip)
         sis_layout.addWidget(afip_frame)
         sis_layout.addStretch()
@@ -209,7 +213,7 @@ class ConfigScreen(QWidget):
 
         # ── TAB: BORRADO DE VENTAS ───────────────────────────────────────────
         tab_borrado = QWidget()
-        tab_borrado.setStyleSheet("background: transparent;")
+        tab_borrado.setStyleSheet(f"background: {_CARD};")
         bor_layout = QVBoxLayout(tab_borrado)
         bor_layout.setContentsMargins(20, 20, 20, 20)
         bor_layout.setSpacing(16)
@@ -231,13 +235,13 @@ class ConfigScreen(QWidget):
 
         # Qué se borra
         info_frame = QFrame()
-        info_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 10px; }")
+        info_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
         info_lay = QVBoxLayout(info_frame)
         info_lay.setContentsMargins(16, 14, 16, 14)
         info_lay.setSpacing(6)
         lbl_info_t = QLabel("📋 Se eliminará:")
         lbl_info_t.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        lbl_info_t.setStyleSheet("color: white; background: transparent; border: none;")
+        lbl_info_t.setStyleSheet(f"color: {_TXT}; background: transparent; border: none;")
         info_lay.addWidget(lbl_info_t)
         for item in ["✅ Todas las ventas completadas",
                      "❌ Todas las anulaciones",
@@ -246,21 +250,21 @@ class ConfigScreen(QWidget):
                      "🏧 Historial de turnos de caja",
                      "📋 Registro de sesiones y auditoria"]:
             l = QLabel(f"  {item}")
-            l.setStyleSheet("color: #a0a0b0; font-size: 12px; background: transparent; border: none;")
+            l.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent; border: none;")
             info_lay.addWidget(l)
         lbl_no_borra = QLabel("\n🔒 NO se eliminará: Productos, clientes, usuarios, configuración")
-        lbl_no_borra.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        lbl_no_borra.setStyleSheet(f"color: {_OK}; font-size: 12px; font-weight: bold; background: transparent; border: none;")
         info_lay.addWidget(lbl_no_borra)
         bor_layout.addWidget(info_frame)
 
         # PIN y botón
         pin_frame = QFrame()
-        pin_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 10px; }")
+        pin_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
         pin_lay = QVBoxLayout(pin_frame)
         pin_lay.setContentsMargins(16, 14, 16, 14)
         pin_lay.setSpacing(10)
         lbl_pin = QLabel("🔐 Ingresá el PIN de administrador para continuar:")
-        lbl_pin.setStyleSheet("color: #a0a0b0; font-size: 13px; background: transparent; border: none;")
+        lbl_pin.setStyleSheet(f"color: {_MUT}; font-size: 13px; background: transparent; border: none;")
         pin_lay.addWidget(lbl_pin)
         pin_row = QHBoxLayout()
         self.input_pin_borrado = QLineEdit()
@@ -270,8 +274,8 @@ class ConfigScreen(QWidget):
         self.input_pin_borrado.setFixedHeight(42)
         self.input_pin_borrado.setFixedWidth(160)
         self.input_pin_borrado.setStyleSheet(
-            "QLineEdit { background: #0f3460; border: 2px solid #e74c3c; border-radius: 8px; "
-            "padding: 8px; color: white; font-size: 18px; letter-spacing: 4px; }")
+            f"QLineEdit {{ background: {_BG}; border: 2px solid #e74c3c; border-radius: 8px; "
+            f"padding: 8px; color: {_TXT}; font-size: 18px; letter-spacing: 4px; }}")
         pin_row.addWidget(self.input_pin_borrado)
         pin_row.addStretch()
         pin_lay.addLayout(pin_row)
@@ -407,27 +411,27 @@ class ConfigScreen(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle("Nueva sucursal")
         dialog.setMinimumWidth(360)
-        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        dialog.setStyleSheet(f"background-color: {_CARD}; color: {_TXT};")
         lay = QVBoxLayout(dialog)
         lay.setSpacing(10)
         lay.setContentsMargins(20, 20, 20, 20)
 
-        estilo = "QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 13px; }"
+        estilo = f"QLineEdit {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 13px; }}"
 
         lbl_id = QLabel("ID de sucursal (ej: 2):")
-        lbl_id.setStyleSheet("color: #a0a0b0;")
+        lbl_id.setStyleSheet(f"color: {_MUT};")
         lay.addWidget(lbl_id)
         inp_id = QLineEdit(); inp_id.setFixedHeight(38); inp_id.setStyleSheet(estilo)
         lay.addWidget(inp_id)
 
         lbl_nom = QLabel("Nombre:")
-        lbl_nom.setStyleSheet("color: #a0a0b0;")
+        lbl_nom.setStyleSheet(f"color: {_MUT};")
         lay.addWidget(lbl_nom)
         inp_nom = QLineEdit(); inp_nom.setFixedHeight(38); inp_nom.setStyleSheet(estilo)
         lay.addWidget(inp_nom)
 
         lbl_dir = QLabel("Dirección:")
-        lbl_dir.setStyleSheet("color: #a0a0b0;")
+        lbl_dir.setStyleSheet(f"color: {_MUT};")
         lay.addWidget(lbl_dir)
         inp_dir = QLineEdit(); inp_dir.setFixedHeight(38); inp_dir.setStyleSheet(estilo)
         lay.addWidget(inp_dir)
@@ -435,12 +439,12 @@ class ConfigScreen(QWidget):
         btns = QHBoxLayout()
         btn_c = QPushButton("Cancelar"); btn_c.setFixedHeight(38)
         btn_c.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {_MUT}; border: 1px solid {_BOR}; border-radius: 8px; }}")
         btn_c.clicked.connect(dialog.reject)
         btns.addWidget(btn_c)
         btn_ok = QPushButton("Agregar"); btn_ok.setFixedHeight(38)
         btn_ok.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_ok.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-weight: bold; }")
+        btn_ok.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btns.addWidget(btn_ok)
         lay.addLayout(btns)
 

@@ -7,29 +7,34 @@ from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _gt
+_T = _gt()
+_BG   = _T["bg_app"];  _CARD = _T["bg_card"]; _INP = _T["bg_input"]
+_TXT  = _T["text_main"]; _MUT = _T["text_muted"]; _PRI = _T["primary"]
+_DGR  = _T["danger"];  _BOR = _T["border"]
+
 class SesionesScreen(QWidget):
     def __init__(self):
         super().__init__()
         self.setup_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(14)
         titulo = QLabel("📋 Log de Sesiones")
-        titulo.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #e94560;")
+        titulo.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT}; background: transparent;")
         layout.addWidget(titulo)
         filtros = QHBoxLayout()
         self.combo_dias = QComboBox()
         self.combo_dias.addItems(["Hoy", "Últimos 3 días", "Última semana", "Último mes"])
-        self.combo_dias.setFixedHeight(36)
-        self.combo_dias.setStyleSheet("QComboBox { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 6px; color: white; font-size: 13px; } QComboBox QAbstractItemView { background: #0f3460; color: white; selection-background-color: #e94560; }")
+        self.combo_dias.setFixedHeight(38)
         filtros.addWidget(self.combo_dias)
         btn_actualizar = QPushButton("🔄 Actualizar")
-        btn_actualizar.setFixedHeight(36)
-        btn_actualizar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; }")
+        btn_actualizar.setFixedHeight(38)
+        btn_actualizar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; padding: 0 16px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_actualizar.clicked.connect(self.cargar_sesiones)
         filtros.addWidget(btn_actualizar)
         filtros.addStretch()
@@ -42,11 +47,10 @@ class SesionesScreen(QWidget):
         self.tabla.setColumnWidth(1, 150)
         self.tabla.setColumnWidth(2, 180)
         self.tabla.setColumnWidth(3, 130)
-        self.tabla.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla)
         self.lbl_total = QLabel("")
-        self.lbl_total.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        self.lbl_total.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
         layout.addWidget(self.lbl_total)
 
     def cargar_sesiones(self):

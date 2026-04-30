@@ -8,6 +8,11 @@ from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _gt
+_T = _gt()
+_BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
+_MUT = _T["text_muted"]; _PRI = _T["primary"]; _DGR = _T["danger"]
+_BOR = _T["border"]; _OK = _T["success"]
 
 class ClienteDialog(QDialog):
     def __init__(self, parent=None, cliente=None):
@@ -15,20 +20,21 @@ class ClienteDialog(QDialog):
         self.cliente = cliente
         self.setWindowTitle("✏️ Editar cliente" if cliente else "➕ Nuevo cliente")
         self.setMinimumWidth(420)
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {_CARD}; color: {_TXT};")
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
+        layout.setContentsMargins(24, 24, 24, 24)
 
         titulo = QLabel("👤 Datos del cliente")
-        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #e94560;")
+        titulo.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_PRI}; background: transparent;")
         layout.addWidget(titulo)
 
-        estilo_input = "QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }"
-        estilo_spin  = "QDoubleSpinBox { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }"
+        estilo_input = f"QLineEdit {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 14px; }}"
+        estilo_spin  = f"QDoubleSpinBox {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 14px; }}"
 
         form = QFormLayout()
         form.setSpacing(10)
@@ -86,13 +92,13 @@ class ClienteDialog(QDialog):
         btns = QHBoxLayout()
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setFixedHeight(44)
-        btn_cancelar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_cancelar.setStyleSheet(f"QPushButton {{ background: transparent; color: {_MUT}; border: 1.5px solid {_BOR}; border-radius: 8px; font-weight: bold; }}")
         btn_cancelar.clicked.connect(self.reject)
         btns.addWidget(btn_cancelar)
 
         btn_guardar = QPushButton("💾 Guardar")
         btn_guardar.setFixedHeight(44)
-        btn_guardar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btn_guardar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_guardar.clicked.connect(self.guardar)
         btns.addWidget(btn_guardar)
         layout.addLayout(btns)
@@ -233,16 +239,15 @@ class ClientesScreen(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
-        # Header
         header = QHBoxLayout()
         titulo = QLabel("👥 Clientes")
-        titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: white;")
+        titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT}; background: transparent;")
         header.addWidget(titulo)
         header.addStretch()
 
@@ -250,34 +255,30 @@ class ClientesScreen(QWidget):
         self.input_buscar.setPlaceholderText("🔍 Buscar cliente...")
         self.input_buscar.setFixedWidth(220)
         self.input_buscar.setFixedHeight(36)
-        self.input_buscar.setStyleSheet("QLineEdit { background: #16213e; border: 1px solid #e94560; border-radius: 8px; padding: 0 10px; color: white; }")
         self.input_buscar.textChanged.connect(self.filtrar)
         header.addWidget(self.input_buscar)
 
         btn_nuevo = QPushButton("➕ Nuevo cliente")
         btn_nuevo.setFixedHeight(36)
-        btn_nuevo.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; padding: 0 16px; font-weight: bold; }")
+        btn_nuevo.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; padding: 0 16px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_nuevo.clicked.connect(self.nuevo_cliente)
         header.addWidget(btn_nuevo)
 
         btn_act = QPushButton("🔄")
         btn_act.setFixedSize(36, 36)
-        btn_act.setStyleSheet("QPushButton { background: #16213e; color: white; border-radius: 8px; } QPushButton:hover { background: #e94560; }")
+        btn_act.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
         btn_act.clicked.connect(self.cargar_clientes)
         header.addWidget(btn_act)
         layout.addLayout(header)
 
-        # Tarjetas resumen
         resumen = QHBoxLayout()
-        self.card_total    = self.crear_card("👥 Total clientes",  "0", "#3498db")
-        self.card_deudores = self.crear_card("💸 Con deuda",       "0", "#e94560")
-        self.card_puntos   = self.crear_card("⭐ Con puntos",      "0", "#f39c12")
-        resumen.addWidget(self.card_total[0])
-        resumen.addWidget(self.card_deudores[0])
-        resumen.addWidget(self.card_puntos[0])
+        self.card_total    = self.crear_card("👥 Total clientes", "0", "#2563eb")
+        self.card_deudores = self.crear_card("💸 Con deuda",      "0", "#dc2626")
+        self.card_puntos   = self.crear_card("⭐ Con puntos",     "0", "#d97706")
+        for c in [self.card_total, self.card_deudores, self.card_puntos]:
+            resumen.addWidget(c[0])
         layout.addLayout(resumen)
 
-        # Tabla (9 columnas)
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(9)
         self.tabla.setHorizontalHeaderLabels([
@@ -293,27 +294,22 @@ class ClientesScreen(QWidget):
         self.tabla.setColumnWidth(6, 190)
         self.tabla.setColumnWidth(7, 90)
         self.tabla.setColumnWidth(8, 32)
-        self.tabla.setStyleSheet("""
-            QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
-            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; }
-            QTableWidgetItem { color: white; padding: 8px; }
-        """)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         layout.addWidget(self.tabla)
 
     def crear_card(self, titulo, valor, color):
         card = QFrame()
-        card.setStyleSheet(f"QFrame {{ background: #16213e; border-radius: 10px; border-left: 4px solid {color}; }}")
+        card.setStyleSheet(f"QFrame {{ background: {_CARD}; border-radius: 12px; border: 1.5px solid {_BOR}; border-left: 5px solid {color}; }}")
         card.setMinimumHeight(80)
         c_layout = QVBoxLayout(card)
         c_layout.setContentsMargins(16, 10, 16, 10)
         lbl_t = QLabel(titulo)
-        lbl_t.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        lbl_t.setStyleSheet(f"color: {_MUT}; font-size: 12px; font-weight: bold; background: transparent;")
         c_layout.addWidget(lbl_t)
         lbl_v = QLabel(valor)
-        lbl_v.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        lbl_v.setStyleSheet(f"color: {color};")
+        lbl_v.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        lbl_v.setStyleSheet(f"color: {color}; background: transparent;")
         c_layout.addWidget(lbl_v)
         return card, lbl_v
 

@@ -8,6 +8,12 @@ from PyQt6.QtGui import QFont, QColor, QBrush
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _gt
+_T = _gt()
+_BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
+_MUT = _T["text_muted"]; _PRI = _T["primary"]; _DGR = _T["danger"]
+_BOR = _T["border"]; _OK = _T["success"]
+
 class ReportesScreen(QWidget):
     def __init__(self):
         super().__init__()
@@ -16,65 +22,58 @@ class ReportesScreen(QWidget):
         self.cargar_datos()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
-        # ── CABECERA Y FILTROS ───────────────────────────────────────────────
         header_top = QHBoxLayout()
         titulo = QLabel("📊 Auditoría de Ventas")
-        titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT}; background: transparent;")
         header_top.addWidget(titulo)
         header_top.addStretch()
-        
-        # Filtros rápidos
+
+        _btn_per_ss = f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}"
         for texto, key in [("Hoy","hoy"),("Semana","semana"),("Mes","mes"),("Año","anio")]:
             btn = QPushButton(texto)
             btn.setFixedHeight(34)
             btn.setFixedWidth(70)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet("""
-                QPushButton { background: #0f3460; color: #a0a0b0; border-radius: 6px; font-size: 12px; font-weight: bold; }
-                QPushButton:hover { background: #16213e; color: white; border: 1px solid #e94560; }
-            """)
+            btn.setStyleSheet(_btn_per_ss)
             btn.clicked.connect(lambda _, k=key: self.cambiar_periodo(k))
             header_top.addWidget(btn)
         layout.addLayout(header_top)
 
-        # Barra de búsqueda y fecha
         filtros_lay = QHBoxLayout()
-        
+
         busqueda_frame = QFrame()
-        busqueda_frame.setStyleSheet("background: #16213e; border-radius: 8px;")
+        busqueda_frame.setStyleSheet(f"background: {_CARD}; border-radius: 8px; border: 1.5px solid {_BOR};")
         bus_lay = QHBoxLayout(busqueda_frame)
         bus_lay.setContentsMargins(10, 5, 10, 5)
-        
         bus_lay.addWidget(QLabel("🔍"))
         self.input_buscar = QLineEdit()
         self.input_buscar.setPlaceholderText("Buscar ticket por número...")
-        self.input_buscar.setStyleSheet("background: transparent; border: none; color: white; min-width: 200px;")
+        self.input_buscar.setStyleSheet("background: transparent; border: none; min-width: 200px;")
         self.input_buscar.textChanged.connect(self.filtrar_tabla_local)
         bus_lay.addWidget(self.input_buscar)
         filtros_lay.addWidget(busqueda_frame)
 
         filtros_lay.addStretch()
-        
+
         filtros_lay.addWidget(QLabel("Desde:"))
         self.fecha_desde = QDateEdit(QDate.currentDate().addDays(-7))
         self.fecha_desde.setCalendarPopup(True)
-        self.fecha_desde.setStyleSheet("background: #0f3460; padding: 5px; border-radius: 4px;")
         filtros_lay.addWidget(self.fecha_desde)
 
         filtros_lay.addWidget(QLabel("Hasta:"))
         self.fecha_hasta = QDateEdit(QDate.currentDate())
         self.fecha_hasta.setCalendarPopup(True)
-        self.fecha_hasta.setStyleSheet("background: #0f3460; padding: 5px; border-radius: 4px;")
         filtros_lay.addWidget(self.fecha_hasta)
 
         btn_filtrar = QPushButton("Filtrar")
-        btn_filtrar.setFixedSize(80, 32)
-        btn_filtrar.setStyleSheet("background: #e94560; border-radius: 4px; font-weight: bold;")
+        btn_filtrar.setFixedSize(80, 34)
+        btn_filtrar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 6px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_filtrar.clicked.connect(lambda: self.cambiar_periodo("rango"))
         filtros_lay.addWidget(btn_filtrar)
         

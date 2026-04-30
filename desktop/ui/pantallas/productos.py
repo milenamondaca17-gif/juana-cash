@@ -9,6 +9,12 @@ from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _gt
+_T = _gt()
+_BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
+_MUT = _T["text_muted"]; _PRI = _T["primary"]; _DGR = _T["danger"]
+_BOR = _T["border"]; _OK = _T["success"]
+
 CATEGORIAS = ["General", "Carnicería", "Verdulería", "Panadería", "Fiambrería",
               "Lácteos", "Limpieza", "Bebidas", "Cigarrería", "Confitería"]
 
@@ -18,8 +24,8 @@ class ProductoDialog(QDialog):
         self.producto = producto
         self.setWindowTitle("✏️ Editar producto" if producto else "➕ Nuevo producto")
         self.setMinimumWidth(440)
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
-        self.extra_codes_inputs = [] # Lista para rastrear los QLineEdit extras
+        self.setStyleSheet(f"background-color: {_CARD}; color: {_TXT};")
+        self.extra_codes_inputs = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -27,11 +33,11 @@ class ProductoDialog(QDialog):
         layout.setSpacing(12)
 
         titulo = QLabel("📦 Datos del producto")
-        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #e94560;")
+        titulo.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_PRI}; background: transparent;")
         layout.addWidget(titulo)
 
-        estilo = "background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px;"
+        estilo = f"background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 14px;"
 
         self.form = QFormLayout() # Lo hacemos self para acceder desde otros métodos
         self.form.setSpacing(10)
@@ -70,7 +76,7 @@ class ProductoDialog(QDialog):
         self.combo_categoria.setStyleSheet(f"""
             QComboBox {{ {estilo} }}
             QComboBox::drop-down {{ border: none; }}
-            QComboBox QAbstractItemView {{ background: #0f3460; color: white; selection-background-color: #e94560; }}
+            QComboBox QAbstractItemView {{ background: {_CARD}; color: {_TXT}; selection-background-color: {_PRI}; }}
         """)
         self.form.addRow("Categoría:", self.combo_categoria)
 
@@ -136,13 +142,13 @@ class ProductoDialog(QDialog):
         btns = QHBoxLayout()
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setFixedHeight(44)
-        btn_cancelar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_cancelar.setStyleSheet(f"QPushButton {{ background: transparent; color: {_MUT}; border: 1.5px solid {_BOR}; border-radius: 8px; font-weight: bold; }}")
         btn_cancelar.clicked.connect(self.reject)
         btns.addWidget(btn_cancelar)
 
         btn_guardar = QPushButton("💾 Guardar")
         btn_guardar.setFixedHeight(44)
-        btn_guardar.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btn_guardar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_guardar.clicked.connect(self.guardar)
         btns.addWidget(btn_guardar)
         layout.addLayout(btns)
@@ -224,16 +230,15 @@ class ProductosScreen(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
-        # Header
         header = QHBoxLayout()
         titulo = QLabel("📦 Productos")
-        titulo.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: white;")
+        titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT}; background: transparent;")
         header.addWidget(titulo)
         header.addStretch()
 
@@ -241,42 +246,37 @@ class ProductosScreen(QWidget):
         self.input_buscar.setPlaceholderText("🔍 Buscar producto...")
         self.input_buscar.setFixedWidth(220)
         self.input_buscar.setFixedHeight(36)
-        self.input_buscar.setStyleSheet("QLineEdit { background: #16213e; border: 1px solid #e94560; border-radius: 8px; padding: 0 10px; color: white; }")
         self.input_buscar.textChanged.connect(self.filtrar)
         header.addWidget(self.input_buscar)
 
         btn_stock_bajo = QPushButton("⚠️ Stock bajo")
         btn_stock_bajo.setFixedHeight(36)
-        btn_stock_bajo.setStyleSheet("QPushButton { background: #e67e22; color: white; border-radius: 8px; padding: 0 12px; font-weight: bold; }")
+        btn_stock_bajo.setStyleSheet(f"QPushButton {{ background: {_T['warning']}; color: white; border-radius: 8px; padding: 0 12px; font-weight: bold; }}")
         btn_stock_bajo.clicked.connect(self.ver_stock_bajo)
         header.addWidget(btn_stock_bajo)
 
         btn_nuevo = QPushButton("➕ Nuevo")
         btn_nuevo.setFixedHeight(36)
-        btn_nuevo.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 8px; padding: 0 16px; font-weight: bold; }")
+        btn_nuevo.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; padding: 0 16px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_nuevo.clicked.connect(self.nuevo_producto)
         header.addWidget(btn_nuevo)
 
         btn_act = QPushButton("🔄")
         btn_act.setFixedSize(36, 36)
-        btn_act.setStyleSheet("QPushButton { background: #16213e; color: white; border-radius: 8px; } QPushButton:hover { background: #e94560; }")
+        btn_act.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
         btn_act.clicked.connect(self.cargar_productos)
         header.addWidget(btn_act)
         layout.addLayout(header)
 
-        # Tarjetas resumen
         resumen = QHBoxLayout()
-        self.card_total = self.crear_card("📦 Total productos", "0", "#3498db")
-        self.card_stock_bajo = self.crear_card("⚠️ Stock bajo", "0", "#e67e22")
-        self.card_sin_stock = self.crear_card("❌ Sin stock", "0", "#e94560")
-        self.card_valor = self.crear_card("💰 Valor inventario", "$0", "#27ae60")
-        resumen.addWidget(self.card_total[0])
-        resumen.addWidget(self.card_stock_bajo[0])
-        resumen.addWidget(self.card_sin_stock[0])
-        resumen.addWidget(self.card_valor[0])
+        self.card_total     = self.crear_card("📦 Total productos",    "0",  "#2563eb")
+        self.card_stock_bajo = self.crear_card("⚠️ Stock bajo",        "0",  "#d97706")
+        self.card_sin_stock  = self.crear_card("❌ Sin stock",         "0",  "#dc2626")
+        self.card_valor      = self.crear_card("💰 Valor inventario",  "$0", "#16a34a")
+        for c in [self.card_total, self.card_stock_bajo, self.card_sin_stock, self.card_valor]:
+            resumen.addWidget(c[0])
         layout.addLayout(resumen)
 
-        # Tabla
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(9)
         self.tabla.setHorizontalHeaderLabels([
@@ -284,17 +284,12 @@ class ProductosScreen(QWidget):
             "Venta", "Margen", "Stock", "Mín.", "Acciones"
         ])
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tabla.setStyleSheet("""
-            QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
-            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 8px; border: none; }
-            QTableWidgetItem { color: white; padding: 6px; }
-        """)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla)
 
     def crear_card(self, titulo, valor, color):
         card = QFrame()
-        card.setStyleSheet(f"QFrame {{ background: #16213e; border-radius: 10px; border-left: 4px solid {color}; }}")
+        card.setStyleSheet(f"QFrame {{ background: {_CARD}; border-radius: 12px; border-left: 5px solid {color}; border: 1.5px solid {_BOR}; border-left: 5px solid {color}; }}")
         card.setMinimumHeight(80)
         c_layout = QVBoxLayout(card)
         c_layout.setContentsMargins(16, 10, 16, 10)

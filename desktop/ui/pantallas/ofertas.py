@@ -8,15 +8,18 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QColor, QPalette
 
+from ui.theme import get_tema as _gt
+_T = _gt()
+
 OFERTAS_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets", "ofertas.json")
 
-BG_MAIN  = "#161925"
-BG_PANEL = "#222738"
-BORDER   = "#343B54"
-TEXT_MAIN = "#F0F0F0"
-TEXT_MUTED = "#8D99AE"
-ACCENT   = "#556EE6"
-ACCENT_OK = "#34C38F"
+BG_MAIN   = _T["bg_app"]
+BG_PANEL  = _T["bg_card"]
+BORDER    = _T["border"]
+TEXT_MAIN  = _T["text_main"]
+TEXT_MUTED = _T["text_muted"]
+ACCENT    = _T["primary"]
+ACCENT_OK = _T["success"]
 
 def leer_ofertas():
     try:

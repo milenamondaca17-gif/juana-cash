@@ -8,37 +8,47 @@ from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
 
+from ui.theme import get_tema as _gt
+_T = _gt()
+_BG = _T["bg_app"]; _CARD = _T["bg_card"]; _INP = _T["bg_input"]
+_TXT = _T["text_main"]; _MUT = _T["text_muted"]; _PRI = _T["primary"]
+_DGR = _T["danger"]; _BOR = _T["border"]; _OK = _T["success"]
+
 class UsuarioDialog(QDialog):
     def __init__(self, parent=None, usuario=None):
         super().__init__(parent)
         self.usuario = usuario
         self.setWindowTitle("👤 Gestionar Cajero")
-        self.setMinimumWidth(350)
-        self.setStyleSheet("background-color: #050e1a; color: white;")
+        self.setMinimumWidth(380)
+        self.setStyleSheet(f"background-color: {_CARD}; color: {_TXT};")
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
+        layout.setSpacing(12)
+        layout.setContentsMargins(24, 24, 24, 24)
         form = QFormLayout()
-        
-        estilo_input = "QLineEdit { background: #111d33; border: 1px solid #e63946; border-radius: 8px; padding: 10px; color: white; }"
-        
+        form.setSpacing(10)
+
+        for lbl in [QLabel("Nombre:"), QLabel("PIN:")]:
+            lbl.setStyleSheet(f"color: {_MUT}; font-weight: bold; background: transparent;")
+
         self.input_nombre = QLineEdit()
         self.input_nombre.setPlaceholderText("Nombre o DNI (ej: Fernanda)")
-        self.input_nombre.setStyleSheet(estilo_input)
+        self.input_nombre.setFixedHeight(42)
         form.addRow(QLabel("Nombre:"), self.input_nombre)
 
         self.input_pin = QLineEdit()
         self.input_pin.setPlaceholderText("PIN de 4 números")
         self.input_pin.setMaxLength(4)
-        self.input_pin.setStyleSheet(estilo_input)
+        self.input_pin.setFixedHeight(42)
         form.addRow(QLabel("PIN:"), self.input_pin)
 
         layout.addLayout(form)
 
-        btn_guardar = QPushButton("💾 GUARDAR CAJERO")
-        btn_guardar.setFixedHeight(45)
-        btn_guardar.setStyleSheet("background: #34C38F; color: #050e1a; font-weight: bold; border-radius: 8px;")
+        btn_guardar = QPushButton("💾 Guardar cajero")
+        btn_guardar.setFixedHeight(46)
+        btn_guardar.setStyleSheet(f"QPushButton {{ background: {_OK}; color: white; font-weight: bold; border-radius: 10px; font-size: 15px; }} QPushButton:hover {{ background: #059669; }}")
         btn_guardar.clicked.connect(self.accept)
         layout.addWidget(btn_guardar)
 
@@ -52,16 +62,20 @@ class UsuariosScreen(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: #050e1a; color: white;")
+        self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
         layout = QVBoxLayout(self)
-        
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(14)
+
         header = QHBoxLayout()
         titulo = QLabel("👥 Personal Juana Cash")
-        titulo.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        titulo.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT}; background: transparent;")
         header.addWidget(titulo)
-        
-        btn_nuevo = QPushButton("➕ AGREGAR CAJERO")
-        btn_nuevo.setStyleSheet("background: #e63946; padding: 10px; font-weight: bold; border-radius: 5px;")
+        header.addStretch()
+        btn_nuevo = QPushButton("➕ Agregar cajero")
+        btn_nuevo.setFixedHeight(40)
+        btn_nuevo.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; padding: 0 16px; font-weight: bold; border-radius: 8px; font-size: 13px; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_nuevo.clicked.connect(self.nuevo_usuario)
         header.addWidget(btn_nuevo)
         layout.addLayout(header)
@@ -70,7 +84,7 @@ class UsuariosScreen(QWidget):
         self.tabla.setColumnCount(3)
         self.tabla.setHorizontalHeaderLabels(["Nombre / DNI", "Rol", "Acciones"])
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tabla.setStyleSheet("QTableWidget { background: #0a1628; gridline-color: #1a2744; }")
+        self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla)
         self.cargar_usuarios()
 
