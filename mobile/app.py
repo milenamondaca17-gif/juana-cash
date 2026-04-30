@@ -1709,7 +1709,177 @@ def _main(page: ft.Page):
         padding=16, visible=False, expand=True
     )
 
-    # ── PANTALLA 7: CONFIG ────────────────────────────────────────────────────
+    # ── PANTALLA 7: CAJA ─────────────────────────────────────────────────────
+    lbl_caja_status   = ft.Text("", size=12, color="#94A3B8")
+    lista_caja_ui     = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=480)
+
+    # Resumen de hoy por método
+    lbl_hoy_efectivo  = ft.Text("$ 0", size=16, weight="w900", color="#10B981")
+    lbl_hoy_tarjeta   = ft.Text("$ 0", size=16, weight="w900", color="#3B82F6")
+    lbl_hoy_qr        = ft.Text("$ 0", size=16, weight="w900", color="#9333EA")
+    lbl_hoy_transf    = ft.Text("$ 0", size=16, weight="w900", color="#F59E0B")
+    lbl_hoy_fiado     = ft.Text("$ 0", size=16, weight="w900", color="#EF4444")
+    lbl_hoy_total     = ft.Text("$ 0", size=22, weight="w900", color="#F43F5E")
+
+    resumen_hoy = ft.Container(
+        content=ft.Column([
+            ft.Text("HOY", weight="bold", color="#94A3B8", size=11),
+            ft.Row([
+                ft.Column([ft.Text("💵 Efectivo", size=10, color="#94A3B8"), lbl_hoy_efectivo], spacing=2, horizontal_alignment="center", expand=True),
+                ft.Column([ft.Text("💳 Tarjeta",  size=10, color="#94A3B8"), lbl_hoy_tarjeta],  spacing=2, horizontal_alignment="center", expand=True),
+                ft.Column([ft.Text("📱 QR/MP",    size=10, color="#94A3B8"), lbl_hoy_qr],       spacing=2, horizontal_alignment="center", expand=True),
+                ft.Column([ft.Text("🏦 Transf.",  size=10, color="#94A3B8"), lbl_hoy_transf],   spacing=2, horizontal_alignment="center", expand=True),
+                ft.Column([ft.Text("💸 Fiado",    size=10, color="#94A3B8"), lbl_hoy_fiado],    spacing=2, horizontal_alignment="center", expand=True),
+            ]),
+            ft.Divider(color="#334155"),
+            ft.Row([ft.Text("TOTAL DEL DÍA:", weight="bold", size=13, expand=True), lbl_hoy_total], alignment="spaceBetween"),
+        ], spacing=8),
+        bgcolor="#0F172A", padding=14, border_radius=14
+    )
+
+    # Selector de vista
+    vista_caja = {"sel": "metodos"}  # "metodos" | "cierres"
+    btn_sel_metodos = ft.ElevatedButton("📅 Por método", bgcolor="#F43F5E", color="white", expand=True, height=38)
+    btn_sel_cierres = ft.ElevatedButton("📋 Cierres",    bgcolor="#1E293B", color="white", expand=True, height=38)
+
+    @en_hilo
+    def cargar_caja(e=None):
+        lbl_caja_status.value = "⏳ Cargando..."
+        lista_caja_ui.controls.clear()
+        page.update()
+
+        # Siempre cargar resumen de hoy
+        data_hoy = api_get("/reportes/hoy")
+        if data_hoy:
+            ventas_hoy = data_hoy.get("ventas", [])
+            tots = {"efectivo": 0, "tarjeta": 0, "mercadopago_qr": 0, "transferencia": 0, "fiado": 0}
+            for v in ventas_hoy:
+                m = v.get("metodo_pago", "efectivo").lower()
+                if m in tots:
+                    tots[m] += float(v.get("total", 0))
+            lbl_hoy_efectivo.value = f"${tots['efectivo']:,.0f}"
+            lbl_hoy_tarjeta.value  = f"${tots['tarjeta']:,.0f}"
+            lbl_hoy_qr.value       = f"${tots['mercadopago_qr']:,.0f}"
+            lbl_hoy_transf.value   = f"${tots['transferencia']:,.0f}"
+            lbl_hoy_fiado.value    = f"${tots['fiado']:,.0f}"
+            lbl_hoy_total.value    = f"${data_hoy.get('total_vendido', 0):,.0f}"
+
+        lbl_caja_status.value = ""
+
+        if vista_caja["sel"] == "metodos":
+            data = api_get("/caja/historial-efectivo", params={"dias": 30})
+            if data:
+                MCOLOR = {
+                    "efectivo": "#10B981", "tarjeta": "#3B82F6",
+                    "mercadopago_qr": "#9333EA", "transferencia": "#F59E0B", "fiado": "#EF4444"
+                }
+                MICON = {
+                    "efectivo": "💵", "tarjeta": "💳",
+                    "mercadopago_qr": "📱", "transferencia": "🏦", "fiado": "💸"
+                }
+                for dia in data:
+                    fecha  = dia.get("fecha", "")
+                    total  = float(dia.get("total", 0))
+                    metodos_row = []
+                    for m, icon in MICON.items():
+                        val = float(dia.get(m, 0))
+                        if val > 0:
+                            metodos_row.append(
+                                ft.Column([
+                                    ft.Text(icon, size=14),
+                                    ft.Text(f"${val:,.0f}", size=11, weight="bold",
+                                            color=MCOLOR[m]),
+                                ], spacing=1, horizontal_alignment="center", expand=True)
+                            )
+                    lista_caja_ui.controls.append(
+                        ft.Container(
+                            content=ft.Column([
+                                ft.Row([
+                                    ft.Text(fecha, weight="bold", size=13, color="white", expand=True),
+                                    ft.Text(f"TOTAL ${total:,.0f}", weight="bold",
+                                            size=13, color="#F43F5E"),
+                                ]),
+                                ft.Row(metodos_row) if metodos_row else ft.Text("Sin ventas", color="#94A3B8", size=11),
+                            ], spacing=6),
+                            bgcolor="#1E293B", padding=12, border_radius=12
+                        )
+                    )
+                if not data:
+                    lista_caja_ui.controls.append(ft.Text("Sin datos", color="#94A3B8", size=13, text_align="center"))
+            else:
+                lbl_caja_status.value = f"Sin conexión — {get_api_url()}"
+                lbl_caja_status.color = "#EF4444"
+
+        else:  # cierres
+            data = api_get("/caja/historial", params={"limite": 30})
+            if data:
+                for t in data:
+                    apertura   = t.get("apertura", "")
+                    cierre     = t.get("cierre", "")
+                    calculado  = float(t.get("monto_cierre_calculado", 0))
+                    declarado  = float(t.get("monto_cierre_declarado", 0))
+                    diferencia = float(t.get("diferencia", 0))
+                    color_dif  = "#10B981" if abs(diferencia) < 1 else ("#F59E0B" if abs(diferencia) < 500 else "#EF4444")
+                    lista_caja_ui.controls.append(
+                        ft.Container(
+                            content=ft.Column([
+                                ft.Row([
+                                    ft.Text(f"🕐 {apertura}", size=11, color="#94A3B8", expand=True),
+                                    ft.Text(f"→ {cierre}", size=11, color="#94A3B8"),
+                                ]),
+                                ft.Row([
+                                    ft.Column([
+                                        ft.Text("Calculado", size=10, color="#94A3B8"),
+                                        ft.Text(f"${calculado:,.0f}", size=14, weight="bold", color="#10B981"),
+                                    ], spacing=1, expand=True),
+                                    ft.Column([
+                                        ft.Text("Declarado", size=10, color="#94A3B8"),
+                                        ft.Text(f"${declarado:,.0f}", size=14, weight="bold", color="#38BDF8"),
+                                    ], spacing=1, expand=True),
+                                    ft.Column([
+                                        ft.Text("Diferencia", size=10, color="#94A3B8"),
+                                        ft.Text(f"${diferencia:+,.0f}", size=14, weight="bold", color=color_dif),
+                                    ], spacing=1, expand=True),
+                                ]),
+                            ], spacing=8),
+                            bgcolor="#1E293B", padding=12, border_radius=12
+                        )
+                    )
+                if not data:
+                    lista_caja_ui.controls.append(ft.Text("Sin cierres registrados", color="#94A3B8", size=13, text_align="center"))
+            else:
+                lbl_caja_status.value = f"Sin conexión — {get_api_url()}"
+                lbl_caja_status.color = "#EF4444"
+
+        page.update()
+
+    def _sel_metodos(e):
+        vista_caja["sel"] = "metodos"
+        btn_sel_metodos.bgcolor = "#F43F5E"
+        btn_sel_cierres.bgcolor = "#1E293B"
+        cargar_caja()
+
+    def _sel_cierres(e):
+        vista_caja["sel"] = "cierres"
+        btn_sel_cierres.bgcolor = "#F43F5E"
+        btn_sel_metodos.bgcolor = "#1E293B"
+        cargar_caja()
+
+    btn_sel_metodos.on_click = _sel_metodos
+    btn_sel_cierres.on_click = _sel_cierres
+
+    view_caja = ft.Container(
+        content=ft.Column([
+            ft.Text("🏦 CAJA", size=20, weight="w900"),
+            resumen_hoy,
+            ft.Row([btn_sel_metodos, btn_sel_cierres], spacing=8),
+            lbl_caja_status,
+            lista_caja_ui,
+        ], spacing=10),
+        padding=16, visible=False, expand=True
+    )
+
+    # ── PANTALLA 8: CONFIG ────────────────────────────────────────────────────
     in_ip = ft.TextField(
         label="IP de la PC (ej: 192.168.1.100)",
         value=leer_ip(),
@@ -1823,6 +1993,7 @@ def _main(page: ft.Page):
         "V": view_ventas,
         "P": view_precios_mobile,
         "F": view_fiados,
+        "K": view_caja,
         "S": view_config,
     }
 
@@ -1844,11 +2015,12 @@ def _main(page: ft.Page):
         if key == "O": cargar_lista_ofertas()
         if key == "V": cargar_ventas()
         if key == "F": cargar_fiados()
+        if key == "K": cargar_caja()
         page.update()
 
     TABS = [
         ("D", "📊"), ("C", "🛒"), ("O", "🏷️"), ("V", "📋"),
-        ("P", "💰"), ("F", "💸"), ("S", "⚙️"),
+        ("P", "💰"), ("F", "💸"), ("K", "🏦"), ("S", "⚙️"),
     ]
 
     nav_row_controls = []
@@ -1871,7 +2043,7 @@ def _main(page: ft.Page):
 
     all_views = ft.Column(
         [view_dashboard, view_cobrar, view_ticket, view_ofertas,
-         view_ventas, view_precios_mobile, view_fiados, view_config],
+         view_ventas, view_precios_mobile, view_fiados, view_caja, view_config],
         expand=True
     )
 
