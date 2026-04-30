@@ -4,6 +4,8 @@ ofertas_api.py — Endpoints para gestionar ofertas desde cualquier dispositivo
 import os
 import json
 import shutil
+import urllib.request
+import urllib.parse
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional
@@ -63,6 +65,40 @@ def agregar_texto(datos: OfertaTexto):
     })
     _guardar(ofertas)
     return {"ok": True, "total": len(ofertas)}
+
+
+class OfertaImagenUrl(BaseModel):
+    url: str
+
+@router.post("/imagen-url")
+def agregar_imagen_por_url(datos: OfertaImagenUrl):
+    """Descarga una imagen desde una URL y la agrega como oferta."""
+    url = datos.url.strip()
+    if not url.startswith("http"):
+        raise HTTPException(status_code=400, detail="URL inválida — debe empezar con http")
+
+    os.makedirs(IMAGENES_DIR, exist_ok=True)
+
+    parsed = urllib.parse.urlparse(url)
+    ext = os.path.splitext(parsed.path)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".bmp"]:
+        ext = ".jpg"
+
+    nombre_seguro = f"oferta_{len(_leer())+1:03d}{ext}"
+    ruta_destino  = os.path.join(IMAGENES_DIR, nombre_seguro)
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            with open(ruta_destino, "wb") as f:
+                shutil.copyfileobj(resp, f)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"No se pudo descargar la imagen: {e}")
+
+    ofertas = _leer()
+    ofertas.append({"tipo": "imagen", "contenido": ruta_destino})
+    _guardar(ofertas)
+    return {"ok": True, "ruta": nombre_seguro, "total": len(ofertas)}
 
 
 @router.post("/imagen")

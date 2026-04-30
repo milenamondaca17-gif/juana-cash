@@ -1147,9 +1147,35 @@ def _main(page: ft.Page):
             )
         page.update()
 
-    def seleccionar_y_subir_imagen(e):
-        lbl_oferta_status.value = "📵 Subida de imagen no disponible en esta versión"
-        lbl_oferta_status.color = "#F59E0B"
+    in_url_imagen = ft.TextField(
+        label="URL de imagen (pegá el link)",
+        hint_text="https://...",
+        filled=True, border_color="transparent", border_radius=12,
+        content_padding=14, bgcolor="#1E293B", expand=True,
+        keyboard_type=ft.KeyboardType.URL,
+    )
+
+    @en_hilo
+    def subir_imagen_por_url(e=None):
+        url = in_url_imagen.value.strip()
+        if not url:
+            lbl_oferta_status.value = "⚠️ Pegá una URL de imagen primero"
+            lbl_oferta_status.color = "#F59E0B"
+            page.update()
+            return
+        lbl_oferta_status.value = "⏳ Descargando imagen..."
+        lbl_oferta_status.color = "#94A3B8"
+        page.update()
+        data = api_post("/ofertas/imagen-url", json_data={"url": url})
+        if data and data.get("ok"):
+            in_url_imagen.value = ""
+            lbl_oferta_status.value = f"✅ Imagen subida ({data.get('total', 0)} ofertas)"
+            lbl_oferta_status.color = "#10B981"
+            cargar_lista_ofertas()
+        else:
+            detalle = data.get("detail", "Error desconocido") if data else "Sin conexión"
+            lbl_oferta_status.value = f"❌ {detalle}"
+            lbl_oferta_status.color = "#EF4444"
         page.update()
 
     view_ofertas = ft.Container(
@@ -1163,12 +1189,17 @@ def _main(page: ft.Page):
                 ft.ElevatedButton("📤 SUBIR TEXTO", bgcolor="#556EE6", color="white",
                     on_click=agregar_oferta_texto, expand=True, height=44)
             ]),
-            ft.ElevatedButton(
-                "📷 SUBIR IMAGEN DESDE EL CEL", bgcolor="#E91E63", color="white",
-                on_click=seleccionar_y_subir_imagen,
-                expand=True, height=48,
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+            ft.Divider(color="#334155"),
+            ft.Text("📷 Subir imagen por URL", weight="bold", size=13, color="#E91E63"),
+            ft.Text(
+                "Abrí la imagen en el cel → compartir → copiar link → pegalo acá",
+                color="#94A3B8", size=11
             ),
+            ft.Row([
+                in_url_imagen,
+                ft.ElevatedButton("📤", on_click=subir_imagen_por_url,
+                    bgcolor="#E91E63", color="white", height=48, width=50),
+            ], spacing=8),
             lbl_oferta_status,
             ft.Divider(color="#334155"),
             ft.Row([
