@@ -39,16 +39,71 @@ def guardar_ip(ip):
 def leer_pin_precios():
     return leer_config().get("pin_precios", "1722")
 
+UDP_PORT = 55555
+
+def _puerto_abierto(ip, timeout=0.5):
+    """TCP connect al puerto 8000 — mucho más rápido que una petición HTTP."""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        resultado = s.connect_ex((ip, 8000))
+        s.close()
+        return resultado == 0
+    except Exception:
+        return False
+
 def _probar_ip(ip, timeout=2):
     """Verifica que el servidor en esa IP sea el backend de Juana Cash."""
     try:
-        r = requests.get(f"http://{ip}:8000/openapi.json", timeout=timeout)
+        r = requests.get(f"http://{ip}:8000/", timeout=timeout)
         if r.status_code != 200:
             return False
-        titulo = r.json().get("info", {}).get("title", "")
-        return "Juana" in titulo or "juana" in titulo.lower() or "Cash" in titulo
+        data = r.json()
+        return "Juana" in str(data) or "juana" in str(data).lower()
     except Exception:
         return False
+
+def _escuchar_broadcast(timeout=6):
+    """
+    Escucha el broadcast UDP que emite el backend de la PC cada 2 s.
+    Retorna la IP encontrada o None si no hubo señal.
+    """
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.settimeout(timeout)
+        s.bind(("", UDP_PORT))
+        data, addr = s.recvfrom(512)
+        s.close()
+        info = json.loads(data.decode())
+        if info.get("service") == "JuanaCash":
+            return info.get("ip", addr[0])
+    except Exception:
+        pass
+    return None
+
+def _obtener_red_local():
+    """Devuelve el prefijo /24 de la red local (ej: '192.168.1')."""
+    import socket
+    intentos = [
+        ("8.8.8.8", 80),
+        ("1.1.1.1", 80),
+        ("192.168.1.1", 80),
+    ]
+    for host, port in intentos:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(1)
+            s.connect((host, port))
+            ip = s.getsockname()[0]
+            s.close()
+            if ip and not ip.startswith("127.") and not ip.startswith("169."):
+                return ip.rsplit(".", 1)[0]
+        except Exception:
+            pass
+    return None
 
 # IP activa en memoria
 _ip_activa = {"ip": leer_ip()}
@@ -58,66 +113,78 @@ def get_api_url():
 
 def detectar_mejor_ip(callback_progreso=None):
     """
-    Orden de prioridad:
-    1. IP guardada — si responde, listo (instantáneo)
-    2. WiFi local — escaneo paralelo con stop event al primer hallazgo
-    3. Tailscale — fallback
+    Tres estrategias en paralelo, gana la más rápida:
+    1. UDP broadcast  — el backend anuncia su IP cada 2 s (instantáneo)
+    2. IP guardada    — verificación rápida de la última IP conocida
+    3. Escaneo TCP    — prueba puerto 8000 en toda la /24 (fallback)
+    Tailscale como último recurso.
     """
-    import socket
-
     ip_guardada = leer_ip()
+    resultado   = [None]
+    encontrado  = threading.Event()
+    lock        = threading.Lock()
 
-    # 1. Probar IP guardada primero
-    if callback_progreso:
-        callback_progreso(f"Probando {ip_guardada}...")
-    if _probar_ip(ip_guardada, 2):
-        _ip_activa["ip"] = ip_guardada
-        return ip_guardada
+    def _set_result(ip):
+        with lock:
+            if resultado[0] is None:
+                resultado[0] = ip
+        encontrado.set()
 
-    # 2. Escaneo WiFi local con Event para cancelación temprana
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(1)
-        s.connect(("8.8.8.8", 80))
-        ip_local = s.getsockname()[0]
-        s.close()
+    def _via_broadcast():
+        if callback_progreso:
+            callback_progreso("📡 Escuchando broadcast de la PC...")
+        ip = _escuchar_broadcast(timeout=7)
+        if ip and not encontrado.is_set():
+            _set_result(ip)
 
-        if ip_local and not ip_local.startswith("127."):
-            red = ip_local.rsplit(".", 1)[0]
+    def _via_guardada():
+        if callback_progreso:
+            callback_progreso(f"🔍 Probando {ip_guardada}...")
+        if _probar_ip(ip_guardada, 2) and not encontrado.is_set():
+            _set_result(ip_guardada)
+
+    def _via_escaneo():
+        red = _obtener_red_local()
+        if not red:
+            return
+        if callback_progreso:
+            callback_progreso(f"🔎 Escaneando red {red}.x...")
+        stop_ev = threading.Event()
+
+        def _probar_tcp(ip):
+            if stop_ev.is_set() or encontrado.is_set():
+                return
+            if _puerto_abierto(ip, 0.4) and _probar_ip(ip, 1.5):
+                if not encontrado.is_set():
+                    stop_ev.set()
+                    _set_result(ip)
+
+        with ThreadPoolExecutor(max_workers=80) as ex:
             candidatos = [f"{red}.{i}" for i in range(1, 255)]
+            futs = [ex.submit(_probar_tcp, ip) for ip in candidatos]
+            encontrado.wait(timeout=12)
+            for f in futs:
+                f.cancel()
 
-            if callback_progreso:
-                callback_progreso(f"Escaneando red {red}.x ({len(candidatos)} hosts)...")
+    # Lanzar las tres estrategias en paralelo
+    hilos = [
+        threading.Thread(target=_via_broadcast, daemon=True),
+        threading.Thread(target=_via_guardada,  daemon=True),
+        threading.Thread(target=_via_escaneo,   daemon=True),
+    ]
+    for h in hilos:
+        h.start()
 
-            stop_event = threading.Event()
-            result     = [None]
-            lock       = threading.Lock()
+    encontrado.wait(timeout=13)
 
-            def probar_uno(ip):
-                if stop_event.is_set():
-                    return
-                if _probar_ip(ip, 1.0):
-                    with lock:
-                        if result[0] is None:
-                            result[0] = ip
-                    stop_event.set()
+    if resultado[0]:
+        guardar_ip(resultado[0])
+        _ip_activa["ip"] = resultado[0]
+        return resultado[0]
 
-            with ThreadPoolExecutor(max_workers=50) as ex:
-                futs = [ex.submit(probar_uno, ip) for ip in candidatos]
-                stop_event.wait(timeout=10)
-                for f in futs:
-                    f.cancel()
-
-            if result[0]:
-                guardar_ip(result[0])
-                _ip_activa["ip"] = result[0]
-                return result[0]
-    except Exception:
-        pass
-
-    # 3. Fallback Tailscale
+    # Fallback Tailscale
     if callback_progreso:
-        callback_progreso("Probando Tailscale VPN...")
+        callback_progreso("🌐 Probando Tailscale VPN...")
     if _probar_ip(TAILSCALE_IP, 3):
         _ip_activa["ip"] = TAILSCALE_IP
         return TAILSCALE_IP

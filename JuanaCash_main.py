@@ -32,7 +32,7 @@ def run_backend():
     for _ in range(20):
         try:
             _s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-            _s.bind(("127.0.0.1", 8000))
+            _s.bind(("0.0.0.0", 8000))
             _s.close()
             break
         except OSError:
@@ -40,7 +40,7 @@ def run_backend():
     try:
         from backend.app.main import app as fastapi_app
         import uvicorn
-        uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_level="error", access_log=False)
+        uvicorn.run(fastapi_app, host="0.0.0.0", port=8000, log_level="error", access_log=False)
     except Exception as e:
         try:
             with open(os.path.join(DATA_DIR, "debug.log"), "a") as f:
@@ -50,7 +50,30 @@ def run_backend():
         except:
             pass
 
+def _udp_broadcaster():
+    """Transmite la IP de la PC por UDP broadcast cada 2 s para que el celular la encuentre."""
+    import socket as _socket, json as _json
+    while True:
+        try:
+            # Obtener IP local real (la de la red WiFi/LAN)
+            tmp = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
+            tmp.settimeout(1)
+            tmp.connect(("8.8.8.8", 80))
+            my_ip = tmp.getsockname()[0]
+            tmp.close()
+
+            s = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
+            s.setsockopt(_socket.SOL_SOCKET, _socket.SO_BROADCAST, 1)
+            s.settimeout(1)
+            msg = _json.dumps({"service": "JuanaCash", "ip": my_ip, "port": 8000}).encode()
+            s.sendto(msg, ("<broadcast>", 55555))
+            s.close()
+        except Exception:
+            pass
+        time.sleep(2)
+
 threading.Thread(target=run_backend, daemon=True).start()
+threading.Thread(target=_udp_broadcaster, daemon=True).start()
 time.sleep(3)
 
 from PyQt6.QtWidgets import QApplication
