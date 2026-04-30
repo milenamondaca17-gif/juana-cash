@@ -284,45 +284,7 @@ def _main(page: ft.Page):
     productos_cache  = []
     productos_codigo = {}
 
-    # ── FilePicker para imágenes ──────────────────────────────────────────────
     lbl_oferta_status = ft.Text("", size=13, weight="bold")
-
-    def _on_file_picked(e):
-        if not e.files:
-            return
-        archivo = e.files[0]
-        lbl_oferta_status.value = f"⏳ Subiendo {archivo.name}..."
-        lbl_oferta_status.color = "#94A3B8"
-        page.update()
-
-        def _upload():
-            try:
-                with open(archivo.path, "rb") as f:
-                    ext = os.path.splitext(archivo.name)[1].lower() or ".jpg"
-                    mime = "image/png" if ext == ".png" else "image/jpeg"
-                    r = requests.post(
-                        f"{get_api_url()}/ofertas/imagen",
-                        files={"archivo": (archivo.name, f, mime)},
-                        timeout=30
-                    )
-                if r.status_code == 200:
-                    lbl_oferta_status.value = "✅ Imagen subida correctamente"
-                    lbl_oferta_status.color = "#10B981"
-                    cargar_lista_ofertas()
-                else:
-                    lbl_oferta_status.value = f"❌ Error del servidor: {r.status_code}"
-                    lbl_oferta_status.color = "#EF4444"
-            except Exception as ex:
-                lbl_oferta_status.value = f"❌ {ex}"
-                lbl_oferta_status.color = "#EF4444"
-            page.update()
-
-        threading.Thread(target=_upload, daemon=True).start()
-
-    file_picker = ft.FilePicker()
-    file_picker.on_result = _on_file_picked
-    page.overlay.append(file_picker)
-    page.update()
 
     @en_hilo
     def cargar_cache_productos(e=None):
@@ -1186,10 +1148,9 @@ def _main(page: ft.Page):
         page.update()
 
     def seleccionar_y_subir_imagen(e):
-        file_picker.pick_files(
-            dialog_title="Seleccionar imagen",
-            allowed_extensions=["jpg", "jpeg", "png", "webp"],
-        )
+        lbl_oferta_status.value = "📵 Subida de imagen no disponible en esta versión"
+        lbl_oferta_status.color = "#F59E0B"
+        page.update()
 
     view_ofertas = ft.Container(
         content=ft.Column([
