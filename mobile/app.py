@@ -1657,9 +1657,21 @@ def _main(page: ft.Page):
                             "usuario": "mobile"
                         })
                         if r and r.get("ok"):
-                            lbl_precio_status.value = f"✅ {prod['nombre']} → ${nuevo:,.0f}"
+                            lbl_precio_status.value = "⏳ Actualizando precios..."
+                            lbl_precio_status.color = "#94A3B8"
+                            page.update()
+                            # Esperar a que el cache se actualice antes de confirmar
+                            data = api_get("/productos/")
+                            if data:
+                                productos_cache.clear()
+                                productos_cache.extend(data)
+                                productos_codigo.clear()
+                                productos_codigo.update({
+                                    str(p2["codigo_barra"]): p2
+                                    for p2 in data if p2.get("codigo_barra")
+                                })
+                            lbl_precio_status.value = f"✅ {prod['nombre']} → ${nuevo:,.0f} (cache actualizado)"
                             lbl_precio_status.color = "#10B981"
-                            cargar_cache_productos()
                         else:
                             error_msg = r.get("error", "Error") if r else "Sin conexión"
                             lbl_precio_status.value = f"❌ {error_msg}"
@@ -2012,10 +2024,12 @@ def _main(page: ft.Page):
         for k, btn in nav_btns.items():
             btn.bgcolor = COLOR_ACTIVO if k == key else COLOR_INACTIVO
         if key == "D": cargar_dashboard()
+        if key == "C": cargar_cache_productos()
         if key == "O": cargar_lista_ofertas()
         if key == "V": cargar_ventas()
         if key == "F": cargar_fiados()
         if key == "K": cargar_caja()
+        if key == "P": cargar_cache_productos()
         page.update()
 
     TABS = [
