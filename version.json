@@ -1,5 +1,5 @@
 {
-  "version": "3.1.5",
+  "version": "3.1.6",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.1.5 - nuevo diseño claro tipo MP, 5 paletas de color, selector en Caja"
+  "notas": "v3.1.6 - cambio de paleta en vivo sin reinicio"
 }

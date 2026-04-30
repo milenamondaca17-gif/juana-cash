@@ -2,7 +2,7 @@ import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
-                              QDialog, QFormLayout, QDoubleSpinBox, QScrollArea)
+                              QDialog, QFormLayout, QDoubleSpinBox, QMenu)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -291,7 +291,7 @@ class ClientesScreen(QWidget):
         self.tabla.setColumnWidth(3, 90)
         self.tabla.setColumnWidth(4, 90)
         self.tabla.setColumnWidth(5, 100)
-        self.tabla.setColumnWidth(6, 190)
+        self.tabla.setColumnWidth(6, 110)
         self.tabla.setColumnWidth(7, 90)
         self.tabla.setColumnWidth(8, 32)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -363,46 +363,36 @@ class ClientesScreen(QWidget):
             self.tabla.setItem(i, 5, QTableWidgetItem(c.get("fecha_nacimiento") or "-"))
 
             # ── Botones de acciones ──────────────────────────────────────────
-            btn_w = QWidget()
-            btn_l = QHBoxLayout(btn_w)
-            btn_l.setContentsMargins(2, 2, 2, 2)
-            btn_l.setSpacing(3)
+            btn_acc = QPushButton("⚙️ Acciones ▾")
+            btn_acc.setFixedHeight(28)
+            btn_acc.setStyleSheet(f"""
+                QPushButton {{
+                    background: {_PRI}; color: white; border-radius: 6px;
+                    font-size: 11px; font-weight: bold; padding: 0 8px;
+                }}
+                QPushButton:hover {{ background: {_T['primary_hover']}; }}
+            """)
 
-            btn_edit = QPushButton("✏️")
-            btn_edit.setFixedSize(30, 28)
-            btn_edit.setToolTip("Editar cliente")
-            btn_edit.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 4px; }")
-            btn_edit.clicked.connect(lambda _, idx=i: self.editar_cliente(idx))
-            btn_l.addWidget(btn_edit)
+            def _hacer_menu(idx=i, pts=puntos):
+                menu = QMenu()
+                menu.setStyleSheet(f"""
+                    QMenu {{ background: {_CARD}; border: 1px solid {_BOR};
+                             color: {_TXT}; border-radius: 6px; padding: 4px; }}
+                    QMenu::item {{ padding: 8px 20px; border-radius: 4px; }}
+                    QMenu::item:selected {{ background: {_T['bg_hover']}; }}
+                """)
+                menu.addAction("✏️  Editar cliente",    lambda: self.editar_cliente(idx))
+                menu.addAction("💸  Registrar fiado",   lambda: self.registrar_fiado(idx))
+                if pts >= 100:
+                    menu.addAction("⭐  Canjear puntos", lambda: self.canjear_puntos(idx))
+                menu.addAction("🎟️  Generar cupón",     lambda: self.generar_cupon(idx))
+                menu.addSeparator()
+                menu.addAction("🗑️  Eliminar cliente",  lambda: self.eliminar_cliente(
+                    self.get_clientes_visibles()[idx]["id"]))
+                menu.exec(btn_acc.mapToGlobal(btn_acc.rect().bottomLeft()))
 
-            btn_fiado = QPushButton("💸 Fiar")
-            btn_fiado.setFixedSize(58, 28)
-            btn_fiado.setToolTip("Registrar fiado")
-            btn_fiado.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 4px; font-size: 11px; }")
-            btn_fiado.clicked.connect(lambda _, idx=i: self.registrar_fiado(idx))
-            btn_l.addWidget(btn_fiado)
-
-            # Canjear puntos: activo solo si tiene >= 100
-            btn_canjear = QPushButton("⭐ Canjear")
-            btn_canjear.setFixedSize(74, 28)
-            btn_canjear.setToolTip(f"Canjear puntos (100 pts = $1000 de descuento)")
-            if puntos >= 100:
-                btn_canjear.setStyleSheet("QPushButton { background: #f39c12; color: white; border-radius: 4px; font-size: 11px; font-weight: bold; }")
-                btn_canjear.clicked.connect(lambda _, idx=i: self.canjear_puntos(idx))
-            else:
-                btn_canjear.setStyleSheet("QPushButton { background: #333; color: #666; border-radius: 4px; font-size: 11px; }")
-                btn_canjear.setEnabled(False)
-            btn_l.addWidget(btn_canjear)
-
-            # Botón cupón descuento
-            btn_cupon = QPushButton("🎟️ Cupón")
-            btn_cupon.setFixedSize(68, 28)
-            btn_cupon.setToolTip("Generar cupón de descuento (requiere PIN del dueño)")
-            btn_cupon.setStyleSheet("QPushButton { background: #8e44ad; color: white; border-radius: 4px; font-size: 11px; font-weight: bold; }")
-            btn_cupon.clicked.connect(lambda _, idx=i: self.generar_cupon(idx))
-            btn_l.addWidget(btn_cupon)
-
-            self.tabla.setCellWidget(i, 6, btn_w)
+            btn_acc.clicked.connect(lambda _=None, f=_hacer_menu: f())
+            self.tabla.setCellWidget(i, 6, btn_acc)
 
             # ── Historial ───────────────────────────────────────────────────
             btn_hist = QPushButton("📋")
@@ -412,12 +402,7 @@ class ClientesScreen(QWidget):
             btn_hist.clicked.connect(lambda _, idx=i: self.ver_historial(idx))
             self.tabla.setCellWidget(i, 7, btn_hist)
 
-            # ── Eliminar ────────────────────────────────────────────────────
-            btn_del = QPushButton("🗑")
-            btn_del.setFixedSize(28, 28)
-            btn_del.setStyleSheet("QPushButton { background: transparent; color: #e94560; border-radius: 4px; }")
-            btn_del.clicked.connect(lambda _, cid=c["id"]: self.eliminar_cliente(cid))
-            self.tabla.setCellWidget(i, 8, btn_del)
+            self.tabla.setColumnHidden(8, True)
 
     # ─── Acciones ─────────────────────────────────────────────────────────────
 

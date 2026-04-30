@@ -11,7 +11,7 @@ from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
 
-from ui.theme import get_tema as _gt
+from ui.theme import get_tema as _gt, TEMAS, guardar_tema, get_tema_key, get_qss
 _T = _gt()
 _BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
 _MUT = _T["text_muted"]; _PRI = _T["primary"]; _BOR = _T["border"]
@@ -295,6 +295,78 @@ class ConfigScreen(QWidget):
         bor_layout.addStretch()
 
         tabs.addTab(tab_borrado, "🗑️ Borrado")
+
+        # ── TAB: PALETAS DE COLORES ──────────────────────────────────────────────
+        tab_paleta = QWidget()
+        tab_paleta.setStyleSheet(f"background: {_CARD};")
+        pal_layout = QVBoxLayout(tab_paleta)
+        pal_layout.setContentsMargins(20, 20, 20, 20)
+        pal_layout.setSpacing(10)
+
+        lbl_pal_t = QLabel("🎨 Paleta de colores")
+        lbl_pal_t.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        lbl_pal_t.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        pal_layout.addWidget(lbl_pal_t)
+
+        lbl_pal_sub = QLabel("Elegí un tema. La app se reinicia automáticamente para aplicarlo.")
+        lbl_pal_sub.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        pal_layout.addWidget(lbl_pal_sub)
+
+        actual = get_tema_key()
+        previews = {
+            "violeta_calido": ("#7C3AED", "#10B981", "#EEEAFF"),
+            "naranja_cielo":  ("#EA580C", "#0EA5E9", "#FFE8D0"),
+            "rosa_sage":      ("#DB2777", "#4ADE80", "#FFD6EC"),
+            "lila_sol":       ("#9333EA", "#FDE047", "#EDE0FF"),
+            "clasico_oscuro": ("#556EE6", "#34C38F", "#050e1a"),
+        }
+
+        for key, tema in TEMAS.items():
+            cols = previews.get(key, ("#888", "#888", "#fff"))
+            es_actual = (key == actual)
+            fila = QFrame()
+            fila.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 12px; border: 2px solid {_PRI if es_actual else _BOR}; }}")
+            fila_lay = QHBoxLayout(fila)
+            fila_lay.setContentsMargins(14, 10, 14, 10)
+            for c in cols:
+                dot = QFrame()
+                dot.setFixedSize(20, 20)
+                dot.setStyleSheet(f"background: {c}; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1);")
+                fila_lay.addWidget(dot)
+            lbl_n = QLabel(tema["nombre"])
+            lbl_n.setStyleSheet(f"color: {_TXT}; font-size: 14px; font-weight: {'bold' if es_actual else 'normal'}; background: transparent; margin-left: 8px;")
+            fila_lay.addWidget(lbl_n)
+            if es_actual:
+                lbl_ok = QLabel("✓ Activo")
+                lbl_ok.setStyleSheet(f"color: {_OK}; font-size: 12px; font-weight: bold; background: transparent;")
+                fila_lay.addWidget(lbl_ok)
+            fila_lay.addStretch()
+            btn_ap = QPushButton("Aplicar")
+            btn_ap.setFixedHeight(32)
+            btn_ap.setEnabled(not es_actual)
+            btn_ap.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 6px; font-size: 12px; font-weight: bold; padding: 0 14px; }} QPushButton:disabled {{ background: {_BOR}; color: {_MUT}; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+            def _aplicar(k=key):
+                import traceback
+                from PyQt6.QtWidgets import QApplication
+                guardar_tema(k)
+                app = QApplication.instance()
+                for w in app.topLevelWidgets():
+                    if hasattr(w, 'recargar_tema'):
+                        try:
+                            w.recargar_tema(k)
+                        except Exception:
+                            QMessageBox.critical(None, "Error al cambiar tema",
+                                traceback.format_exc())
+                        return
+                QMessageBox.information(None, "Tema guardado",
+                    f"✅ Tema '{TEMAS[k]['nombre']}' guardado.\nCerrá y volvé a abrir la app.")
+            btn_ap.clicked.connect(lambda _=None, fn=_aplicar: fn())
+            fila_lay.addWidget(btn_ap)
+            pal_layout.addWidget(fila)
+
+        pal_layout.addStretch()
+        tabs.addTab(tab_paleta, "🎨 Paletas")
+
         layout.addWidget(tabs)
 
     def ejecutar_borrado_ventas(self):

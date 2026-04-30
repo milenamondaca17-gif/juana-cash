@@ -585,10 +585,139 @@ class MainWindow(QMainWindow):
         import threading
         threading.Thread(target=_fetch, daemon=True).start()
 
+    def recargar_tema(self, tema_key):
+        import sys as _sys
+        global _T
+        from ui.theme import get_qss, TEMAS
+        from PyQt6.QtWidgets import QApplication
+
+        new_t = TEMAS[tema_key]
+        QApplication.instance().setStyleSheet(get_qss(new_t))
+
+        # Parchear variables de tema directamente en cada módulo
+        # Python busca globals en __dict__ del módulo en cada llamada,
+        # así que setattr actualiza todos los widgets nuevos que se creen.
+        _mods = [
+            'ui.pantallas.login', 'ui.pantallas.turno', 'ui.pantallas.ventas',
+            'ui.pantallas.productos', 'ui.pantallas.reportes', 'ui.pantallas.clientes',
+            'ui.pantallas.caja', 'ui.pantallas.sesiones', 'ui.pantallas.usuarios',
+            'ui.pantallas.dashboard', 'ui.pantallas.stock_avanzado',
+            'ui.pantallas.precios_masivos', 'ui.pantallas.ia_screen',
+            'ui.pantallas.config_screen', 'ui.pantallas.importador',
+            'ui.pantallas.etiquetas.generador_etiquetas',
+            'ui.pantallas.ofertas', 'ui.pantallas.precios_alerta',
+        ]
+        _vars = {
+            '_T': None, '_BG': 'bg_app', '_CARD': 'bg_card', '_INP': 'bg_input',
+            '_TXT': 'text_main', '_MUT': 'text_muted', '_PRI': 'primary',
+            '_BOR': 'border', '_OK': 'success', '_DGR': 'danger',
+            '_TXT_INP': 'text_input',
+            'BG_MAIN': 'bg_app', 'BG_PANEL': 'bg_card', 'BORDER': 'border',
+            'TEXT_MAIN': 'text_main', 'TEXT_MUTED': 'text_muted',
+            'ACCENT': 'primary', 'ACCENT_OK': 'success',
+        }
+        for mod_name in _mods:
+            mod = _sys.modules.get(mod_name)
+            if mod is None:
+                continue
+            for attr, key in _vars.items():
+                if attr == '_T':
+                    if hasattr(mod, '_T') and isinstance(getattr(mod, '_T'), dict):
+                        getattr(mod, '_T').update(new_t)
+                elif key and hasattr(mod, attr):
+                    setattr(mod, attr, new_t.get(key, getattr(mod, attr)))
+
+        cajero = self.cajero_actual
+
+        while self.stack.count() > 0:
+            w = self.stack.widget(0)
+            self.stack.removeWidget(w)
+            w.deleteLater()
+
+        from ui.pantallas.login import LoginScreen
+        from ui.pantallas.turno import TurnoScreen
+        from ui.pantallas.ventas import VentasScreen
+        from ui.pantallas.productos import ProductosScreen
+        from ui.pantallas.reportes import ReportesScreen
+        from ui.pantallas.clientes import ClientesScreen
+        from ui.pantallas.caja import CajaScreen
+        from ui.pantallas.sesiones import SesionesScreen
+        from ui.pantallas.usuarios import UsuariosScreen
+        from ui.pantallas.dashboard import DashboardScreen
+        from ui.pantallas.stock_avanzado import StockAvanzadoScreen
+        from ui.pantallas.precios_masivos import PreciosMasivosScreen
+        from ui.pantallas.ia_screen import IAScreen
+        from ui.pantallas.config_screen import ConfigScreen
+        from ui.pantallas.importador import ImportadorScreen
+        from ui.pantallas.etiquetas.generador_etiquetas import GeneradorEtiquetasScreen
+        from ui.pantallas.ofertas import OfertasScreen
+        from ui.pantallas.precios_alerta import AlertasPrecioScreen
+
+        self.login_screen     = LoginScreen(self.on_login_exitoso)
+        self.turno_screen     = TurnoScreen(self.on_turno_seleccionado, {})
+        self.ventas_screen    = VentasScreen(self.on_logout)
+        self.productos_screen = ProductosScreen()
+        self.reportes_screen  = ReportesScreen()
+        self.clientes_screen  = ClientesScreen()
+        self.caja_screen      = CajaScreen()
+        self.sesiones_screen  = SesionesScreen()
+        self.usuarios_screen  = UsuariosScreen()
+        self.dashboard_screen = DashboardScreen()
+        self.stock_screen     = StockAvanzadoScreen()
+        self.precios_screen   = PreciosMasivosScreen()
+        self.ia_screen        = IAScreen()
+        self.config_screen    = ConfigScreen()
+        self.importador_screen = ImportadorScreen()
+        self.etiquetas_screen = GeneradorEtiquetasScreen()
+        self.ofertas_screen   = OfertasScreen()
+        self.alertas_screen   = AlertasPrecioScreen()
+
+        self.ofertas_screen.oferta_cambiada.connect(
+            lambda: self.ventas_screen.rotador_ofertas.cargar()
+            if hasattr(self.ventas_screen, 'rotador_ofertas') else None
+        )
+
+        for screen in [
+            self.login_screen, self.turno_screen, self.ventas_screen,
+            self.productos_screen, self.reportes_screen, self.clientes_screen,
+            self.caja_screen, self.sesiones_screen, self.usuarios_screen,
+            self.dashboard_screen, self.stock_screen, self.precios_screen,
+            self.ia_screen, self.config_screen, self.importador_screen,
+            self.etiquetas_screen, self.ofertas_screen, self.alertas_screen,
+        ]:
+            self.stack.addWidget(screen)
+
+        _T = new_t
+        self.navbar.setStyleSheet(
+            f"background-color: {new_t['bg_navbar']}; border-bottom: 2px solid {new_t['border']};"
+        )
+        self.centralWidget().setStyleSheet(f"background-color: {new_t['bg_app']};")
+
+        ESTILO_BTN = f"""
+            QPushButton {{ background: transparent; color: {new_t['navbar_text']}; font-size: 13px; font-weight: bold; border: none; padding: 0 12px; border-bottom: 3px solid transparent; border-radius: 0px; }}
+            QPushButton:hover {{ color: {new_t['text_main']}; background: {new_t['bg_hover']}; border-bottom: 3px solid {new_t['border']}; }}
+            QPushButton:checked {{ color: {new_t['navbar_active']}; background: {new_t['navbar_active_bg']}; border-bottom: 3px solid {new_t['navbar_border']}; }}
+        """
+        ESTILO_CONFIG = f"""
+            QPushButton {{ background: {new_t['bg_hover']}; color: {new_t['navbar_text']}; font-size: 12px; font-weight: bold; border: none; padding: 0 10px; border-bottom: 3px solid transparent; border-left: 3px solid {new_t['border']}; border-radius: 0px; }}
+            QPushButton:hover {{ color: {new_t['text_main']}; background: {new_t['bg_selected']}; border-bottom: 3px solid {new_t['border']}; }}
+            QPushButton:checked {{ color: {new_t['navbar_active']}; background: {new_t['navbar_active_bg']}; border-bottom: 3px solid {new_t['navbar_border']}; }}
+        """
+        for _, btn in self.btns_menu.items():
+            if btn in self._btns_config_ocultos:
+                btn.setStyleSheet(ESTILO_CONFIG)
+            else:
+                btn.setStyleSheet(ESTILO_BTN)
+
+        if cajero:
+            self.on_turno_seleccionado(cajero)
+        else:
+            self.stack.setCurrentWidget(self.login_screen)
+
     def on_logout(self):
         self.usuario_actual = None
         self.cajero_actual = None
-        self.navbar.hide() 
+        self.navbar.hide()
         self.stack.setCurrentWidget(self.login_screen)
         self.setWindowTitle("Juana Cash - Sistema POS")
         if hasattr(self, '_timer_timeout'):

@@ -5,10 +5,11 @@ import json
 TEMAS = {
     "violeta_calido": {
         "nombre": "🟣 Violeta Cálido",
-        "bg_app":      "#F5F3FF",
+        "text_input":  "#111111",
+        "bg_app":      "#EEEAFF",
         "bg_card":     "#FFFFFF",
         "bg_navbar":   "#FFFFFF",
-        "bg_input":    "#F9F8FF",
+        "bg_input":    "#F5F3FF",
         "bg_hover":    "#EDE9FE",
         "bg_selected": "#DDD6FE",
         "primary":        "#7C3AED",
@@ -21,8 +22,8 @@ TEMAS = {
         "accent_yellow":  "#F59E0B",
         "text_main":   "#1E1B4B",
         "text_muted":  "#6B7280",
-        "border":      "#E5E7EB",
-        "border_card": "#EDE9FE",
+        "border":      "#C4B5FD",
+        "border_card": "#C4B5FD",
         "success":     "#10B981",
         "warning":     "#F59E0B",
         "danger":      "#EF4444",
@@ -34,7 +35,8 @@ TEMAS = {
     },
     "naranja_cielo": {
         "nombre": "🟠 Naranja Cielo",
-        "bg_app":      "#FFFBF5",
+        "text_input":  "#111111",
+        "bg_app":      "#FFE8D0",
         "bg_card":     "#FFFFFF",
         "bg_navbar":   "#FFFFFF",
         "bg_input":    "#FFF7ED",
@@ -50,8 +52,8 @@ TEMAS = {
         "accent_yellow":  "#FBBF24",
         "text_main":   "#431407",
         "text_muted":  "#78716C",
-        "border":      "#E7E5E4",
-        "border_card": "#FED7AA",
+        "border":      "#FDBA74",
+        "border_card": "#FDBA74",
         "success":     "#16A34A",
         "warning":     "#D97706",
         "danger":      "#DC2626",
@@ -63,7 +65,8 @@ TEMAS = {
     },
     "rosa_sage": {
         "nombre": "🌸 Rosa Sage",
-        "bg_app":      "#FDF2F8",
+        "text_input":  "#111111",
+        "bg_app":      "#FFD6EC",
         "bg_card":     "#FFFFFF",
         "bg_navbar":   "#FFFFFF",
         "bg_input":    "#FDF2F8",
@@ -79,8 +82,8 @@ TEMAS = {
         "accent_yellow":  "#FDE68A",
         "text_main":   "#500724",
         "text_muted":  "#9CA3AF",
-        "border":      "#F9A8D4",
-        "border_card": "#FBCFE8",
+        "border":      "#F472B6",
+        "border_card": "#F472B6",
         "success":     "#22C55E",
         "warning":     "#FB923C",
         "danger":      "#DC2626",
@@ -92,10 +95,11 @@ TEMAS = {
     },
     "lila_sol": {
         "nombre": "💛 Lila Sol",
-        "bg_app":      "#FAFAF9",
+        "text_input":  "#111111",
+        "bg_app":      "#EDE0FF",
         "bg_card":     "#FFFFFF",
         "bg_navbar":   "#FFFFFF",
-        "bg_input":    "#F9F5FF",
+        "bg_input":    "#F5EEFF",
         "bg_hover":    "#F3E8FF",
         "bg_selected": "#E9D5FF",
         "primary":        "#9333EA",
@@ -108,8 +112,8 @@ TEMAS = {
         "accent_yellow":  "#FDE047",
         "text_main":   "#3B0764",
         "text_muted":  "#71717A",
-        "border":      "#E4E4E7",
-        "border_card": "#E9D5FF",
+        "border":      "#D8B4FE",
+        "border_card": "#D8B4FE",
         "success":     "#22C55E",
         "warning":     "#EAB308",
         "danger":      "#EF4444",
@@ -121,6 +125,7 @@ TEMAS = {
     },
     "clasico_oscuro": {
         "nombre": "🌑 Clásico Oscuro",
+        "text_input":  "#F0F0F0",
         "bg_app":      "#050e1a",
         "bg_card":     "#0d1b30",
         "bg_navbar":   "#0a1628",
@@ -154,6 +159,9 @@ _CONFIG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_conf
 
 
 def get_tema_key() -> str:
+    env_key = os.environ.get('JUANA_CASH_TEMA', '')
+    if env_key in TEMAS:
+        return env_key
     try:
         if os.path.exists(_CONFIG_PATH):
             with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -201,7 +209,7 @@ QFrame {{
 /* ── Inputs ── */
 QLineEdit, QSpinBox, QDoubleSpinBox, QTextEdit {{
     background: {t['bg_input']};
-    color: {t['text_main']};
+    color: {t['text_input']};
     border: 1.5px solid {t['border']};
     border-radius: 8px;
     padding: 6px 12px;

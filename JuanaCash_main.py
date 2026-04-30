@@ -28,6 +28,15 @@ if os.path.exists(_db_vieja) and not os.path.exists(DB_PATH):
 os.environ['DATABASE_URL'] = f"sqlite:///{DB_PATH}"
 
 def run_backend():
+    import socket as _socket
+    for _ in range(20):
+        try:
+            _s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+            _s.bind(("127.0.0.1", 8000))
+            _s.close()
+            break
+        except OSError:
+            time.sleep(0.5)
     try:
         from backend.app.main import app as fastapi_app
         import uvicorn
