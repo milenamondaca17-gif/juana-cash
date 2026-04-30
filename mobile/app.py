@@ -287,7 +287,7 @@ def _main(page: ft.Page):
     # ── FilePicker para imágenes ──────────────────────────────────────────────
     lbl_oferta_status = ft.Text("", size=13, weight="bold")
 
-    def _on_file_picked(e: ft.FilePickerResultEvent):
+    def _on_file_picked(e):
         if not e.files:
             return
         archivo = e.files[0]
