@@ -200,17 +200,24 @@ class SplashScreen(QWidget):
             from updater import Updater
             u = Updater()
 
+            def _cerrar_app_qt():
+                from PyQt6.QtWidgets import QApplication
+                from PyQt6.QtCore import QTimer
+                self._set_update_msg("🔄 Instalando actualización... cerrando")
+                QTimer.singleShot(2500, QApplication.instance().quit)
+
             u.verificar(
                 on_preguntar=lambda v: True,
                 on_descargando=lambda v: self._set_update_msg(f"⬇️ Descargando v{v}..."),
-                on_actualizado=lambda v: self._set_update_msg(f"✅ Actualizado a v{v} — reiniciá la app"),
+                on_actualizado=lambda v: self._set_update_msg(f"✅ v{v} descargada — instalando..."),
                 on_sin_internet=lambda: None,
                 on_no_hay_update=lambda: None,
+                on_cerrar_app=_cerrar_app_qt,
             )
         except Exception as e:
             try:
                 import traceback
-                _log_path = os.path.join(os.path.expanduser("~"), "Desktop", "juana_update.log")
+                _log_path = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "juana_update.log")
                 os.makedirs(os.path.dirname(_log_path), exist_ok=True)
                 with open(_log_path, "a", encoding="utf-8") as f:
                     f.write(f"[SPLASH ERROR] {e}\n{traceback.format_exc()}\n")

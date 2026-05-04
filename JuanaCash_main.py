@@ -72,8 +72,47 @@ def _udp_broadcaster():
             pass
         time.sleep(2)
 
+def _auto_backup():
+    """Copia la base de datos a backups/ todos los días a las 22:15."""
+    import shutil
+    from datetime import datetime
+    BACKUP_DIR = os.path.join(DATA_DIR, "backups")
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    backup_hecho_hoy = None
+    while True:
+        ahora = datetime.now()
+        if ahora.hour == 22 and ahora.minute == 15 and backup_hecho_hoy != ahora.date():
+            try:
+                nombre = f"juana_cash_{ahora.strftime('%Y%m%d')}_2215.db"
+                destino = os.path.join(BACKUP_DIR, nombre)
+                shutil.copy2(DB_PATH, destino)
+                backup_hecho_hoy = ahora.date()
+                # Mantener solo los últimos 7 backups
+                archivos = sorted(
+                    [f for f in os.listdir(BACKUP_DIR) if f.startswith("juana_cash_") and f.endswith(".db")],
+                    reverse=True
+                )
+                for viejo in archivos[7:]:
+                    try:
+                        os.remove(os.path.join(BACKUP_DIR, viejo))
+                    except Exception:
+                        pass
+                try:
+                    with open(os.path.join(DATA_DIR, "debug.log"), "a") as f:
+                        f.write(f"[{ahora}] Backup automático: {nombre}\n")
+                except Exception:
+                    pass
+            except Exception as e:
+                try:
+                    with open(os.path.join(DATA_DIR, "debug.log"), "a") as f:
+                        f.write(f"[{ahora}] ERROR backup: {e}\n")
+                except Exception:
+                    pass
+        time.sleep(30)
+
 threading.Thread(target=run_backend, daemon=True).start()
 threading.Thread(target=_udp_broadcaster, daemon=True).start()
+threading.Thread(target=_auto_backup, daemon=True).start()
 time.sleep(3)
 
 from PyQt6.QtWidgets import QApplication

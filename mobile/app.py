@@ -1722,169 +1722,356 @@ def _main(page: ft.Page):
     )
 
     # ── PANTALLA 7: CAJA ─────────────────────────────────────────────────────
-    lbl_caja_status   = ft.Text("", size=12, color="#94A3B8")
-    lista_caja_ui     = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=480)
+    MCOLOR = {"efectivo": "#10B981", "tarjeta": "#3B82F6",
+               "mercadopago_qr": "#9333EA", "transferencia": "#F59E0B", "fiado": "#EF4444"}
+    MICON  = {"efectivo": "💵", "tarjeta": "💳",
+               "mercadopago_qr": "📱", "transferencia": "🏦", "fiado": "💸"}
 
-    # Resumen de hoy por método
-    lbl_hoy_efectivo  = ft.Text("$ 0", size=16, weight="w900", color="#10B981")
-    lbl_hoy_tarjeta   = ft.Text("$ 0", size=16, weight="w900", color="#3B82F6")
-    lbl_hoy_qr        = ft.Text("$ 0", size=16, weight="w900", color="#9333EA")
-    lbl_hoy_transf    = ft.Text("$ 0", size=16, weight="w900", color="#F59E0B")
-    lbl_hoy_fiado     = ft.Text("$ 0", size=16, weight="w900", color="#EF4444")
-    lbl_hoy_total     = ft.Text("$ 0", size=22, weight="w900", color="#F43F5E")
+    # ── Cabecera: total del día + delta + turno ───────────────────────────────
+    lbl_caja_total    = ft.Text("$0", size=32, weight="w900", color="#F43F5E")
+    lbl_caja_delta    = ft.Text("", size=13, color="#94A3B8")
+    lbl_caja_ventas   = ft.Text("0 ventas", size=12, color="#94A3B8")
+    lbl_caja_ticket   = ft.Text("Ticket: $0", size=12, color="#94A3B8")
+    lbl_turno_badge   = ft.Text("", size=11, weight="bold")
+    ctn_turno_badge   = ft.Container(
+        content=lbl_turno_badge, border_radius=8, padding=ft.padding.symmetric(4, 10)
+    )
 
-    resumen_hoy = ft.Container(
+    # Chips semana / mes
+    lbl_sem_total  = ft.Text("$0", size=14, weight="bold", color="white")
+    lbl_sem_ventas = ft.Text("0 ventas", size=10, color="#94A3B8")
+    lbl_mes_total  = ft.Text("$0", size=14, weight="bold", color="white")
+    lbl_mes_ventas = ft.Text("0 ventas", size=10, color="#94A3B8")
+
+    ctn_cabecera = ft.Container(
         content=ft.Column([
-            ft.Text("HOY", weight="bold", color="#94A3B8", size=11),
             ft.Row([
-                ft.Column([ft.Text("💵 Efectivo", size=10, color="#94A3B8"), lbl_hoy_efectivo], spacing=2, horizontal_alignment="center", expand=True),
-                ft.Column([ft.Text("💳 Tarjeta",  size=10, color="#94A3B8"), lbl_hoy_tarjeta],  spacing=2, horizontal_alignment="center", expand=True),
-                ft.Column([ft.Text("📱 QR/MP",    size=10, color="#94A3B8"), lbl_hoy_qr],       spacing=2, horizontal_alignment="center", expand=True),
-                ft.Column([ft.Text("🏦 Transf.",  size=10, color="#94A3B8"), lbl_hoy_transf],   spacing=2, horizontal_alignment="center", expand=True),
-                ft.Column([ft.Text("💸 Fiado",    size=10, color="#94A3B8"), lbl_hoy_fiado],    spacing=2, horizontal_alignment="center", expand=True),
-            ]),
-            ft.Divider(color="#334155"),
-            ft.Row([ft.Text("TOTAL DEL DÍA:", weight="bold", size=13, expand=True), lbl_hoy_total], alignment="spaceBetween"),
-        ], spacing=8),
+                ft.Column([
+                    ft.Text("HOY", size=10, weight="bold", color="#94A3B8"),
+                    lbl_caja_total,
+                    ft.Row([lbl_caja_delta], spacing=4),
+                    ft.Row([lbl_caja_ventas, ft.Text("·", color="#334155"), lbl_caja_ticket], spacing=6),
+                ], spacing=2, expand=True),
+                ctn_turno_badge,
+            ], alignment="spaceBetween"),
+            ft.Divider(color="#1E293B", height=12),
+            ft.Row([
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("7 DÍAS", size=9, color="#94A3B8"),
+                        lbl_sem_total, lbl_sem_ventas,
+                    ], spacing=1, horizontal_alignment="center"),
+                    bgcolor="#1E293B", border_radius=10, padding=10, expand=True
+                ),
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("ESTE MES", size=9, color="#94A3B8"),
+                        lbl_mes_total, lbl_mes_ventas,
+                    ], spacing=1, horizontal_alignment="center"),
+                    bgcolor="#1E293B", border_radius=10, padding=10, expand=True
+                ),
+            ], spacing=8),
+        ], spacing=6),
         bgcolor="#0F172A", padding=14, border_radius=14
     )
 
-    # Selector de vista
-    vista_caja = {"sel": "metodos"}  # "metodos" | "cierres"
-    btn_sel_metodos = ft.ElevatedButton("📅 Por método", bgcolor="#F43F5E", color="white", expand=True, height=38)
-    btn_sel_cierres = ft.ElevatedButton("📋 Cierres",    bgcolor="#1E293B", color="white", expand=True, height=38)
+    # ── Tabs HOY / HISTORIAL / CIERRES ───────────────────────────────────────
+    vista_caja   = {"sel": "hoy"}
+    lbl_caja_status = ft.Text("", size=12, color="#94A3B8")
+    lista_caja_ui   = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, expand=True)
 
+    _TABS_CAJA = [("hoy", "Hoy"), ("historial", "Historial"), ("cierres", "Cierres")]
+    _btns_caja = {}
+    def _mk_tab_btn_caja(key, label):
+        btn = ft.ElevatedButton(
+            label,
+            bgcolor="#F43F5E" if key == "hoy" else "#1E293B",
+            color="white", expand=True, height=36,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+        )
+        def _click(e, k=key): _sel_caja_tab(k)
+        btn.on_click = _click
+        return btn
+    for _k, _lbl in _TABS_CAJA:
+        _btns_caja[_k] = _mk_tab_btn_caja(_k, _lbl)
+
+    def _sel_caja_tab(key):
+        vista_caja["sel"] = key
+        for k, b in _btns_caja.items():
+            b.bgcolor = "#F43F5E" if k == key else "#1E293B"
+        cargar_caja()
+
+    # ── Helpers de renderizado ────────────────────────────────────────────────
+    def _card_dia(dia):
+        fecha   = dia.get("fecha", "")
+        total   = float(dia.get("total", 0))
+        cant    = int(dia.get("cantidad", 0))
+        ticket  = float(dia.get("ticket_promedio", 0))
+        barras  = []
+        max_val = max((float(dia.get(m, 0)) for m in MICON), default=1) or 1
+        for m, icon in MICON.items():
+            val = float(dia.get(m, 0))
+            if val <= 0:
+                continue
+            pct = val / max_val
+            barras.append(
+                ft.Row([
+                    ft.Text(f"{icon}", size=12, width=22),
+                    ft.Container(
+                        width=max(4, int(120 * pct)),
+                        height=10, bgcolor=MCOLOR[m], border_radius=4
+                    ),
+                    ft.Text(f"${val:,.0f}", size=11, color=MCOLOR[m], weight="bold"),
+                ], spacing=6, vertical_alignment="center")
+            )
+        return ft.Container(
+            content=ft.Column([
+                ft.Row([
+                    ft.Text(fecha, weight="bold", size=13, color="white", expand=True),
+                    ft.Text(f"${total:,.0f}", weight="bold", size=14, color="#F43F5E"),
+                ]),
+                ft.Row([
+                    ft.Text(f"{cant} ventas", size=10, color="#94A3B8"),
+                    ft.Text("·", color="#334155", size=10),
+                    ft.Text(f"Ticket ${ticket:,.0f}", size=10, color="#94A3B8"),
+                ], spacing=6),
+                ft.Column(barras, spacing=3) if barras else ft.Text("Sin ventas", color="#334155", size=11),
+            ], spacing=6),
+            bgcolor="#1E293B", padding=12, border_radius=12
+        )
+
+    def _card_turno(t):
+        apertura   = t.get("apertura", "")
+        cierre     = t.get("cierre", "")
+        calculado  = float(t.get("monto_cierre_calculado", 0))
+        declarado  = float(t.get("monto_cierre_declarado", 0))
+        diferencia = float(t.get("diferencia", 0))
+        color_dif  = "#10B981" if abs(diferencia) < 1 else ("#F59E0B" if abs(diferencia) < 500 else "#EF4444")
+        icono_dif  = "✓" if abs(diferencia) < 1 else ("⚠" if abs(diferencia) < 500 else "✗")
+        return ft.Container(
+            content=ft.Column([
+                ft.Row([
+                    ft.Text(f"🕐 {apertura}", size=11, color="#94A3B8", expand=True),
+                    ft.Text(f"→ {cierre}", size=11, color="#64748B"),
+                ]),
+                ft.Row([
+                    ft.Column([
+                        ft.Text("Calculado", size=10, color="#94A3B8"),
+                        ft.Text(f"${calculado:,.0f}", size=15, weight="bold", color="#10B981"),
+                    ], spacing=2, expand=True),
+                    ft.Column([
+                        ft.Text("Declarado", size=10, color="#94A3B8"),
+                        ft.Text(f"${declarado:,.0f}", size=15, weight="bold", color="#38BDF8"),
+                    ], spacing=2, expand=True),
+                    ft.Column([
+                        ft.Text("Diferencia", size=10, color="#94A3B8"),
+                        ft.Text(f"{icono_dif} ${diferencia:+,.0f}", size=15, weight="bold", color=color_dif),
+                    ], spacing=2, expand=True),
+                ]),
+            ], spacing=8),
+            bgcolor="#1E293B", padding=12, border_radius=12
+        )
+
+    # ── Carga principal ───────────────────────────────────────────────────────
     @en_hilo
     def cargar_caja(e=None):
         lbl_caja_status.value = "⏳ Cargando..."
         lista_caja_ui.controls.clear()
         page.update()
 
-        # Siempre cargar resumen de hoy
-        data_hoy = api_get("/reportes/hoy")
-        if data_hoy:
-            ventas_hoy = data_hoy.get("ventas", [])
-            tots = {"efectivo": 0, "tarjeta": 0, "mercadopago_qr": 0, "transferencia": 0, "fiado": 0}
-            for v in ventas_hoy:
-                m = v.get("metodo_pago", "efectivo").lower()
-                if m in tots:
-                    tots[m] += float(v.get("total", 0))
-            lbl_hoy_efectivo.value = f"${tots['efectivo']:,.0f}"
-            lbl_hoy_tarjeta.value  = f"${tots['tarjeta']:,.0f}"
-            lbl_hoy_qr.value       = f"${tots['mercadopago_qr']:,.0f}"
-            lbl_hoy_transf.value   = f"${tots['transferencia']:,.0f}"
-            lbl_hoy_fiado.value    = f"${tots['fiado']:,.0f}"
-            lbl_hoy_total.value    = f"${data_hoy.get('total_vendido', 0):,.0f}"
+        # Una sola llamada para todo el encabezado
+        resumen = api_get("/caja/resumen-rapido")
+        if resumen:
+            h = resumen.get("hoy", {})
+            delta = float(resumen.get("delta_pct", 0))
+            sem   = resumen.get("semana", {})
+            mes   = resumen.get("mes", {})
+            turno = resumen.get("turno", {})
+
+            lbl_caja_total.value  = f"${float(h.get('total', 0)):,.0f}"
+            lbl_caja_ventas.value = f"{h.get('cantidad', 0)} ventas"
+            lbl_caja_ticket.value = f"Ticket: ${float(h.get('ticket_promedio', 0)):,.0f}"
+
+            if delta > 0:
+                lbl_caja_delta.value = f"↑ {delta:+.1f}% vs ayer"
+                lbl_caja_delta.color = "#10B981"
+            elif delta < 0:
+                lbl_caja_delta.value = f"↓ {delta:.1f}% vs ayer"
+                lbl_caja_delta.color = "#EF4444"
+            else:
+                lbl_caja_delta.value = "= igual que ayer"
+                lbl_caja_delta.color = "#94A3B8"
+
+            lbl_sem_total.value  = f"${float(sem.get('total', 0)):,.0f}"
+            lbl_sem_ventas.value = f"{sem.get('cantidad', 0)} ventas"
+            lbl_mes_total.value  = f"${float(mes.get('total', 0)):,.0f}"
+            lbl_mes_ventas.value = f"{mes.get('cantidad', 0)} ventas"
+
+            if turno.get("abierto"):
+                lbl_turno_badge.value  = "● CAJA ABIERTA"
+                lbl_turno_badge.color  = "#10B981"
+                ctn_turno_badge.bgcolor = "#052E16"
+            else:
+                lbl_turno_badge.value  = "○ CERRADA"
+                lbl_turno_badge.color  = "#94A3B8"
+                ctn_turno_badge.bgcolor = "#1E293B"
 
         lbl_caja_status.value = ""
 
-        if vista_caja["sel"] == "metodos":
-            data = api_get("/caja/historial-efectivo", params={"dias": 30})
-            if data:
-                MCOLOR = {
-                    "efectivo": "#10B981", "tarjeta": "#3B82F6",
-                    "mercadopago_qr": "#9333EA", "transferencia": "#F59E0B", "fiado": "#EF4444"
-                }
-                MICON = {
-                    "efectivo": "💵", "tarjeta": "💳",
-                    "mercadopago_qr": "📱", "transferencia": "🏦", "fiado": "💸"
-                }
-                for dia in data:
-                    fecha  = dia.get("fecha", "")
-                    total  = float(dia.get("total", 0))
-                    metodos_row = []
-                    for m, icon in MICON.items():
-                        val = float(dia.get(m, 0))
-                        if val > 0:
-                            metodos_row.append(
-                                ft.Column([
-                                    ft.Text(icon, size=14),
-                                    ft.Text(f"${val:,.0f}", size=11, weight="bold",
-                                            color=MCOLOR[m]),
-                                ], spacing=1, horizontal_alignment="center", expand=True)
-                            )
+        sel = vista_caja["sel"]
+
+        if sel == "hoy":
+            resumen_hoy_data = resumen.get("hoy", {}) if resumen else None
+            if resumen_hoy_data:
+                # Desglose de hoy: una barra por método
+                total_hoy = float(resumen_hoy_data.get("total", 0))
+                for m, icon in MICON.items():
+                    val = float(resumen_hoy_data.get(m, 0))
+                    if val <= 0:
+                        continue
+                    pct_txt = f"{val/total_hoy*100:.0f}%" if total_hoy > 0 else "0%"
                     lista_caja_ui.controls.append(
                         ft.Container(
-                            content=ft.Column([
-                                ft.Row([
-                                    ft.Text(fecha, weight="bold", size=13, color="white", expand=True),
-                                    ft.Text(f"TOTAL ${total:,.0f}", weight="bold",
-                                            size=13, color="#F43F5E"),
-                                ]),
-                                ft.Row(metodos_row) if metodos_row else ft.Text("Sin ventas", color="#94A3B8", size=11),
-                            ], spacing=6),
-                            bgcolor="#1E293B", padding=12, border_radius=12
+                            content=ft.Row([
+                                ft.Text(icon, size=20, width=32),
+                                ft.Column([
+                                    ft.Row([
+                                        ft.Text(m.replace("_", " ").title(), size=12,
+                                                color="white", expand=True, weight="bold"),
+                                        ft.Text(pct_txt, size=11, color="#94A3B8"),
+                                    ]),
+                                    ft.Container(
+                                        content=ft.Container(
+                                            width=max(6, int(260 * (val / total_hoy))),
+                                            height=8, bgcolor=MCOLOR[m], border_radius=4
+                                        ),
+                                        bgcolor="#0F172A", border_radius=4, height=8, expand=True
+                                    ),
+                                    ft.Text(f"${val:,.0f}", size=16, weight="bold", color=MCOLOR[m]),
+                                ], spacing=4, expand=True),
+                            ], spacing=10, vertical_alignment="center"),
+                            bgcolor="#1E293B", padding=ft.padding.symmetric(12, 14),
+                            border_radius=12
                         )
                     )
-                if not data:
-                    lista_caja_ui.controls.append(ft.Text("Sin datos", color="#94A3B8", size=13, text_align="center"))
+                if not any(float(resumen_hoy_data.get(m, 0)) > 0 for m in MICON):
+                    lista_caja_ui.controls.append(
+                        ft.Container(
+                            ft.Text("Sin ventas registradas hoy", color="#94A3B8",
+                                    size=13, text_align="center"),
+                            padding=24
+                        )
+                    )
+            else:
+                lbl_caja_status.value = f"Sin conexión — {get_api_url()}"
+                lbl_caja_status.color = "#EF4444"
+
+        elif sel == "historial":
+            data = api_get("/caja/historial-efectivo", params={"dias": 30})
+            if data:
+                # Agrupar por semana
+                from datetime import datetime as _dt, timedelta as _td
+                semana_actual = None
+                sem_total = 0.0
+                for i, dia in enumerate(data):
+                    try:
+                        fecha_dt = _dt.strptime(dia.get("fecha", ""), "%Y-%m-%d")
+                        lunes = fecha_dt - _td(days=fecha_dt.weekday())
+                        sem_label = f"Semana del {lunes.strftime('%d/%m')}"
+                    except Exception:
+                        sem_label = "—"
+                        lunes = None
+
+                    if lunes and sem_label != semana_actual:
+                        if semana_actual is not None:
+                            lista_caja_ui.controls.append(
+                                ft.Container(
+                                    ft.Row([
+                                        ft.Text("SUBTOTAL SEMANA", size=10, color="#64748B", expand=True),
+                                        ft.Text(f"${sem_total:,.0f}", size=11, weight="bold", color="#64748B"),
+                                    ]),
+                                    padding=ft.padding.only(left=8, bottom=4)
+                                )
+                            )
+                        semana_actual = sem_label
+                        sem_total = 0.0
+                        lista_caja_ui.controls.append(
+                            ft.Container(
+                                ft.Text(sem_label, size=10, weight="bold", color="#475569"),
+                                padding=ft.padding.only(top=6, bottom=2)
+                            )
+                        )
+
+                    sem_total += float(dia.get("total", 0))
+                    lista_caja_ui.controls.append(_card_dia(dia))
+
+                if semana_actual is not None:
+                    lista_caja_ui.controls.append(
+                        ft.Container(
+                            ft.Row([
+                                ft.Text("SUBTOTAL SEMANA", size=10, color="#64748B", expand=True),
+                                ft.Text(f"${sem_total:,.0f}", size=11, weight="bold", color="#64748B"),
+                            ]),
+                            padding=ft.padding.only(left=8, bottom=4)
+                        )
+                    )
             else:
                 lbl_caja_status.value = f"Sin conexión — {get_api_url()}"
                 lbl_caja_status.color = "#EF4444"
 
         else:  # cierres
+            # Estado del turno actual
+            if resumen and resumen.get("turno", {}).get("abierto"):
+                t = resumen["turno"]
+                lista_caja_ui.controls.append(
+                    ft.Container(
+                        content=ft.Row([
+                            ft.Column([
+                                ft.Text("TURNO ACTIVO", size=10, weight="bold", color="#10B981"),
+                                ft.Text(f"Abierto: {t.get('apertura', '')}", size=12, color="white"),
+                                ft.Text(f"Apertura: ${float(t.get('monto_apertura', 0)):,.0f}", size=11, color="#94A3B8"),
+                            ], spacing=3, expand=True),
+                            ft.Container(
+                                ft.Text("EN CURSO", size=10, weight="bold", color="#10B981"),
+                                bgcolor="#052E16", border_radius=8,
+                                padding=ft.padding.symmetric(4, 10)
+                            ),
+                        ]),
+                        bgcolor="#0F2918", border=ft.border.all(1, "#10B981"),
+                        padding=12, border_radius=12
+                    )
+                )
+
             data = api_get("/caja/historial", params={"limite": 30})
             if data:
                 for t in data:
-                    apertura   = t.get("apertura", "")
-                    cierre     = t.get("cierre", "")
-                    calculado  = float(t.get("monto_cierre_calculado", 0))
-                    declarado  = float(t.get("monto_cierre_declarado", 0))
-                    diferencia = float(t.get("diferencia", 0))
-                    color_dif  = "#10B981" if abs(diferencia) < 1 else ("#F59E0B" if abs(diferencia) < 500 else "#EF4444")
+                    lista_caja_ui.controls.append(_card_turno(t))
+                if not data:
                     lista_caja_ui.controls.append(
                         ft.Container(
-                            content=ft.Column([
-                                ft.Row([
-                                    ft.Text(f"🕐 {apertura}", size=11, color="#94A3B8", expand=True),
-                                    ft.Text(f"→ {cierre}", size=11, color="#94A3B8"),
-                                ]),
-                                ft.Row([
-                                    ft.Column([
-                                        ft.Text("Calculado", size=10, color="#94A3B8"),
-                                        ft.Text(f"${calculado:,.0f}", size=14, weight="bold", color="#10B981"),
-                                    ], spacing=1, expand=True),
-                                    ft.Column([
-                                        ft.Text("Declarado", size=10, color="#94A3B8"),
-                                        ft.Text(f"${declarado:,.0f}", size=14, weight="bold", color="#38BDF8"),
-                                    ], spacing=1, expand=True),
-                                    ft.Column([
-                                        ft.Text("Diferencia", size=10, color="#94A3B8"),
-                                        ft.Text(f"${diferencia:+,.0f}", size=14, weight="bold", color=color_dif),
-                                    ], spacing=1, expand=True),
-                                ]),
-                            ], spacing=8),
-                            bgcolor="#1E293B", padding=12, border_radius=12
+                            ft.Text("Sin cierres registrados", color="#94A3B8",
+                                    size=13, text_align="center"),
+                            padding=24
                         )
                     )
-                if not data:
-                    lista_caja_ui.controls.append(ft.Text("Sin cierres registrados", color="#94A3B8", size=13, text_align="center"))
             else:
                 lbl_caja_status.value = f"Sin conexión — {get_api_url()}"
                 lbl_caja_status.color = "#EF4444"
 
         page.update()
 
-    def _sel_metodos(e):
-        vista_caja["sel"] = "metodos"
-        btn_sel_metodos.bgcolor = "#F43F5E"
-        btn_sel_cierres.bgcolor = "#1E293B"
-        cargar_caja()
-
-    def _sel_cierres(e):
-        vista_caja["sel"] = "cierres"
-        btn_sel_cierres.bgcolor = "#F43F5E"
-        btn_sel_metodos.bgcolor = "#1E293B"
-        cargar_caja()
-
-    btn_sel_metodos.on_click = _sel_metodos
-    btn_sel_cierres.on_click = _sel_cierres
-
     view_caja = ft.Container(
         content=ft.Column([
-            ft.Text("🏦 CAJA", size=20, weight="w900"),
-            resumen_hoy,
-            ft.Row([btn_sel_metodos, btn_sel_cierres], spacing=8),
+            ft.Row([
+                ft.Text("🏦 CAJA", size=20, weight="w900", expand=True),
+                ft.IconButton(
+                    ft.icons.REFRESH, icon_color="#94A3B8",
+                    icon_size=20, tooltip="Actualizar",
+                    on_click=cargar_caja
+                ),
+            ]),
+            ctn_cabecera,
+            ft.Row([_btns_caja[k] for k, _ in _TABS_CAJA], spacing=6),
             lbl_caja_status,
             lista_caja_ui,
         ], spacing=10),

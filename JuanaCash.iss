@@ -1,6 +1,6 @@
 [Setup]
 AppName=Juana Cash
-AppVersion=3.1.6
+AppVersion=3.2.0
 AppPublisher=CAMMUS_25
 DefaultDirName={autopf}\JuanaCash
 DefaultGroupName=Juana Cash
@@ -23,6 +23,7 @@ Name: "desktopicon"; Description: "Crear acceso directo en el escritorio"; Group
 [Files]
 Source: "dist\JuanaCash\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "version.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "version.json"; DestDir: "{app}\_internal"; Flags: ignoreversion
 Source: "updater.py"; DestDir: "{app}"; Flags: ignoreversion
 ; Base de datos inicial con usuarios cargados (solo si no existe una ya)
 Source: "juana_cash.db"; DestDir: "{userdocs}\..\JuanaCash_Data"; Flags: ignoreversion onlyifdoesntexist uninsneveruninstall

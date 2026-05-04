@@ -107,6 +107,78 @@ def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
         "usuario_id":             t.usuario_id,
     } for t in turnos]
 
+@router.get("/resumen-rapido")
+def resumen_rapido(usuario_id: int = 1, db: Session = Depends(get_db)):
+    """
+    Devuelve en una sola llamada todo lo necesario para la pantalla Caja del móvil:
+    hoy, ayer, semana, mes y estado del turno actual.
+    """
+    from collections import defaultdict
+
+    hoy  = date.today()
+    ayer = hoy - timedelta(days=1)
+    sem  = hoy - timedelta(days=7)
+    mes  = hoy.replace(day=1)
+
+    def _agrupar(ventas):
+        tots = defaultdict(float)
+        cantidad = 0
+        for v in ventas:
+            if v.estado != "completada":
+                continue
+            cantidad += 1
+            # Usar tabla pagos si existe, si no metodo_pago
+            metodo = "efectivo"
+            if hasattr(v, "pagos") and v.pagos:
+                metodo = v.pagos[0].metodo.lower()
+            elif getattr(v, "metodo_pago", None):
+                metodo = v.metodo_pago.lower()
+            tots[metodo] += float(v.total or 0)
+        total = sum(tots.values())
+        ticket = total / cantidad if cantidad else 0
+        return {
+            "efectivo":       round(tots.get("efectivo", 0), 2),
+            "tarjeta":        round(tots.get("tarjeta", 0), 2),
+            "mercadopago_qr": round(tots.get("mercadopago_qr", 0), 2),
+            "transferencia":  round(tots.get("transferencia", 0), 2),
+            "fiado":          round(tots.get("fiado", 0), 2),
+            "total":          round(total, 2),
+            "cantidad":       cantidad,
+            "ticket_promedio": round(ticket, 2),
+        }
+
+    ventas_hoy  = db.query(Venta).filter(func.date(Venta.fecha) == hoy).all()
+    ventas_ayer = db.query(Venta).filter(func.date(Venta.fecha) == ayer).all()
+    ventas_sem  = db.query(Venta).filter(func.date(Venta.fecha) >= sem).all()
+    ventas_mes  = db.query(Venta).filter(func.date(Venta.fecha) >= mes).all()
+
+    turno = db.query(CajaTurno).filter(
+        CajaTurno.usuario_id == usuario_id,
+        CajaTurno.estado == "abierto"
+    ).first()
+
+    hoy_data  = _agrupar(ventas_hoy)
+    ayer_data = _agrupar(ventas_ayer)
+
+    delta_pct = 0.0
+    if ayer_data["total"] > 0:
+        delta_pct = round((hoy_data["total"] - ayer_data["total"]) / ayer_data["total"] * 100, 1)
+
+    return {
+        "hoy":   hoy_data,
+        "ayer":  ayer_data,
+        "delta_pct": delta_pct,
+        "semana": _agrupar(ventas_sem),
+        "mes":    _agrupar(ventas_mes),
+        "turno":  {
+            "abierto":        turno is not None,
+            "id":             turno.id            if turno else None,
+            "apertura":       str(turno.apertura)[:16] if turno else None,
+            "monto_apertura": float(turno.monto_apertura) if turno else 0,
+        }
+    }
+
+
 @router.get("/historial-efectivo")
 def historial_efectivo(dias: int = 30, db: Session = Depends(get_db)):
     """
@@ -124,29 +196,36 @@ def historial_efectivo(dias: int = 30, db: Session = Depends(get_db)):
     por_dia = defaultdict(lambda: {
         "efectivo": 0, "tarjeta": 0,
         "mercadopago_qr": 0, "transferencia": 0,
-        "fiado": 0, "total": 0
+        "fiado": 0, "total": 0, "cantidad": 0
     })
 
     for v in ventas:
         dia = str(v.fecha)[:10]
-        metodo = str(v.metodo_pago or "efectivo").lower()
+        metodo = "efectivo"
+        if hasattr(v, "pagos") and v.pagos:
+            metodo = v.pagos[0].metodo.lower()
+        elif getattr(v, "metodo_pago", None):
+            metodo = v.metodo_pago.lower()
         monto = float(v.total or 0)
         if metodo in por_dia[dia]:
             por_dia[dia][metodo] += monto
         por_dia[dia]["total"] += monto
+        por_dia[dia]["cantidad"] += 1
 
-    # Ordenar por fecha descendente
     resultado = []
     for dia in sorted(por_dia.keys(), reverse=True):
         d = por_dia[dia]
+        cant = d["cantidad"]
         resultado.append({
-            "fecha": dia,
-            "efectivo":       round(d["efectivo"], 2),
-            "tarjeta":        round(d["tarjeta"], 2),
-            "mercadopago_qr": round(d["mercadopago_qr"], 2),
-            "transferencia":  round(d["transferencia"], 2),
-            "fiado":          round(d["fiado"], 2),
-            "total":          round(d["total"], 2),
+            "fecha":           dia,
+            "efectivo":        round(d["efectivo"], 2),
+            "tarjeta":         round(d["tarjeta"], 2),
+            "mercadopago_qr":  round(d["mercadopago_qr"], 2),
+            "transferencia":   round(d["transferencia"], 2),
+            "fiado":           round(d["fiado"], 2),
+            "total":           round(d["total"], 2),
+            "cantidad":        cant,
+            "ticket_promedio": round(d["total"] / cant, 2) if cant else 0,
         })
 
     return resultado
