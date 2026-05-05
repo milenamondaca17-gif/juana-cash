@@ -1,5 +1,5 @@
 {
-  "version": "3.2.0",
+  "version": "3.3.0",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.2.0 - Caja mejorada en mobile, auto-backup 22:15, fix updater loop"
+  "notas": "v3.3.0 - Fix ticketera, scanner, total cortado, código 7 kiosco, cierre caja, pago fiado"
 }
