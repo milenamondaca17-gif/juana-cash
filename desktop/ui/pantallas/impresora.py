@@ -1,37 +1,78 @@
 import os
+import json
 from datetime import datetime
 
-# Lee el nombre del negocio del config guardado
-def _leer_nombre_negocio():
+_TICKET_CFG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "ticket_config.json")
+
+_DEFAULTS = {
+    "nombre_negocio": "JUANA CASH",
+    "subtitulo":      "",
+    "telefono":       "",
+    "instagram":      "",
+    "facebook":       "",
+    "whatsapp":       "",
+    "mensaje1":       "Gracias por su compra!",
+    "mensaje2":       "Vuelva pronto :)",
+}
+
+def leer_config_ticket():
+    cfg = dict(_DEFAULTS)
     try:
-        ruta = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets", "config_negocio.txt")
-        if os.path.exists(ruta):
-            with open(ruta, "r", encoding="utf-8") as f:
-                for line in f:
-                    if line.startswith("nombre="):
-                        nombre = line.split("=", 1)[1].strip()
-                        if nombre:
-                            return nombre
+        if os.path.exists(_TICKET_CFG_PATH):
+            with open(_TICKET_CFG_PATH, "r", encoding="utf-8") as f:
+                cfg.update(json.load(f))
     except Exception:
         pass
-    return "JUANA CASH"
+    # fallback: leer nombre desde el archivo viejo si no tiene config nueva
+    if cfg["nombre_negocio"] == "JUANA CASH":
+        try:
+            ruta_vieja = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets", "config_negocio.txt")
+            if os.path.exists(ruta_vieja):
+                with open(ruta_vieja, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.startswith("nombre="):
+                            n = line.split("=", 1)[1].strip()
+                            if n:
+                                cfg["nombre_negocio"] = n
+        except Exception:
+            pass
+    return cfg
+
+def guardar_config_ticket(datos: dict):
+    try:
+        os.makedirs(os.path.dirname(_TICKET_CFG_PATH), exist_ok=True)
+        cfg = leer_config_ticket()
+        cfg.update(datos)
+        with open(_TICKET_CFG_PATH, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
+
 
 def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, cliente=None):
-    ANCHO   = 32
-    NEGOCIO = _leer_nombre_negocio()
+    ANCHO = 32
+    cfg   = leer_config_ticket()
 
     def centrar(texto):
+        texto = str(texto)
+        if len(texto) > ANCHO:
+            texto = texto[:ANCHO]
         return texto.center(ANCHO)
 
     def izq_der(izq, der):
-        espacios = ANCHO - len(izq) - len(der)
-        if espacios < 1: espacios = 1
-        return izq + (" " * espacios) + der
+        espacios = ANCHO - len(str(izq)) - len(str(der))
+        if espacios < 1:
+            espacios = 1
+        return str(izq) + (" " * espacios) + str(der)
 
     lineas = []
     lineas.append("=" * ANCHO)
-    lineas.append(centrar(NEGOCIO.upper()))
+    lineas.append(centrar(cfg["nombre_negocio"].upper()))
+    if cfg.get("subtitulo"):
+        lineas.append(centrar(cfg["subtitulo"]))
     lineas.append("=" * ANCHO)
+
     lineas.append(f"Ticket N: {venta.get('numero', '0001')}")
     lineas.append(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     if cliente:
@@ -44,9 +85,7 @@ def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, client
         cant     = float(item.get("cantidad", 1))
         nombre   = str(item.get("nombre", ""))[:16]
         subtotal = float(item.get("subtotal", 0))
-        linea_izq = f"{cant:g}x {nombre}"
-        linea_der = f"${subtotal:,.0f}"
-        lineas.append(izq_der(linea_izq, linea_der))
+        lineas.append(izq_der(f"{cant:g}x {nombre}", f"${subtotal:,.0f}"))
 
     lineas.append("-" * ANCHO)
 
@@ -70,9 +109,26 @@ def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, client
         lineas.append(izq_der("Vuelto:", f"${float(vuelto):,.0f}"))
 
     lineas.append("=" * ANCHO)
-    lineas.append(centrar("Gracias por su compra!"))
-    lineas.append(centrar("Vuelva pronto :)"))
-    lineas.append("\n\n\n\n")  # Espacio para guillotina
+
+    if cfg.get("mensaje1"):
+        lineas.append(centrar(cfg["mensaje1"]))
+    if cfg.get("mensaje2"):
+        lineas.append(centrar(cfg["mensaje2"]))
+
+    # Datos de contacto
+    contacto = []
+    if cfg.get("telefono"):
+        contacto.append(f"Tel: {cfg['telefono']}")
+    if cfg.get("whatsapp"):
+        contacto.append(f"WA:  {cfg['whatsapp']}")
+    if cfg.get("instagram"):
+        contacto.append(f"IG:  @{cfg['instagram'].lstrip('@')}")
+    if cfg.get("facebook"):
+        contacto.append(f"FB:  {cfg['facebook']}")
+    for c in contacto:
+        lineas.append(centrar(c))
+
+    lineas.append("\n\n\n\n")  # espacio guillotina
 
     return "\n".join(lineas)
 
@@ -98,15 +154,14 @@ def imprimir_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, cliente
 
     except ImportError:
         _guardar_txt(texto, venta.get("numero", "0"))
-        return False, "pywin32 no instalado.\nCorré: pip install pywin32"
+        return False, "pywin32 no instalado — corrí: pip install pywin32"
 
     except Exception as e:
         _guardar_txt(texto, venta.get("numero", "0"))
-        return False, f"Error impresora: {str(e)[:60]}"
+        return False, f"Error impresora: {str(e)[:80]}"
 
 
 def _guardar_txt(texto, numero):
-    """Respaldo: guarda el ticket como .txt si no hay impresora."""
     try:
         carpeta = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets")
         os.makedirs(carpeta, exist_ok=True)

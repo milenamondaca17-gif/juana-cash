@@ -373,7 +373,7 @@ class ClientesScreen(QWidget):
                 QPushButton:hover {{ background: {_T['primary_hover']}; }}
             """)
 
-            def _hacer_menu(idx=i, pts=puntos):
+            def _hacer_menu(idx=i, pts=puntos, deu=deuda):
                 menu = QMenu()
                 menu.setStyleSheet(f"""
                     QMenu {{ background: {_CARD}; border: 1px solid {_BOR};
@@ -383,6 +383,8 @@ class ClientesScreen(QWidget):
                 """)
                 menu.addAction("✏️  Editar cliente",    lambda: self.editar_cliente(idx))
                 menu.addAction("💸  Registrar fiado",   lambda: self.registrar_fiado(idx))
+                if deu > 0:
+                    menu.addAction("💰  Registrar pago", lambda: self.registrar_pago_cliente(idx))
                 if pts >= 100:
                     menu.addAction("⭐  Canjear puntos", lambda: self.canjear_puntos(idx))
                 menu.addAction("🎟️  Generar cupón",     lambda: self.generar_cupon(idx))
@@ -627,6 +629,90 @@ class ClientesScreen(QWidget):
                     QMessageBox.information(self, "✅", f"Fiado registrado: ${monto:,.2f}")
             except Exception:
                 QMessageBox.critical(dialog, "Error", "No se puede conectar")
+
+        btn_ok.clicked.connect(confirmar)
+        input_monto.returnPressed.connect(confirmar)
+        dialog.exec()
+
+    def registrar_pago_cliente(self, idx):
+        c = self.get_clientes_visibles()[idx]
+        deuda = float(c.get("deuda_actual", 0))
+        if deuda <= 0:
+            QMessageBox.information(self, "Sin deuda", f"{c['nombre']} no tiene deuda pendiente.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"💰 Pago de {c['nombre']}")
+        dialog.setMinimumWidth(320)
+        dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(10)
+        lay.setContentsMargins(20, 18, 20, 18)
+
+        lbl = QLabel(f"Deuda total: ${deuda:,.2f}")
+        lbl.setStyleSheet("color: #e94560; font-size: 14px; font-weight: bold;")
+        lay.addWidget(lbl)
+
+        lbl2 = QLabel("Monto a pagar ($):")
+        lbl2.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lay.addWidget(lbl2)
+
+        input_monto = QLineEdit()
+        input_monto.setPlaceholderText(f"{deuda:.2f}")
+        input_monto.setFixedHeight(44)
+        input_monto.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #27ae60; border-radius: 8px; padding: 10px; color: white; font-size: 16px; }")
+        lay.addWidget(input_monto)
+
+        btns = QHBoxLayout()
+        btn_c = QPushButton("Cancelar")
+        btn_c.setFixedHeight(40)
+        btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_c.clicked.connect(dialog.reject)
+        btns.addWidget(btn_c)
+
+        btn_ok = QPushButton("💰 Registrar pago")
+        btn_ok.setFixedHeight(40)
+        btn_ok.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btns.addWidget(btn_ok)
+        lay.addLayout(btns)
+
+        def confirmar():
+            txt = input_monto.text().strip()
+            try:
+                monto_pago = float(txt) if txt else deuda
+            except ValueError:
+                QMessageBox.warning(dialog, "Error", "Ingresá un monto válido")
+                return
+            if monto_pago <= 0:
+                QMessageBox.warning(dialog, "Error", "El monto debe ser mayor a cero")
+                return
+            try:
+                r_f = requests.get(f"{API_URL}/fiados/cliente/{c['id']}", timeout=5)
+                if r_f.status_code != 200:
+                    QMessageBox.critical(dialog, "Error", "No se pudieron obtener los fiados")
+                    return
+                fiados = sorted(
+                    [f for f in r_f.json() if f.get("estado") != "pagado" and float(f.get("saldo", 0)) > 0],
+                    key=lambda f: f.get("id", 0)
+                )
+                restante = monto_pago
+                for fiado in fiados:
+                    if restante <= 0:
+                        break
+                    pago = min(restante, float(fiado.get("saldo", 0)))
+                    requests.post(f"{API_URL}/fiados/pagar", json={
+                        "fiado_id": fiado["id"],
+                        "usuario_id": 1,
+                        "monto": pago,
+                        "metodo": "efectivo",
+                    }, timeout=5)
+                    restante -= pago
+                self.cargar_clientes()
+                dialog.accept()
+                QMessageBox.information(self, "✅ Pago registrado",
+                    f"Pago de ${monto_pago:,.2f} registrado para {c['nombre']}")
+            except Exception as ex:
+                QMessageBox.critical(dialog, "Error", f"No se pudo registrar el pago\n{str(ex)}")
 
         btn_ok.clicked.connect(confirmar)
         input_monto.returnPressed.connect(confirmar)

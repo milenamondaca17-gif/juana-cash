@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QSpinBox, QCheckBox, QTabWidget, QFormLayout,
                               QComboBox, QScrollArea, QDialog, QTableWidget,
-                              QTableWidgetItem, QHeaderView)
+                              QTableWidgetItem, QHeaderView, QFileDialog)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -367,6 +367,191 @@ class ConfigScreen(QWidget):
         pal_layout.addStretch()
         tabs.addTab(tab_paleta, "🎨 Paletas")
 
+        # ── TAB: TICKET ──────────────────────────────────────────────────────
+        tab_ticket = QWidget()
+        tab_ticket.setStyleSheet(f"background: {_CARD};")
+        tkt_main = QHBoxLayout(tab_ticket)
+        tkt_main.setContentsMargins(20, 20, 20, 20)
+        tkt_main.setSpacing(20)
+
+        # ── Columna izquierda: formulario ─────────────────────────────────
+        tkt_form_wrap = QWidget()
+        tkt_form_wrap.setMaximumWidth(340)
+        tkt_form = QVBoxLayout(tkt_form_wrap)
+        tkt_form.setContentsMargins(0, 0, 0, 0)
+        tkt_form.setSpacing(10)
+
+        lbl_tkt_t = QLabel("🖨️ Personalización del ticket")
+        lbl_tkt_t.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        lbl_tkt_t.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        tkt_form.addWidget(lbl_tkt_t)
+
+        lbl_tkt_s = QLabel("El nombre del negocio se toma de la pestaña Negocio.")
+        lbl_tkt_s.setWordWrap(True)
+        lbl_tkt_s.setStyleSheet(f"color: {_MUT}; font-size: 11px; background: transparent;")
+        tkt_form.addWidget(lbl_tkt_s)
+
+        ei = f"QLineEdit {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 7px; color: {_TXT}; font-size: 13px; }}"
+
+        def _campo(label_txt, placeholder=""):
+            lbl = QLabel(label_txt)
+            lbl.setStyleSheet(f"color: {_MUT}; font-size: 12px; font-weight: bold; background: transparent;")
+            inp = QLineEdit()
+            inp.setPlaceholderText(placeholder)
+            inp.setFixedHeight(36)
+            inp.setStyleSheet(ei)
+            return lbl, inp
+
+        lbl_sub, self.tkt_subtitulo = _campo("Sub-título (bajo el nombre):", "Almacén y Carnicería")
+        lbl_m1,  self.tkt_msg1      = _campo("Mensaje de cierre 1:", "Gracias por su compra!")
+        lbl_m2,  self.tkt_msg2      = _campo("Mensaje de cierre 2:", "Vuelva pronto :)")
+        lbl_tel, self.tkt_telefono  = _campo("Teléfono de contacto:", "351 000-0000")
+        lbl_wa,  self.tkt_whatsapp  = _campo("WhatsApp:", "351 000-0000")
+        lbl_ig,  self.tkt_instagram = _campo("Instagram (sin @):", "mi.negocio")
+        lbl_fb,  self.tkt_facebook  = _campo("Facebook:", "Mi Negocio")
+
+        for lbl, inp in [(lbl_sub, self.tkt_subtitulo), (lbl_m1, self.tkt_msg1),
+                         (lbl_m2, self.tkt_msg2), (lbl_tel, self.tkt_telefono),
+                         (lbl_wa, self.tkt_whatsapp), (lbl_ig, self.tkt_instagram),
+                         (lbl_fb, self.tkt_facebook)]:
+            tkt_form.addWidget(lbl)
+            tkt_form.addWidget(inp)
+            inp.textChanged.connect(self._actualizar_preview_ticket)
+
+        btn_tkt = QPushButton("💾 Guardar configuración del ticket")
+        btn_tkt.setFixedHeight(40)
+        btn_tkt.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_tkt.setStyleSheet(f"QPushButton {{ background: {_OK}; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: #059669; }}")
+        btn_tkt.clicked.connect(self._guardar_config_ticket)
+        tkt_form.addWidget(btn_tkt)
+        tkt_form.addStretch()
+        tkt_main.addWidget(tkt_form_wrap)
+
+        # ── Columna derecha: preview ──────────────────────────────────────
+        from PyQt6.QtWidgets import QTextEdit
+        preview_wrap = QVBoxLayout()
+        lbl_prev = QLabel("Vista previa del ticket")
+        lbl_prev.setStyleSheet(f"color: {_MUT}; font-size: 11px; font-weight: bold; background: transparent;")
+        preview_wrap.addWidget(lbl_prev)
+        self.tkt_preview = QTextEdit()
+        self.tkt_preview.setReadOnly(True)
+        self.tkt_preview.setFont(QFont("Courier New", 10))
+        self.tkt_preview.setStyleSheet(f"""
+            QTextEdit {{
+                background: #f5f5f0; color: #1a1a1a;
+                border: 1.5px solid {_BOR}; border-radius: 8px;
+                padding: 10px; font-size: 11px;
+            }}
+        """)
+        preview_wrap.addWidget(self.tkt_preview)
+        tkt_main.addLayout(preview_wrap, stretch=1)
+
+        tabs.addTab(tab_ticket, "🖨️ Ticket")
+
+        # ── TAB: RESPALDO ────────────────────────────────────────────────────
+        tab_resp = QWidget()
+        tab_resp.setStyleSheet(f"background: {_CARD};")
+        resp_layout = QVBoxLayout(tab_resp)
+        resp_layout.setContentsMargins(20, 20, 20, 20)
+        resp_layout.setSpacing(14)
+
+        lbl_resp_t = QLabel("💾 Respaldo y Restauración")
+        lbl_resp_t.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        lbl_resp_t.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        resp_layout.addWidget(lbl_resp_t)
+
+        # ── Qué incluye ──────────────────────────────────────────────────────
+        inc_frame = QFrame()
+        inc_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
+        inc_lay = QVBoxLayout(inc_frame)
+        inc_lay.setContentsMargins(16, 12, 16, 12)
+        inc_lay.setSpacing(4)
+        lbl_inc_t = QLabel("📦 El respaldo incluye:")
+        lbl_inc_t.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        lbl_inc_t.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        inc_lay.addWidget(lbl_inc_t)
+        for item in ["✅ Todas las ventas del día y el historial completo",
+                     "✅ Productos y cambios de precios",
+                     "✅ Clientes y fiados",
+                     "✅ Cierres de caja",
+                     "✅ Configuración del negocio y del ticket"]:
+            l = QLabel(f"  {item}")
+            l.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+            inc_lay.addWidget(l)
+        resp_layout.addWidget(inc_frame)
+
+        # ── Crear respaldo ────────────────────────────────────────────────────
+        exp_frame = QFrame()
+        exp_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_OK}; }}")
+        exp_lay = QVBoxLayout(exp_frame)
+        exp_lay.setContentsMargins(16, 14, 16, 14)
+        exp_lay.setSpacing(8)
+        lbl_exp_t = QLabel("⬇️  Crear respaldo manual")
+        lbl_exp_t.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        lbl_exp_t.setStyleSheet(f"color: {_OK}; background: transparent;")
+        exp_lay.addWidget(lbl_exp_t)
+        lbl_exp_s = QLabel("Genera un archivo .zip que podés guardar en un pendrive, OneDrive o mandarte por WhatsApp.\nSi se rompe la PC, con ese archivo recuperás todo en una PC nueva.")
+        lbl_exp_s.setWordWrap(True)
+        lbl_exp_s.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        exp_lay.addWidget(lbl_exp_s)
+        self.lbl_ultimo_respaldo = QLabel("Último respaldo: nunca")
+        self.lbl_ultimo_respaldo.setStyleSheet(f"color: {_MUT}; font-size: 11px; background: transparent;")
+        exp_lay.addWidget(self.lbl_ultimo_respaldo)
+        btn_exp = QPushButton("📦 Crear respaldo ahora")
+        btn_exp.setFixedHeight(42)
+        btn_exp.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_exp.setStyleSheet(f"QPushButton {{ background: {_OK}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: #059669; }}")
+        btn_exp.clicked.connect(self._crear_respaldo)
+        exp_lay.addWidget(btn_exp)
+        resp_layout.addWidget(exp_frame)
+
+        # ── Restaurar ─────────────────────────────────────────────────────────
+        rest_frame = QFrame()
+        rest_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
+        rest_lay = QVBoxLayout(rest_frame)
+        rest_lay.setContentsMargins(16, 14, 16, 14)
+        rest_lay.setSpacing(8)
+        lbl_rest_t = QLabel("⬆️  Restaurar en esta PC")
+        lbl_rest_t.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        lbl_rest_t.setStyleSheet(f"color: {_PRI}; background: transparent;")
+        rest_lay.addWidget(lbl_rest_t)
+        lbl_rest_s = QLabel("Seleccioná un archivo de respaldo (.zip) para recuperar todos los datos.\nLa app se cierra al terminar — volvé a abrirla para que los cambios tomen efecto.")
+        lbl_rest_s.setWordWrap(True)
+        lbl_rest_s.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        rest_lay.addWidget(lbl_rest_s)
+        btn_rest = QPushButton("📂 Seleccionar respaldo y restaurar")
+        btn_rest.setFixedHeight(42)
+        btn_rest.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_rest.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+        btn_rest.clicked.connect(self._restaurar_respaldo)
+        rest_lay.addWidget(btn_rest)
+        resp_layout.addWidget(rest_frame)
+
+        # ── Backups automáticos 22:15 ─────────────────────────────────────────
+        auto_frame = QFrame()
+        auto_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
+        auto_lay = QVBoxLayout(auto_frame)
+        auto_lay.setContentsMargins(16, 12, 16, 12)
+        auto_lay.setSpacing(6)
+        lbl_auto_t = QLabel("🕙 Respaldos automáticos (22:15 cada día)")
+        lbl_auto_t.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        lbl_auto_t.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        auto_lay.addWidget(lbl_auto_t)
+        self.lbl_auto_lista = QLabel("Cargando...")
+        self.lbl_auto_lista.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        self.lbl_auto_lista.setWordWrap(True)
+        auto_lay.addWidget(self.lbl_auto_lista)
+        btn_auto_exp = QPushButton("📦 Exportar un auto-respaldo")
+        btn_auto_exp.setFixedHeight(36)
+        btn_auto_exp.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_auto_exp.setStyleSheet(f"QPushButton {{ background: transparent; color: {_PRI}; border: 1.5px solid {_PRI}; border-radius: 8px; font-size: 12px; font-weight: bold; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
+        btn_auto_exp.clicked.connect(self._exportar_auto_respaldo)
+        auto_lay.addWidget(btn_auto_exp)
+        resp_layout.addWidget(auto_frame)
+
+        resp_layout.addStretch()
+        tabs.addTab(tab_resp, "💾 Respaldo")
+
         layout.addWidget(tabs)
 
     def ejecutar_borrado_ventas(self):
@@ -463,15 +648,10 @@ class ConfigScreen(QWidget):
             r = requests.put(f"{API_URL}/config/", json=datos, timeout=5)
             if r.status_code == 200:
                 QMessageBox.information(self, "✅", "Configuración guardada correctamente")
-                # Actualizar ticket_utils si existe
+                # Sincronizar nombre del negocio al config del ticket
                 try:
-                    from ui.pantallas.ticket_utils import guardar_config_negocio
-                    guardar_config_negocio(
-                        datos["negocio_nombre"],
-                        datos["negocio_direccion"],
-                        datos["negocio_telefono"],
-                        "¡Gracias por su compra!"
-                    )
+                    from ui.pantallas.impresora import guardar_config_ticket
+                    guardar_config_ticket({"nombre_negocio": datos["negocio_nombre"]})
                 except Exception:
                     pass
             else:
@@ -542,6 +722,241 @@ class ConfigScreen(QWidget):
         btn_ok.clicked.connect(confirmar)
         dialog.exec()
 
+    # ─── Respaldo ────────────────────────────────────────────────────────────
+
+    def _data_dir(self):
+        return os.path.join(os.path.expanduser("~"), "JuanaCash_Data")
+
+    def _crear_respaldo(self):
+        import zipfile
+        from datetime import datetime
+        data_dir = self._data_dir()
+        db_path  = os.path.join(data_dir, "juana_cash.db")
+
+        fecha = datetime.now().strftime("%Y%m%d_%H%M")
+        nombre_default = f"JuanaCash_Respaldo_{fecha}.zip"
+        escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+        ruta, _ = QFileDialog.getSaveFileName(
+            self, "Guardar respaldo",
+            os.path.join(escritorio, nombre_default),
+            "Archivos ZIP (*.zip)"
+        )
+        if not ruta:
+            return
+        try:
+            with zipfile.ZipFile(ruta, "w", zipfile.ZIP_DEFLATED) as zf:
+                if os.path.exists(db_path):
+                    zf.write(db_path, "juana_cash.db")
+                for cfg in ["ticket_config.json", "email_config.json", "version_installed.json"]:
+                    p = os.path.join(data_dir, cfg)
+                    if os.path.exists(p):
+                        zf.write(p, cfg)
+            tam = os.path.getsize(ruta) // 1024
+            QMessageBox.information(self, "✅ Respaldo creado",
+                f"Respaldo guardado correctamente ({tam} KB):\n\n{ruta}\n\n"
+                "Guardalo en un pendrive o mandátelo por WhatsApp\npara tenerlo seguro.")
+            self._actualizar_estado_respaldo()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo crear el respaldo:\n{e}")
+
+    def _restaurar_respaldo(self):
+        import zipfile
+        escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+        ruta, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar archivo de respaldo",
+            escritorio,
+            "Archivos ZIP (*.zip)"
+        )
+        if not ruta:
+            return
+
+        resp = QMessageBox.question(self, "⚠️ Confirmar restauración",
+            f"Archivo seleccionado:\n{os.path.basename(ruta)}\n\n"
+            "Esto va a REEMPLAZAR todos los datos actuales\n(ventas, productos, clientes, caja).\n\n"
+            "La app se cierra al terminar — volvé a abrirla.\n\n"
+            "¿Confirmar?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if resp != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            data_dir = self._data_dir()
+            os.makedirs(data_dir, exist_ok=True)
+            with zipfile.ZipFile(ruta, "r") as zf:
+                zf.extractall(data_dir)
+            QMessageBox.information(self, "✅ Restaurado",
+                "Datos restaurados correctamente.\n\nCerrá y volvé a abrir la app.")
+            from PyQt6.QtWidgets import QApplication
+            QApplication.instance().quit()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo restaurar:\n{e}")
+
+    def _exportar_auto_respaldo(self):
+        import zipfile
+        data_dir   = self._data_dir()
+        backup_dir = os.path.join(data_dir, "backups")
+        if not os.path.exists(backup_dir):
+            QMessageBox.information(self, "Sin respaldos",
+                "Todavía no hay respaldos automáticos.\nSe generan todos los días a las 22:15.")
+            return
+        archivos = sorted(
+            [f for f in os.listdir(backup_dir) if f.endswith(".db")],
+            reverse=True
+        )
+        if not archivos:
+            QMessageBox.information(self, "Sin respaldos",
+                "No se encontraron respaldos automáticos.")
+            return
+        # Exportar el más reciente
+        db_auto = os.path.join(backup_dir, archivos[0])
+        fecha   = archivos[0].replace("juana_cash_", "").replace(".db", "")
+        nombre  = f"JuanaCash_AutoRespaldo_{fecha}.zip"
+        escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+        ruta, _ = QFileDialog.getSaveFileName(
+            self, "Guardar auto-respaldo",
+            os.path.join(escritorio, nombre),
+            "Archivos ZIP (*.zip)"
+        )
+        if not ruta:
+            return
+        try:
+            with zipfile.ZipFile(ruta, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.write(db_auto, "juana_cash.db")
+                for cfg in ["ticket_config.json", "email_config.json"]:
+                    p = os.path.join(data_dir, cfg)
+                    if os.path.exists(p):
+                        zf.write(p, cfg)
+            QMessageBox.information(self, "✅", f"Auto-respaldo exportado:\n{ruta}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def _actualizar_estado_respaldo(self):
+        data_dir   = self._data_dir()
+        backup_dir = os.path.join(data_dir, "backups")
+        # Último respaldo manual (buscar .zip en Desktop)
+        escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+        try:
+            zips = [f for f in os.listdir(escritorio) if f.startswith("JuanaCash_Respaldo_") and f.endswith(".zip")]
+            if zips:
+                ultimo = sorted(zips)[-1]
+                fecha_str = ultimo.replace("JuanaCash_Respaldo_", "").replace(".zip", "")
+                self.lbl_ultimo_respaldo.setText(f"Último respaldo: {fecha_str[:8][:4]}-{fecha_str[:8][4:6]}-{fecha_str[:8][6:]} {fecha_str[9:11]}:{fecha_str[11:13]}")
+                self.lbl_ultimo_respaldo.setStyleSheet(f"color: {_OK}; font-size: 11px; background: transparent;")
+        except Exception:
+            pass
+        # Lista de auto-backups
+        try:
+            if os.path.exists(backup_dir):
+                archivos = sorted(
+                    [f for f in os.listdir(backup_dir) if f.endswith(".db")],
+                    reverse=True
+                )
+                if archivos:
+                    lista = "\n".join(
+                        f"  • {f.replace('juana_cash_','').replace('.db','')}"
+                        for f in archivos[:7]
+                    )
+                    self.lbl_auto_lista.setText(f"Últimos respaldos automáticos:\n{lista}")
+                else:
+                    self.lbl_auto_lista.setText("Todavía no hay respaldos automáticos (se generan a las 22:15).")
+            else:
+                self.lbl_auto_lista.setText("Todavía no hay respaldos automáticos (se generan a las 22:15).")
+        except Exception:
+            pass
+
+    # ─── Ticket ──────────────────────────────────────────────────────────────
+
+    def _cargar_config_ticket(self):
+        try:
+            from ui.pantallas.impresora import leer_config_ticket
+            cfg = leer_config_ticket()
+            self.tkt_subtitulo.setText(cfg.get("subtitulo", ""))
+            self.tkt_msg1.setText(cfg.get("mensaje1", "Gracias por su compra!"))
+            self.tkt_msg2.setText(cfg.get("mensaje2", "Vuelva pronto :)"))
+            self.tkt_telefono.setText(cfg.get("telefono", ""))
+            self.tkt_whatsapp.setText(cfg.get("whatsapp", ""))
+            self.tkt_instagram.setText(cfg.get("instagram", ""))
+            self.tkt_facebook.setText(cfg.get("facebook", ""))
+        except Exception:
+            pass
+        self._actualizar_preview_ticket()
+
+    def _actualizar_preview_ticket(self):
+        try:
+            from ui.pantallas.impresora import leer_config_ticket
+            cfg = leer_config_ticket()
+        except Exception:
+            cfg = {}
+
+        nombre   = cfg.get("nombre_negocio", self.inp_nombre.text().strip() or "JUANA CASH")
+        subtitulo = self.tkt_subtitulo.text().strip()
+        msg1     = self.tkt_msg1.text().strip() or "Gracias por su compra!"
+        msg2     = self.tkt_msg2.text().strip() or "Vuelva pronto :)"
+        telefono = self.tkt_telefono.text().strip()
+        whatsapp = self.tkt_whatsapp.text().strip()
+        instagram = self.tkt_instagram.text().strip()
+        facebook  = self.tkt_facebook.text().strip()
+
+        A = 32
+        def c(t): return str(t).center(A)
+        def lr(l, r):
+            sp = A - len(str(l)) - len(str(r))
+            return str(l) + " " * max(1, sp) + str(r)
+
+        lineas = []
+        lineas.append("=" * A)
+        lineas.append(c(nombre.upper()))
+        if subtitulo:
+            lineas.append(c(subtitulo))
+        lineas.append("=" * A)
+        lineas.append("Ticket N: 0001")
+        lineas.append(f"Fecha: {__import__('datetime').datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        lineas.append("-" * A)
+        lineas.append("CANT DESCRIPCION        TOTAL")
+        lineas.append("-" * A)
+        lineas.append(lr("2x  Coca Cola 500ml", "$1200"))
+        lineas.append(lr("1x  Pan lactal", "$800"))
+        lineas.append(lr("3x  Alfajor", "$1050"))
+        lineas.append("-" * A)
+        lineas.append(lr("TOTAL A PAGAR:", "$3050"))
+        lineas.append(lr("Pago:", "Efectivo"))
+        lineas.append(lr("Vuelto:", "$950"))
+        lineas.append("=" * A)
+        lineas.append(c(msg1))
+        lineas.append(c(msg2))
+        if telefono:
+            lineas.append(c(f"Tel: {telefono}"))
+        if whatsapp:
+            lineas.append(c(f"WA:  {whatsapp}"))
+        if instagram:
+            lineas.append(c(f"IG:  @{instagram.lstrip('@')}"))
+        if facebook:
+            lineas.append(c(f"FB:  {facebook}"))
+
+        self.tkt_preview.setPlainText("\n".join(lineas))
+
+    def _guardar_config_ticket(self):
+        try:
+            from ui.pantallas.impresora import guardar_config_ticket
+            datos = {
+                "subtitulo": self.tkt_subtitulo.text().strip(),
+                "mensaje1":  self.tkt_msg1.text().strip() or "Gracias por su compra!",
+                "mensaje2":  self.tkt_msg2.text().strip() or "Vuelva pronto :)",
+                "telefono":  self.tkt_telefono.text().strip(),
+                "whatsapp":  self.tkt_whatsapp.text().strip(),
+                "instagram": self.tkt_instagram.text().strip(),
+                "facebook":  self.tkt_facebook.text().strip(),
+            }
+            if guardar_config_ticket(datos):
+                QMessageBox.information(self, "✅", "Configuración del ticket guardada")
+            else:
+                QMessageBox.critical(self, "Error", "No se pudo guardar el archivo de configuración")
+        except Exception as ex:
+            QMessageBox.critical(self, "Error", str(ex))
+
     def showEvent(self, event):
         super().showEvent(event)
         self.cargar_config()
+        self._cargar_config_ticket()
+        self._actualizar_estado_respaldo()

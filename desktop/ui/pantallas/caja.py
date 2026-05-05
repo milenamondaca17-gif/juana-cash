@@ -675,8 +675,31 @@ class CajaScreen(QWidget):
                 item.setForeground(QColor(color))
                 self.tabla_efectivo.setItem(row, col, item)
 
+    def _cargar_turno_activo(self):
+        if self.turno_actual:
+            return
+        try:
+            r = requests.get(f"{API_URL}/caja/turno-actual/{self.usuario_id}", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("abierto"):
+                    self.turno_actual = data
+                    self.lbl_estado.setText("🟢 Caja abierta")
+                    self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 16px; font-weight: bold;")
+                    apertura = data.get("apertura", "")
+                    monto_ap = float(data.get("monto_apertura", 0))
+                    self.lbl_apertura.setText(
+                        f"Turno #{data['id']} — Monto inicial: ${monto_ap:,.0f}"
+                        + (f" — Desde: {apertura[:16]}" if apertura else "")
+                    )
+                    self.btn_abrir.setEnabled(False)
+                    self.btn_cerrar.setEnabled(True)
+        except Exception:
+            pass
+
     def showEvent(self, event):
         super().showEvent(event)
+        self._cargar_turno_activo()
         self.cargar_historial()
         self.cargar_historial_efectivo()
 

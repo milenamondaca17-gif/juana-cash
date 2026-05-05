@@ -33,6 +33,7 @@ from ui.theme import get_tema as _get_tema
 _T = _get_tema()
 
 DEPARTAMENTOS = {
+    "7":    {"nombre": "Kiosco",     "icono": "🛒", "color": "#8e44ad"},
     "930":  {"nombre": "Carnicería", "icono": "🥩", "color": "#e74c3c"},
     "1003": {"nombre": "Fiambrería", "icono": "🧀", "color": "#f39c12"},
     "1004": {"nombre": "Lácteos",    "icono": "🥛", "color": "#3498db"},
@@ -656,9 +657,11 @@ class VentasScreen(QWidget):
         total_layout.addWidget(lbl_total_titulo)
 
         self.lbl_total = QLabel("$0.00")
-        self.lbl_total.setFont(QFont("Arial", 60, QFont.Weight.Bold)) 
-        self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -2px; margin-top: -10px; margin-bottom: 10px;")
+        self.lbl_total.setFont(QFont("Arial", 44, QFont.Weight.Bold))
+        self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px; margin-top: -8px; margin-bottom: 8px;")
         self.lbl_total.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.lbl_total.setMinimumWidth(260)
+        self.lbl_total.setWordWrap(False)
         total_layout.addWidget(self.lbl_total)
 
         sep0 = QFrame(); sep0.setFixedHeight(1)
@@ -1277,6 +1280,7 @@ class VentasScreen(QWidget):
                 item["cantidad"] += 1
                 item["subtotal"] = item["cantidad"] * item["precio_unitario"]
                 self.actualizar_tabla()
+                QTimer.singleShot(30, self.input_buscar.setFocus)
                 return
         self.items_venta.append({
             "producto_id": producto["id"], "nombre": producto["nombre"],
@@ -1284,6 +1288,7 @@ class VentasScreen(QWidget):
             "subtotal": float(producto.get("precio_venta") or 0), "descuento": 0
         })
         self.actualizar_tabla()
+        QTimer.singleShot(30, self.input_buscar.setFocus)
 
     def editar_item_doble_clic(self, row, col):
         if row >= len(self.items_venta): return
@@ -1547,7 +1552,7 @@ class VentasScreen(QWidget):
                 self.lbl_total.setStyleSheet(f"color: #27ae60; font-size: 28px; font-weight: bold;")
                 self.cancelar_venta()
                 # Restaurar el color del total después de 3 segundos
-                QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; font-size: 36px; font-weight: bold;"))
+                QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px;"))
             else: QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
         except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
 
@@ -1613,12 +1618,25 @@ class VentasScreen(QWidget):
                 msg = f"Ticket: {ticket}\nTotal: ${total_final:.2f}\nPago: {metodo_str}"
                 if descuento_pct > 0: msg += f"\nDescuento: {descuento_pct:.1f}%"
                 if metodo_pago == "efectivo" and vuelto > 0: msg += f"\nVuelto: ${vuelto:.2f}"
+                cliente_nombre = self.cliente_actual.get("nombre") if self.cliente_actual else None
                 try:
                     from ui.pantallas.impresora import imprimir_ticket
-                    exito, txt = imprimir_ticket({"numero": ticket, "total": total_final}, self.items_venta)
-                    QMessageBox.information(self, "Venta registrada", msg + f"\n\n{txt}")
-                except Exception:
-                    QMessageBox.information(self, "Venta registrada", msg)
+                    ok, txt = imprimir_ticket(
+                        {"numero": ticket, "total": total_final},
+                        self.items_venta,
+                        metodo_pago=metodo_pago,
+                        descuento=descuento_monto,
+                        vuelto=vuelto,
+                        cliente=cliente_nombre,
+                    )
+                    if ok:
+                        QMessageBox.information(self, "✅ Venta registrada", msg)
+                    else:
+                        QMessageBox.warning(self, "✅ Venta registrada  ⚠️ Sin impresión",
+                            msg + f"\n\n⚠️ {txt}")
+                except Exception as ex:
+                    QMessageBox.warning(self, "✅ Venta registrada  ⚠️ Sin impresión",
+                        msg + f"\n\n⚠️ Error impresora: {ex}")
                 self.cancelar_venta()
                 # Marcar cupón como usado si se aplicó uno
                 if hasattr(dialog, 'cupon_aplicado') and dialog.cupon_aplicado:
