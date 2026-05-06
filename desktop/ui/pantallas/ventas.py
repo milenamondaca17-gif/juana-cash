@@ -100,8 +100,10 @@ class CobrarDialog(QDialog):
         self.btns_secundarios = {}
         self.cliente = cliente
         self.descuento_puntos = 0
-        self.cupon_aplicado = None   # guarda el código del cupón aplicado
-        self.cupon_pct = 0           # porcentaje del cupón
+        self.cupon_aplicado = None
+        self.cupon_pct = 0
+        self.recargo_pct = 0.0
+        self.recargo_monto = 0.0
         self.setup_ui()
 
     def keyPressEvent(self, event):
@@ -201,6 +203,38 @@ class CobrarDialog(QDialog):
             self.btns_pago[key] = (btn, color)
         layout.addLayout(metodos_layout)
 
+        # ── Recargo tarjeta crédito ───────────────────────────────────────────
+        self.recargo_frame = QFrame()
+        self.recargo_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; border: 1.5px solid {ACCENT_BOTON}; }}")
+        rec_lay = QVBoxLayout(self.recargo_frame)
+        rec_lay.setContentsMargins(12, 10, 12, 10)
+        rec_lay.setSpacing(6)
+        lbl_rec_t = QLabel("💳 Recargo tarjeta crédito")
+        lbl_rec_t.setStyleSheet(f"color: {ACCENT_BOTON}; font-weight: bold; font-size: 13px;")
+        rec_lay.addWidget(lbl_rec_t)
+        rec_pct_row = QHBoxLayout()
+        lbl_rec_pct = QLabel("Recargo (%):")
+        lbl_rec_pct.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px;")
+        rec_pct_row.addWidget(lbl_rec_pct)
+        self.spin_recargo = QDoubleSpinBox()
+        self.spin_recargo.setRange(0, 50)
+        self.spin_recargo.setSingleStep(1)
+        self.spin_recargo.setValue(10)
+        self.spin_recargo.setSuffix(" %")
+        self.spin_recargo.setFixedHeight(36)
+        self.spin_recargo.setFixedWidth(100)
+        self.spin_recargo.setStyleSheet(f"QDoubleSpinBox {{ background: {BG_MAIN}; border: 1.5px solid {ACCENT_BOTON}; border-radius: 6px; padding: 5px; color: white; font-size: 14px; font-weight: bold; }}")
+        self.spin_recargo.valueChanged.connect(self.actualizar_total)
+        rec_pct_row.addWidget(self.spin_recargo)
+        rec_pct_row.addStretch()
+        rec_lay.addLayout(rec_pct_row)
+        self.lbl_detalle_recargo = QLabel("")
+        self.lbl_detalle_recargo.setStyleSheet(f"color: {ACCENT_BOTON}; font-size: 13px; font-weight: bold;")
+        self.lbl_detalle_recargo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        rec_lay.addWidget(self.lbl_detalle_recargo)
+        self.recargo_frame.setVisible(False)
+        layout.addWidget(self.recargo_frame)
+
         # --- INICIO COBRO MIXTO ---
         self.frame_mixto = QFrame()
         self.frame_mixto.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; border: 1px dashed {ACCENT_OFERTAS}; }}")
@@ -299,7 +333,8 @@ class CobrarDialog(QDialog):
         for k, (btn, c) in self.btns_pago.items():
             btn.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
         self.btns_pago[key][0].setStyleSheet(f"background: {color}; color: white; font-weight: bold; border-radius: 8px;")
-        self.calcular_mixto()
+        self.recargo_frame.setVisible(key == "tarjeta")
+        self.actualizar_total()
 
     def seleccionar_metodo_sec(self, key, color):
         self.metodo_secundario = key
@@ -396,8 +431,19 @@ class CobrarDialog(QDialog):
     def actualizar_total(self):
         self.descuento_pct = self.input_pct.value()
         descuento_total = self.descuento_pct + self.cupon_pct
-        self.total_final = self.total_original - (self.total_original * descuento_total / 100) - self.descuento_puntos
-        self.lbl_total_final.setText(f"A cobrar: ${self.total_final:.2f}")
+        subtotal = self.total_original - (self.total_original * descuento_total / 100) - self.descuento_puntos
+        if self.metodo_pago == "tarjeta" and hasattr(self, "spin_recargo"):
+            self.recargo_pct = self.spin_recargo.value()
+            self.recargo_monto = round(subtotal * self.recargo_pct / 100, 2)
+            self.total_final = subtotal + self.recargo_monto
+            self.lbl_detalle_recargo.setText(
+                f"Subtotal: ${subtotal:,.0f}  +  {self.recargo_pct:.0f}%: ${self.recargo_monto:,.0f}  =  ${self.total_final:,.0f}"
+            )
+        else:
+            self.recargo_pct = 0.0
+            self.recargo_monto = 0.0
+            self.total_final = subtotal
+        self.lbl_total_final.setText(f"A cobrar: ${self.total_final:,.0f}")
         self.calcular_mixto()
 
     def aplicar_descuento_puntos(self, monto):
@@ -1483,12 +1529,14 @@ class VentasScreen(QWidget):
         total_original = sum(i["subtotal"] for i in self.items_venta)
         dialog = CobrarDialog(self, total_original, cliente=self.cliente_actual)
         if not dialog.exec(): return
-        descuento_pct = dialog.descuento_pct
-        total_final = dialog.total_final
-        metodo_pago = dialog.metodo_pago
+        descuento_pct     = dialog.descuento_pct
+        total_final       = dialog.total_final
+        metodo_pago       = dialog.metodo_pago
         metodo_secundario = dialog.metodo_secundario
-        monto_secundario = dialog.monto_secundario
-        descuento_monto = total_original - total_final
+        monto_secundario  = dialog.monto_secundario
+        recargo_monto     = dialog.recargo_monto
+        recargo_pct       = dialog.recargo_pct
+        descuento_monto   = max(0, total_original - (total_final - recargo_monto))
         vuelto = 0
         try:
             entrega = float(dialog.input_entrega.text().replace(",", "."))
@@ -1516,8 +1564,10 @@ class VentasScreen(QWidget):
             if r.status_code == 200:
                 datos = r.json()
                 ticket = datos["numero"]
-                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta crédito", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
                 metodo_str = nombres_metodo.get(metodo_pago, metodo_pago)
+                if recargo_monto > 0:
+                    metodo_str += f" (+{recargo_pct:.0f}% recargo)"
                 if metodo_secundario:
                     metodo_str += f" + {nombres_metodo.get(metodo_secundario, metodo_secundario)} (${monto_secundario:.2f})"
                 self.log_ventas.append({"ticket": ticket, "total_original": total_original, "descuento_pct": descuento_pct, "total_final": total_final, "metodo_pago": metodo_str, "vuelto": vuelto, "hora": datetime.now().strftime("%H:%M:%S")})
@@ -1533,7 +1583,6 @@ class VentasScreen(QWidget):
                         except Exception: pass
                     try: requests.post(f"{API_URL}/clientes/{cid}/sumar-puntos", params={"monto": total_final}, timeout=3)
                     except Exception: pass
-                # Marcar cupón como usado si se aplicó uno
                 if hasattr(dialog, 'cupon_aplicado') and dialog.cupon_aplicado:
                     try:
                         requests.post(
@@ -1547,11 +1596,9 @@ class VentasScreen(QWidget):
                 msg = f"✅ Ticket #{ticket} — ${total_final:,.0f} ({metodo_str})"
                 if metodo_pago == "efectivo" and vuelto > 0:
                     msg += f" — Vuelto: ${vuelto:,.0f}"
-                # Sin ticket: solo aviso rápido en la barra, sin popup
                 self.lbl_total.setText(msg)
                 self.lbl_total.setStyleSheet(f"color: #27ae60; font-size: 28px; font-weight: bold;")
                 self.cancelar_venta()
-                # Restaurar el color del total después de 3 segundos
                 QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px;"))
             else: QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
         except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
@@ -1563,12 +1610,15 @@ class VentasScreen(QWidget):
         total_original = sum(i["subtotal"] for i in self.items_venta)
         dialog = CobrarDialog(self, total_original, cliente=self.cliente_actual)
         if not dialog.exec(): return
-        descuento_pct = dialog.descuento_pct
-        total_final = dialog.total_final
-        metodo_pago = dialog.metodo_pago
+        descuento_pct    = dialog.descuento_pct
+        total_final      = dialog.total_final
+        metodo_pago      = dialog.metodo_pago
         metodo_secundario = dialog.metodo_secundario
         monto_secundario = dialog.monto_secundario
-        descuento_monto = total_original - total_final
+        recargo_monto    = dialog.recargo_monto
+        recargo_pct      = dialog.recargo_pct
+        # descuento_monto excluye el recargo (solo descuentos reales)
+        descuento_monto = max(0, total_original - (total_final - recargo_monto))
         vuelto = 0
         try:
             entrega = float(dialog.input_entrega.text().replace(",", "."))
@@ -1584,7 +1634,6 @@ class VentasScreen(QWidget):
         pagos = [{"metodo": metodo_pago, "monto": total_final - monto_secundario}]
         if metodo_secundario and monto_secundario > 0:
             pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
-        # cliente_id: se manda siempre, None si no hay cliente vinculado
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
             r = requests.post(f"{API_URL}/ventas/", json={
@@ -1597,8 +1646,10 @@ class VentasScreen(QWidget):
             if r.status_code == 200:
                 datos = r.json()
                 ticket = datos["numero"]
-                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta crédito", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
                 metodo_str = nombres_metodo.get(metodo_pago, metodo_pago)
+                if recargo_monto > 0:
+                    metodo_str += f" (+{recargo_pct:.0f}% recargo)"
                 if metodo_secundario:
                     metodo_str += f" + {nombres_metodo.get(metodo_secundario, metodo_secundario)} (${monto_secundario:.2f})"
                 self.log_ventas.append({ "ticket": ticket, "total_original": total_original, "descuento_pct": descuento_pct, "total_final": total_final, "metodo_pago": metodo_str, "vuelto": vuelto, "hora": datetime.now().strftime("%H:%M:%S") })
@@ -1615,9 +1666,10 @@ class VentasScreen(QWidget):
                     try: requests.post(f"{API_URL}/clientes/{cid}/sumar-puntos", params={"monto": total_final}, timeout=3)
                     except Exception: pass
                 self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
-                msg = f"Ticket: {ticket}\nTotal: ${total_final:.2f}\nPago: {metodo_str}"
+                msg = f"Ticket: {ticket}\nTotal: ${total_final:,.0f}\nPago: {metodo_str}"
+                if recargo_monto > 0: msg += f"\nRecargo crédito: ${recargo_monto:,.0f}"
                 if descuento_pct > 0: msg += f"\nDescuento: {descuento_pct:.1f}%"
-                if metodo_pago == "efectivo" and vuelto > 0: msg += f"\nVuelto: ${vuelto:.2f}"
+                if metodo_pago == "efectivo" and vuelto > 0: msg += f"\nVuelto: ${vuelto:,.0f}"
                 cliente_nombre = self.cliente_actual.get("nombre") if self.cliente_actual else None
                 try:
                     from ui.pantallas.impresora import imprimir_ticket
@@ -1628,6 +1680,8 @@ class VentasScreen(QWidget):
                         descuento=descuento_monto,
                         vuelto=vuelto,
                         cliente=cliente_nombre,
+                        recargo=recargo_monto,
+                        recargo_pct=recargo_pct,
                     )
                     if ok:
                         QMessageBox.information(self, "✅ Venta registrada", msg)
@@ -1638,7 +1692,6 @@ class VentasScreen(QWidget):
                     QMessageBox.warning(self, "✅ Venta registrada  ⚠️ Sin impresión",
                         msg + f"\n\n⚠️ Error impresora: {ex}")
                 self.cancelar_venta()
-                # Marcar cupón como usado si se aplicó uno
                 if hasattr(dialog, 'cupon_aplicado') and dialog.cupon_aplicado:
                     try:
                         requests.post(

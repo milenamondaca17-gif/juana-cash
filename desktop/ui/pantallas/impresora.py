@@ -50,7 +50,7 @@ def guardar_config_ticket(datos: dict):
         return False
 
 
-def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, cliente=None):
+def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, cliente=None, recargo=0, recargo_pct=0):
     ANCHO = 32
     cfg   = leer_config_ticket()
 
@@ -91,6 +91,9 @@ def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, client
 
     if descuento and float(descuento) > 0:
         lineas.append(izq_der("Descuento:", f"-${float(descuento):,.0f}"))
+
+    if recargo and float(recargo) > 0:
+        lineas.append(izq_der(f"Recargo credito {float(recargo_pct):.0f}%:", f"+${float(recargo):,.0f}"))
 
     total = float(venta.get("total", 0))
     lineas.append(izq_der("TOTAL A PAGAR:", f"${total:,.0f}"))
@@ -133,8 +136,8 @@ def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, client
     return "\n".join(lineas)
 
 
-def imprimir_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, cliente=None):
-    texto = formatear_ticket(venta, items, metodo_pago, descuento, vuelto, cliente)
+def imprimir_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, cliente=None, recargo=0, recargo_pct=0):
+    texto = formatear_ticket(venta, items, metodo_pago, descuento, vuelto, cliente, recargo, recargo_pct)
 
     try:
         import win32print
