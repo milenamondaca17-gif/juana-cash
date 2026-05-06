@@ -369,7 +369,7 @@ class CobrarDialog(QDialog):
         nom_sec = nombres.get(self.metodo_secundario, "Segundo método") if self.metodo_secundario else "Segundo método"
         
         if self.metodo_secundario:
-            self.lbl_resumen_mixto.setText(f"Pago: ${monto_prin:.2f} ({nom_prin}) + ${self.monto_secundario:.2f} ({nom_sec})")
+            self.lbl_resumen_mixto.setText(f"Pago: ${monto_prin:,.0f} ({nom_prin}) + ${self.monto_secundario:,.0f} ({nom_sec})")
             self.btn_cobrar.setText("F4 - COBRAR MIXTO")
         else:
             self.lbl_resumen_mixto.setText("⚠️ Elegí el segundo método de pago")
@@ -391,10 +391,10 @@ class CobrarDialog(QDialog):
             entrega = float(self.input_entrega.text().replace(",", "."))
             vuelto = entrega - monto_en_efectivo
             if vuelto < 0:
-                self.lbl_vuelto.setText(f"Falta: ${abs(vuelto):.2f}")
+                self.lbl_vuelto.setText(f"Falta: ${abs(vuelto):,.0f}")
                 self.lbl_vuelto.setStyleSheet("color: #F46A6A; font-size: 20px; font-weight: bold;")
             else:
-                self.lbl_vuelto.setText(f"Vuelto: ${vuelto:.2f}")
+                self.lbl_vuelto.setText(f"Vuelto: ${vuelto:,.0f}")
                 self.lbl_vuelto.setStyleSheet(f"color: {ACCENT_TOTAL}; font-size: 20px; font-weight: bold;")
         except:
             self.lbl_vuelto.setText("Vuelto: -")
@@ -1045,7 +1045,7 @@ class VentasScreen(QWidget):
         if not texto.isdigit():
             return None
         try:
-            precio_str = texto[6:11]   # posiciones 6-10
+            precio_str = texto[7:12]   # posiciones 7-11 (precio embebido en EAN-13 de balanza)
             precio     = int(precio_str)
             if precio <= 0:
                 return None
@@ -1382,9 +1382,9 @@ class VentasScreen(QWidget):
             if item["producto_id"] == 0:
                 nombre_item.setForeground(Qt.GlobalColor.green)
             self.tabla.setItem(i, 0, nombre_item)
-            self.tabla.setItem(i, 1, QTableWidgetItem(f"${item['precio_unitario']:.2f}"))
+            self.tabla.setItem(i, 1, QTableWidgetItem(f"${item['precio_unitario']:,.0f}"))
             self.tabla.setItem(i, 2, QTableWidgetItem(str(item["cantidad"])))
-            self.tabla.setItem(i, 3, QTableWidgetItem(f"${item['subtotal']:.2f}"))
+            self.tabla.setItem(i, 3, QTableWidgetItem(f"${item['subtotal']:,.0f}"))
 
             # Crear botones solo si la celda está vacía (fila nueva)
             if self.tabla.cellWidget(i, 4) is None:
@@ -1412,7 +1412,7 @@ class VentasScreen(QWidget):
             total += item["subtotal"]
 
         self.tabla.setUpdatesEnabled(True)
-        self.lbl_total.setText(f"${total:.2f}")
+        self.lbl_total.setText(f"${total:,.0f}")
 
     def eliminar_item(self, idx):
         if idx >= len(self.items_venta): return
@@ -1559,7 +1559,8 @@ class VentasScreen(QWidget):
                 "cliente_id": cliente_id,
                 "items": items_backend,
                 "pagos": pagos,
-                "descuento": descuento_monto
+                "descuento": descuento_monto,
+                "recargo": recargo_monto
             }, timeout=5)
             if r.status_code == 200:
                 datos = r.json()
@@ -1641,7 +1642,8 @@ class VentasScreen(QWidget):
                 "cliente_id": cliente_id,
                 "items": items_backend,
                 "pagos": pagos,
-                "descuento": descuento_monto
+                "descuento": descuento_monto,
+                "recargo": recargo_monto
             }, timeout=5)
             if r.status_code == 200:
                 datos = r.json()

@@ -30,6 +30,7 @@ class VentaCrear(BaseModel):
     items: List[ItemVentaSchema]
     pagos: List[PagoSchema]
     descuento: float = 0
+    recargo: float = 0
     origen: str = "mostrador"  # mostrador | celular | delivery
 
 class AnularVentaSchema(BaseModel):
@@ -40,7 +41,7 @@ class AnularVentaSchema(BaseModel):
 @router.post("/")
 def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
     subtotal = sum(i.cantidad * i.precio_unitario - i.descuento for i in datos.items)
-    total = subtotal - datos.descuento
+    total = subtotal - datos.descuento + datos.recargo
 
     # Número de venta único
     ultima = db.query(Venta).order_by(Venta.id.desc()).first()
