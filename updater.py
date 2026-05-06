@@ -86,7 +86,9 @@ def _guardar_cache(version):
 # ── GitHub ────────────────────────────────────────────────────────────────────
 def obtener_version_github():
     import urllib.request
-    url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main/version.json"
+    # Parámetro anti-caché para evitar que el CDN de GitHub devuelva versión vieja
+    ts  = int(time.time())
+    url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main/version.json?t={ts}"
     _log(f"Consultando GitHub: {url}")
     try:
         req = urllib.request.urlopen(url, timeout=TIMEOUT_RED, context=_ssl_context())
