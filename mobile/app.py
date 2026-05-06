@@ -6,6 +6,10 @@ import os
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+def _p(v):
+    """Precio en formato argentino: $10.000"""
+    return f"${float(v):,.0f}".replace(",", ".")
+
 # ─── Configuración de IP ──────────────────────────────────────────────────────
 CONFIG_PATH   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobile_config.json")
 OFFLINE_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ventas_offline.json")
@@ -401,7 +405,7 @@ def _main(page: ft.Page):
         )
 
     # ── PANTALLA 1: DASHBOARD ─────────────────────────────────────────────────
-    lbl_total    = ft.Text("$ 0.00", size=44, weight="w900", color="#10B981")
+    lbl_total    = ft.Text("$0", size=44, weight="w900", color="#10B981")
     lbl_tickets  = ft.Text("0 tickets hoy", size=14, color="#94A3B8")
     lbl_mes      = ft.Text("", size=13, color="#94A3B8")
     lbl_metodo   = ft.Text("", size=12, color="#38BDF8")
@@ -448,7 +452,7 @@ def _main(page: ft.Page):
         data     = api_get("/reportes/hoy")
         data_mes = api_get("/reportes/mes")
         if data:
-            lbl_total.value   = f"$ {data.get('total_vendido', 0):,.2f}"
+            lbl_total.value   = _p(data.get('total_vendido', 0))
             lbl_total.color   = "#10B981"
             cant = data.get("cantidad_ventas", 0)
             lbl_tickets.value = f"{cant} ticket{'s' if cant != 1 else ''} hoy"
@@ -480,7 +484,7 @@ def _main(page: ft.Page):
                         content=ft.Row([
                             ft.Text("🛍️", size=16),
                             ft.Text(metodo, weight="bold", expand=True, size=12),
-                            ft.Text(f"${total:,.0f}", weight="bold", color=color, size=14),
+                            ft.Text(_p(total), weight="bold", color=color, size=14),
                         ]),
                         bgcolor="#1E293B", padding=10, border_radius=10
                     )
@@ -490,7 +494,7 @@ def _main(page: ft.Page):
             lbl_total.color   = "#EF4444"
             lbl_dashboard_err.value = f"No se pudo conectar a {get_api_url()}"
         if data_mes:
-            lbl_mes.value = f"Este mes: $ {float(data_mes.get('total_vendido', 0)):,.0f}"
+            lbl_mes.value = f"Este mes: {_p(data_mes.get('total_vendido', 0))}"
         page.update()
 
     view_dashboard = ft.Container(
@@ -528,7 +532,7 @@ def _main(page: ft.Page):
     # ── PANTALLA 2: COBRAR ────────────────────────────────────────────────────
     lbl_aviso    = ft.Text("", size=13, weight="bold")
     lista_compra = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=160)
-    lbl_total_c  = ft.Text("$ 0.00", size=34, weight="w900", color="#F43F5E")
+    lbl_total_c  = ft.Text("$0", size=34, weight="w900", color="#F43F5E")
     in_scan = ft.TextField(
         label="Escanear o buscar...", filled=True, border_color="transparent",
         border_radius=12, content_padding=16, bgcolor="#1E293B", expand=True
@@ -600,7 +604,7 @@ def _main(page: ft.Page):
                 for c in data[:10]:
                     nombre = c.get("nombre", "")
                     deuda  = float(c.get("deuda_actual") or 0)
-                    txt    = nombre + (f"  💸 debe ${deuda:,.0f}" if deuda > 0 else "")
+                    txt    = nombre + (f"  💸 debe {_p(deuda)}" if deuda > 0 else "")
                     lista_clientes.controls.append(
                         ft.Container(
                             content=ft.Text(txt, expand=True, size=12, color="white"),
@@ -642,7 +646,7 @@ def _main(page: ft.Page):
 
     def recalc():
         t = sum(i["p"] for i in carrito)
-        lbl_total_c.value = f"$ {t:,.0f}"
+        lbl_total_c.value = _p(t)
         page.update()
 
     def pausar(e):
@@ -798,7 +802,7 @@ def _main(page: ft.Page):
                 ft.Container(
                     content=ft.Row([
                         ft.Text(p["nombre"], expand=True, size=12, weight="bold", color="white"),
-                        ft.Text(f"${float(p.get('precio_venta') or 0):,.0f}",
+                        ft.Text(_p(p.get('precio_venta') or 0),
                                color="#38BDF8", size=13, weight="bold"),
                     ]),
                     bgcolor="#1E293B",
@@ -856,8 +860,8 @@ def _main(page: ft.Page):
     # ── PANTALLA 3: CONFIRMAR TICKET ─────────────────────────────────────────
     lista_ticket      = ft.Column(scroll=ft.ScrollMode.ALWAYS, height=180)
     in_pago           = inp("¿Con cuánto paga?", kb="number")
-    lbl_vuelto        = ft.Text("$ 0.00", size=28, weight="w900", color="#EF4444")
-    lbl_ticket_total  = ft.Text("$ 0.00", size=34, weight="w900", color="#F43F5E")
+    lbl_vuelto        = ft.Text("$0", size=28, weight="w900", color="#EF4444")
+    lbl_ticket_total  = ft.Text("$0", size=34, weight="w900", color="#F43F5E")
     lbl_cobrar_status = ft.Text("", size=13, weight="bold")
     row_vuelto        = ft.Column(visible=False)
 
@@ -877,10 +881,10 @@ def _main(page: ft.Page):
         pagado = sum(float(p["in_monto"].value or 0) for p in pagos_mixto)
         resto  = tot - pagado
         if resto <= 0:
-            lbl_pendiente.value = f"✅ Cubierto (exceso: ${abs(resto):,.0f})"
+            lbl_pendiente.value = f"✅ Cubierto (exceso: {_p(abs(resto))})"
             lbl_pendiente.color = "#10B981"
         else:
-            lbl_pendiente.value = f"Pendiente: ${resto:,.0f}"
+            lbl_pendiente.value = f"Pendiente: {_p(resto)}"
             lbl_pendiente.color = "#F59E0B"
         page.update()
 
@@ -944,10 +948,10 @@ def _main(page: ft.Page):
     def calc_vuelto(e):
         try:
             v = float(in_pago.value) - sum(i["p"] for i in carrito)
-            lbl_vuelto.value = f"VUELTO: ${v:,.0f}" if v >= 0 else "FALTA PLATA"
+            lbl_vuelto.value = f"VUELTO: {_p(v)}" if v >= 0 else "FALTA PLATA"
             lbl_vuelto.color = "#10B981" if v >= 0 else "#EF4444"
         except Exception:
-            lbl_vuelto.value = "$ 0.00"
+            lbl_vuelto.value = "$0"
         page.update()
 
     in_pago.on_change = calc_vuelto
@@ -1098,16 +1102,16 @@ def _main(page: ft.Page):
             ft.Row([
                 ft.Text(i["n"], expand=True, size=12),
                 ft.Text(f"x{i.get('cant',1)}", size=11, color="#94A3B8", width=28),
-                ft.Text(f"${i['p']:,.0f}", size=13, weight="bold"),
+                ft.Text(_p(i['p']), size=13, weight="bold"),
             ])
             for i in carrito
         ]
         tot = sum(i["p"] for i in carrito)
-        lbl_ticket_total.value = f"$ {tot:,.0f}"
+        lbl_ticket_total.value = _p(tot)
         lbl_cobrar_status.value = ""
         row_vuelto.visible = (drop_metodo.value == "efectivo") and not sw_mixto.value
         in_pago.value = ""
-        lbl_vuelto.value = "$ 0.00"
+        lbl_vuelto.value = "$0"
         view_cobrar.visible = False
         view_ticket.visible = True
         page.update()
@@ -1287,7 +1291,7 @@ def _main(page: ft.Page):
     in_hasta = ft.TextField(label="Hasta", hint_text="YYYY-MM-DD", value=hoy_str,
         filled=True, border_color="transparent", border_radius=12,
         content_padding=14, bgcolor="#1E293B", expand=True)
-    lbl_ventas_total   = ft.Text("$ 0.00", size=32, weight="w900", color="#10B981")
+    lbl_ventas_total   = ft.Text("$0", size=32, weight="w900", color="#10B981")
     lbl_ventas_resumen = ft.Text("", size=12, color="#94A3B8")
     lbl_ventas_err     = ft.Text("", color="#EF4444", size=12)
     lista_ventas_ui    = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=370)
@@ -1341,7 +1345,7 @@ def _main(page: ft.Page):
                 modal=True,
                 title=ft.Text("🚫 Anular venta", color="#EF4444", weight="bold"),
                 content=ft.Column([
-                    ft.Text(f"Venta #{data.get('numero','?')} — ${float(data.get('total',0)):,.0f}",
+                    ft.Text(f"Venta #{data.get('numero','?')} — {_p(data.get('total',0))}",
                             size=13, color="#94A3B8"),
                     drop_usuario,
                     in_anular_pass,
@@ -1408,14 +1412,14 @@ def _main(page: ft.Page):
                         ft.Row([
                             ft.Text(i.get("nombre", "?"), expand=True, size=12),
                             ft.Text(f"x{i.get('cantidad', 1)}", size=12, color="#94A3B8"),
-                            ft.Text(f"${float(i.get('subtotal', 0)):,.0f}", size=13,
+                            ft.Text(_p(i.get('subtotal', 0)), size=13,
                                     weight="bold", color="#38BDF8"),
                         ]) for i in items
                     ] + [
                         ft.Divider(color="#334155"),
                         ft.Row([
                             ft.Text("TOTAL", weight="bold", expand=True),
-                            ft.Text(f"${float(data.get('total', 0)):,.0f}",
+                            ft.Text(_p(data.get('total', 0)),
                                     weight="bold", size=16, color="#10B981"),
                         ])
                     ], spacing=6, scroll=ft.ScrollMode.ALWAYS),
@@ -1442,7 +1446,7 @@ def _main(page: ft.Page):
             cant   = data.get("cantidad_ventas", 0)
             total  = float(data.get("total_vendido", 0))
             ventas = data.get("ventas", [])
-            lbl_ventas_total.value   = f"$ {total:,.2f}"
+            lbl_ventas_total.value   = _p(total)
             lbl_ventas_resumen.value = f"{cant} venta{'s' if cant!=1 else ''} — {desde} al {hasta}"
             MCOLOR = {"efectivo": "#10B981", "tarjeta": "#3B82F6",
                       "mercadopago_qr": "#9333EA", "transferencia": "#F59E0B", "fiado": "#EF4444"}
@@ -1464,7 +1468,7 @@ def _main(page: ft.Page):
                                 ft.Text(metodo.upper(), size=10, color=color),
                             ], spacing=0, expand=True),
                             ft.Column([
-                                ft.Text(f"${float(v.get('total',0)):,.0f}", size=15,
+                                ft.Text(_p(v.get('total',0)), size=15,
                                         weight="w900", color=color),
                                 ft.Text(estado, size=9,
                                         color="#EF4444" if estado=="anulada" else "#94A3B8"),
@@ -1555,7 +1559,7 @@ def _main(page: ft.Page):
                             "cliente_id": cli["id"], "monto": monto
                         })
                         if r:
-                            lbl_fiados_status.value = f"✅ Pago de ${monto:,.0f} registrado para {cli['nombre']}"
+                            lbl_fiados_status.value = f"✅ Pago de {_p(monto)} registrado para {cli['nombre']}"
                             lbl_fiados_status.color = "#10B981"
                             cargar_fiados()
                         else:
@@ -1571,7 +1575,7 @@ def _main(page: ft.Page):
                             ft.Row([
                                 ft.Text(c.get("nombre", "?"), weight="bold",
                                         expand=True, size=14, color="white"),
-                                ft.Text(f"${deuda:,.0f}", size=16, weight="w900", color="#EF4444"),
+                                ft.Text(_p(deuda), size=16, weight="w900", color="#EF4444"),
                             ]),
                             ft.Row([
                                 in_pago_fiado,
@@ -1670,7 +1674,7 @@ def _main(page: ft.Page):
                                     str(p2["codigo_barra"]): p2
                                     for p2 in data if p2.get("codigo_barra")
                                 })
-                            lbl_precio_status.value = f"✅ {prod['nombre']} → ${nuevo:,.0f} (cache actualizado)"
+                            lbl_precio_status.value = f"✅ {prod['nombre']} → {_p(nuevo)} (cache actualizado)"
                             lbl_precio_status.color = "#10B981"
                         else:
                             error_msg = r.get("error", "Error") if r else "Sin conexión"
@@ -1685,7 +1689,7 @@ def _main(page: ft.Page):
                         content=ft.Column([
                             ft.Text(p["nombre"], size=12, weight="bold", color="white"),
                             ft.Row([
-                                ft.Text(f"Actual: ${precio_actual:,.0f}", size=11,
+                                ft.Text(f"Actual: {_p(precio_actual)}", size=11,
                                         color="#94A3B8", expand=True),
                                 in_pin,
                                 in_nuevo,
@@ -1821,19 +1825,19 @@ def _main(page: ft.Page):
                         width=max(4, int(120 * pct)),
                         height=10, bgcolor=MCOLOR[m], border_radius=4
                     ),
-                    ft.Text(f"${val:,.0f}", size=11, color=MCOLOR[m], weight="bold"),
+                    ft.Text(_p(val), size=11, color=MCOLOR[m], weight="bold"),
                 ], spacing=6, vertical_alignment="center")
             )
         return ft.Container(
             content=ft.Column([
                 ft.Row([
                     ft.Text(fecha, weight="bold", size=13, color="white", expand=True),
-                    ft.Text(f"${total:,.0f}", weight="bold", size=14, color="#F43F5E"),
+                    ft.Text(_p(total), weight="bold", size=14, color="#F43F5E"),
                 ]),
                 ft.Row([
                     ft.Text(f"{cant} ventas", size=10, color="#94A3B8"),
                     ft.Text("·", color="#334155", size=10),
-                    ft.Text(f"Ticket ${ticket:,.0f}", size=10, color="#94A3B8"),
+                    ft.Text(f"Ticket {_p(ticket)}", size=10, color="#94A3B8"),
                 ], spacing=6),
                 ft.Column(barras, spacing=3) if barras else ft.Text("Sin ventas", color="#334155", size=11),
             ], spacing=6),
@@ -1857,15 +1861,15 @@ def _main(page: ft.Page):
                 ft.Row([
                     ft.Column([
                         ft.Text("Calculado", size=10, color="#94A3B8"),
-                        ft.Text(f"${calculado:,.0f}", size=15, weight="bold", color="#10B981"),
+                        ft.Text(_p(calculado), size=15, weight="bold", color="#10B981"),
                     ], spacing=2, expand=True),
                     ft.Column([
                         ft.Text("Declarado", size=10, color="#94A3B8"),
-                        ft.Text(f"${declarado:,.0f}", size=15, weight="bold", color="#38BDF8"),
+                        ft.Text(_p(declarado), size=15, weight="bold", color="#38BDF8"),
                     ], spacing=2, expand=True),
                     ft.Column([
                         ft.Text("Diferencia", size=10, color="#94A3B8"),
-                        ft.Text(f"{icono_dif} ${diferencia:+,.0f}", size=15, weight="bold", color=color_dif),
+                        ft.Text(f"{icono_dif} {('+' if diferencia >= 0 else '') + _p(diferencia)}", size=15, weight="bold", color=color_dif),
                     ], spacing=2, expand=True),
                 ]),
             ], spacing=8),
@@ -1888,9 +1892,9 @@ def _main(page: ft.Page):
             mes   = resumen.get("mes", {})
             turno = resumen.get("turno", {})
 
-            lbl_caja_total.value  = f"${float(h.get('total', 0)):,.0f}"
+            lbl_caja_total.value  = _p(h.get('total', 0))
             lbl_caja_ventas.value = f"{h.get('cantidad', 0)} ventas"
-            lbl_caja_ticket.value = f"Ticket: ${float(h.get('ticket_promedio', 0)):,.0f}"
+            lbl_caja_ticket.value = f"Ticket: {_p(h.get('ticket_promedio', 0))}"
 
             if delta > 0:
                 lbl_caja_delta.value = f"↑ {delta:+.1f}% vs ayer"
@@ -1902,9 +1906,9 @@ def _main(page: ft.Page):
                 lbl_caja_delta.value = "= igual que ayer"
                 lbl_caja_delta.color = "#94A3B8"
 
-            lbl_sem_total.value  = f"${float(sem.get('total', 0)):,.0f}"
+            lbl_sem_total.value  = _p(sem.get('total', 0))
             lbl_sem_ventas.value = f"{sem.get('cantidad', 0)} ventas"
-            lbl_mes_total.value  = f"${float(mes.get('total', 0)):,.0f}"
+            lbl_mes_total.value  = _p(mes.get('total', 0))
             lbl_mes_ventas.value = f"{mes.get('cantidad', 0)} ventas"
 
             if turno.get("abierto"):
@@ -1947,7 +1951,7 @@ def _main(page: ft.Page):
                                         ),
                                         bgcolor="#0F172A", border_radius=4, height=8, expand=True
                                     ),
-                                    ft.Text(f"${val:,.0f}", size=16, weight="bold", color=MCOLOR[m]),
+                                    ft.Text(_p(val), size=16, weight="bold", color=MCOLOR[m]),
                                 ], spacing=4, expand=True),
                             ], spacing=10, vertical_alignment="center"),
                             bgcolor="#1E293B", padding=ft.padding.symmetric(12, 14),
@@ -1988,7 +1992,7 @@ def _main(page: ft.Page):
                                 ft.Container(
                                     ft.Row([
                                         ft.Text("SUBTOTAL SEMANA", size=10, color="#64748B", expand=True),
-                                        ft.Text(f"${sem_total:,.0f}", size=11, weight="bold", color="#64748B"),
+                                        ft.Text(_p(sem_total), size=11, weight="bold", color="#64748B"),
                                     ]),
                                     padding=ft.padding.only(left=8, bottom=4)
                                 )
@@ -2010,7 +2014,7 @@ def _main(page: ft.Page):
                         ft.Container(
                             ft.Row([
                                 ft.Text("SUBTOTAL SEMANA", size=10, color="#64748B", expand=True),
-                                ft.Text(f"${sem_total:,.0f}", size=11, weight="bold", color="#64748B"),
+                                ft.Text(_p(sem_total), size=11, weight="bold", color="#64748B"),
                             ]),
                             padding=ft.padding.only(left=8, bottom=4)
                         )
@@ -2029,7 +2033,7 @@ def _main(page: ft.Page):
                             ft.Column([
                                 ft.Text("TURNO ACTIVO", size=10, weight="bold", color="#10B981"),
                                 ft.Text(f"Abierto: {t.get('apertura', '')}", size=12, color="white"),
-                                ft.Text(f"Apertura: ${float(t.get('monto_apertura', 0)):,.0f}", size=11, color="#94A3B8"),
+                                ft.Text(f"Apertura: {_p(t.get('monto_apertura', 0))}", size=11, color="#94A3B8"),
                             ], spacing=3, expand=True),
                             ft.Container(
                                 ft.Text("EN CURSO", size=10, weight="bold", color="#10B981"),
