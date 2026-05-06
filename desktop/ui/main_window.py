@@ -3,7 +3,8 @@ import requests
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QStackedWidget, QWidget, QHBoxLayout,
                              QVBoxLayout, QPushButton, QLabel, QMessageBox,
-                             QDialog, QTableWidget, QTableWidgetItem, QHeaderView, QFrame)
+                             QDialog, QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
+                             QApplication)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QIcon
 from ui.theme import get_tema, TEMAS, guardar_tema
@@ -131,7 +132,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Juana Cash - Sistema POS")
-        self.setMinimumSize(1280, 720)
+        screen = QApplication.primaryScreen().availableGeometry()
+        min_w = min(1280, screen.width())
+        min_h = min(720, screen.height())
+        self.setMinimumSize(min_w, min_h)
         self.usuario_actual = None
         self.cajero_actual = None
 

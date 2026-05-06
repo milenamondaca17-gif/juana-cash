@@ -852,7 +852,7 @@ class CajaScreen(QWidget):
             fl.addWidget(lbl_m)
             lay.addWidget(f)
 
-        detalle_ef = f"apertura ${monto_apertura:,.0f} + ventas ${totales['efectivo']:,.0f} - gastos ${total_gastos:,.0f}"
+        detalle_ef = f"${monto_apertura:,.0f} + ef.${totales['efectivo']:,.0f} - gastos ${total_gastos:,.0f}" + (f" - emp. ${total_emp_previo:,.0f}" if total_emp_previo else "")
         fila_metodo("💵", "Efectivo",        efectivo_esperado,         "#27ae60", detalle_ef)
         fila_metodo("💳", "Tarjeta",          totales["tarjeta"],        "#3498db")
         fila_metodo("📱", "Mercado Pago/QR",  totales["mercadopago_qr"], "#009ee3")

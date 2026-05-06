@@ -42,6 +42,9 @@ def abrir_caja(datos: AbrirCajaSchema, db: Session = Depends(get_db)):
 
 @router.post("/cerrar/{turno_id}")
 def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(get_db)):
+    import json
+    from ..models.gasto import Gasto
+
     turno = db.query(CajaTurno).filter(CajaTurno.id == turno_id).first()
     if not turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
@@ -51,34 +54,54 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
         Venta.estado == "completada"
     ).all()
 
-    total_calculado = sum(float(v.total) for v in ventas_hoy)
-    diferencia = datos.monto_cierre - total_calculado
+    # Total vendido (todos los métodos) — para columna "Vendido $" del historial
+    total_vendido = sum(float(v.total) for v in ventas_hoy)
 
-    # Guardar pagos de empleados como JSON en el turno
-    import json
+    # Efectivo real de ventas (solo pagos en efectivo)
+    efectivo_ventas = 0.0
+    for v in ventas_hoy:
+        if v.pagos:
+            for p in v.pagos:
+                if p.metodo == "efectivo":
+                    efectivo_ventas += float(p.monto or 0)
+        elif getattr(v, "metodo_pago", None) == "efectivo":
+            efectivo_ventas += float(v.total or 0)
+
+    # Gastos del día
+    gastos_hoy = db.query(Gasto).filter(
+        func.date(Gasto.fecha) == date.today()
+    ).all()
+    total_gastos = sum(float(g.monto) for g in gastos_hoy)
+
+    # Pagos de empleados del cierre
     pagos_emp = datos.pagos_empleados or []
     total_empleados = sum(p.monto for p in pagos_emp)
 
-    turno.cierre = datetime.now()
-    turno.monto_cierre_declarado = datos.monto_cierre
-    turno.monto_cierre_calculado = total_calculado
-    turno.diferencia = diferencia
-    turno.estado = "cerrado"
+    # Efectivo esperado en caja = apertura + ventas efectivo - gastos - empleados
+    monto_apertura = float(turno.monto_apertura or 0)
+    efectivo_esperado = monto_apertura + efectivo_ventas - total_gastos - total_empleados
 
-    # Guardar pagos empleados si el modelo lo soporta
-    try:
-        turno.pagos_empleados = json.dumps([{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp])
-        turno.total_empleados = total_empleados
-    except Exception:
-        pass
+    # Diferencia: lo que declaró el cajero vs lo que debería haber
+    diferencia = datos.monto_cierre - efectivo_esperado
+
+    turno.cierre                 = datetime.now()
+    turno.monto_cierre_declarado = datos.monto_cierre
+    turno.monto_cierre_calculado = total_vendido
+    turno.diferencia             = diferencia
+    turno.estado                 = "cerrado"
+    turno.pagos_empleados        = json.dumps([{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp])
+    turno.total_empleados        = total_empleados
 
     db.commit()
     return {
-        "mensaje": "Caja cerrada",
-        "total_calculado": total_calculado,
-        "diferencia": diferencia,
-        "total_empleados": total_empleados,
-        "pagos_empleados": [{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp]
+        "mensaje":           "Caja cerrada",
+        "total_vendido":     total_vendido,
+        "efectivo_ventas":   efectivo_ventas,
+        "total_gastos":      total_gastos,
+        "efectivo_esperado": efectivo_esperado,
+        "diferencia":        diferencia,
+        "total_empleados":   total_empleados,
+        "pagos_empleados":   [{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp],
     }
 
 @router.get("/turno-actual/{usuario_id}")

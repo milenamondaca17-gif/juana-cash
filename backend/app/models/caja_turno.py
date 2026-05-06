@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, Text
 from sqlalchemy.sql import func
 from ..database import Base
 
@@ -13,3 +13,5 @@ class CajaTurno(Base):
     monto_cierre_calculado = Column(Numeric(12,2), nullable=True)
     diferencia             = Column(Numeric(12,2), nullable=True)
     estado                 = Column(String(10), default="abierto")
+    pagos_empleados        = Column(Text, nullable=True)
+    total_empleados        = Column(Numeric(12,2), default=0)
