@@ -63,6 +63,10 @@ def enviar_email_cierre(asunto, cuerpo):
 
 API_URL = "http://127.0.0.1:8000"
 
+def _p(v):
+    """Precio en formato argentino: $10.000"""
+    return f"${float(v):,.0f}".replace(",", ".")
+
 from ui.theme import get_tema as _get_tema, TEMAS, guardar_tema
 _T = _get_tema()
 
@@ -721,10 +725,10 @@ class CajaScreen(QWidget):
             valores = [
                 c.get("apertura", ""),
                 c.get("cierre", ""),
-                f"${float(c.get('monto_apertura',0)):,.0f}",
-                f"${float(c.get('monto_cierre_calculado',0)):,.0f}",
-                f"${float(c.get('monto_cierre_declarado',0)):,.0f}",
-                f"${diff:+,.0f}",
+                _p(c.get('monto_apertura', 0)),
+                _p(c.get('monto_cierre_calculado', 0)),
+                _p(c.get('monto_cierre_declarado', 0)),
+                ("+" if diff >= 0 else "") + _p(diff),
             ]
             for col, val in enumerate(valores):
                 item = QTableWidgetItem(str(val))
@@ -745,7 +749,7 @@ class CajaScreen(QWidget):
                 self.turno_actual = r.json()
                 self.lbl_estado.setText("🟢 Caja abierta")
                 self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 16px; font-weight: bold;")
-                self.lbl_apertura.setText(f"Apertura: {datetime.now().strftime('%H:%M')} — Cajero: {self.nombre_cajero} — Monto inicial: ${monto:.2f}")
+                self.lbl_apertura.setText(f"Apertura: {datetime.now().strftime('%H:%M')} — Cajero: {self.nombre_cajero} — Monto inicial: {_p(monto)}")
                 self.btn_abrir.setEnabled(False)
                 self.btn_cerrar.setEnabled(True)
                 try:
@@ -824,7 +828,7 @@ class CajaScreen(QWidget):
         for s_txt, s_val, s_color in [
             ("Tickets", str(cant_tickets), "#3498db"),
             ("📱 Celular", str(cant_celular), "#9b59b6"),
-            ("Promedio", f"${ticket_prom:,.0f}", "#27ae60"),
+            ("Promedio", _p(ticket_prom), "#27ae60"),
             ("Apertura", str(self.turno_actual.get("apertura","?"))[:16].replace("T"," "), "#f39c12"),
         ]:
             col = QVBoxLayout()
@@ -853,13 +857,13 @@ class CajaScreen(QWidget):
                 lbl_d = QLabel(detalle); lbl_d.setStyleSheet("color: #606880; font-size: 11px;")
                 fl.addWidget(lbl_d)
             fl.addStretch()
-            lbl_m = QLabel(f"${monto:,.2f}")
+            lbl_m = QLabel(_p(monto))
             lbl_m.setFont(QFont("Arial", 16, QFont.Weight.Bold))
             lbl_m.setStyleSheet(f"color: {color};")
             fl.addWidget(lbl_m)
             lay.addWidget(f)
 
-        detalle_ef = f"${monto_apertura:,.0f} + ef.${totales['efectivo']:,.0f} - gastos ${total_gastos:,.0f}" + (f" - emp. ${total_emp_previo:,.0f}" if total_emp_previo else "")
+        detalle_ef = f"{_p(monto_apertura)} + ef.{_p(totales['efectivo'])} - gastos {_p(total_gastos)}" + (f" - emp. {_p(total_emp_previo)}" if total_emp_previo else "")
         fila_metodo("💵", "Efectivo",        efectivo_esperado,         "#27ae60", detalle_ef)
         fila_metodo("💳", "Tarjeta",          totales["tarjeta"],        "#3498db")
         fila_metodo("📱", "Mercado Pago/QR",  totales["mercadopago_qr"], "#009ee3")
@@ -874,10 +878,10 @@ class CajaScreen(QWidget):
         res_lay = QVBoxLayout(resumen_frame)
         res_lay.setContentsMargins(14, 10, 14, 10); res_lay.setSpacing(4)
         for txt, val, color in [
-            ("Total vendido:",    f"${total_vendido:,.2f}",               "#27ae60"),
-            ("Fiado del turno:",  f"${totales['fiado']:,.2f}",            "#e74c3c"),
-            ("Gastos del turno:", f"-${total_gastos:,.2f}",               "#e74c3c"),
-            ("Neto del turno:",   f"${total_vendido - total_gastos:,.2f}", "#f39c12"),
+            ("Total vendido:",    _p(total_vendido),                            "#27ae60"),
+            ("Fiado del turno:",  _p(totales['fiado']),                         "#e74c3c"),
+            ("Gastos del turno:", f"-{_p(total_gastos)}",                       "#e74c3c"),
+            ("Neto del turno:",   _p(total_vendido - total_gastos),             "#f39c12"),
         ]:
             rw = QHBoxLayout()
             l1 = QLabel(txt); l1.setStyleSheet("color: #a0a0b0; font-size: 13px;")
@@ -936,10 +940,10 @@ class CajaScreen(QWidget):
                         total += float(in_m.text())
                 except ValueError:
                     pass
-            lbl_total_emp.setText(f"Total empleados: ${total:,.0f}")
+            lbl_total_emp.setText(f"Total empleados: {_p(total)}")
             # Actualizar efectivo esperado con descuento de empleados
             ef_neto = efectivo_esperado - total
-            input_declarado.setPlaceholderText(f"{ef_neto:.2f}")
+            input_declarado.setPlaceholderText(_p(ef_neto).lstrip("$"))
 
         for in_n, in_m in filas_emp:
             in_m.textChanged.connect(lambda _: actualizar_total_emp())
@@ -948,7 +952,7 @@ class CajaScreen(QWidget):
         lbl_d = QLabel("Efectivo contado ($):"); lbl_d.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         row_decl.addWidget(lbl_d)
         input_declarado = QLineEdit()
-        input_declarado.setPlaceholderText(f"{efectivo_esperado:.2f}")
+        input_declarado.setPlaceholderText(_p(efectivo_esperado).lstrip("$"))
         input_declarado.setFixedWidth(140); input_declarado.setFixedHeight(38)
         input_declarado.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }")
         row_decl.addWidget(input_declarado)
@@ -1058,9 +1062,9 @@ class CajaScreen(QWidget):
                     self.lbl_estado.setText("Caja cerrada")
                     self.lbl_estado.setStyleSheet("color: #a0a0b0; font-size: 16px; font-weight: bold;")
                     self.lbl_apertura.setText("")
-                    self.lbl_total_caja.setText("Total acumulado: $0.00")
+                    self.lbl_total_caja.setText("Total acumulado: $0")
                     self.btn_abrir.setEnabled(True); self.btn_cerrar.setEnabled(False)
-                    for lbl in self.cards_metodo.values(): lbl.setText("$0.00")
+                    for lbl in self.cards_metodo.values(): lbl.setText("$0")
                     color_dif = "OK" if abs(diferencia) < 100 else "REVISAR"
                     QMessageBox.information(self, "Caja cerrada",
                         f"Cierre confirmado\n{color_dif} Diferencia: ${diferencia:+.2f}\n"
