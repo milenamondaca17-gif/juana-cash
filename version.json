@@ -1,5 +1,5 @@
 {
-  "version": "3.4.3",
+  "version": "3.4.4",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.4.3 - Fix cobros mixtos: totales por método ahora correctos en caja y reportes; fix categoría de productos"
+  "notas": "v3.4.4 - Fix layout respaldo, precios $10.000 y botón reimprimir en caja"
 }
