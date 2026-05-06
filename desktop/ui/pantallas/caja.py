@@ -245,8 +245,8 @@ class CajaScreen(QWidget):
         layout.addWidget(lbl_resumen)
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(7)
-        self.tabla.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Estado", "Hora", "Anular"])
+        self.tabla.setColumnCount(8)
+        self.tabla.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Estado", "Hora", "Anular", "🖨"])
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tabla.setColumnWidth(1, 110)
         self.tabla.setColumnWidth(2, 100)
@@ -254,7 +254,9 @@ class CajaScreen(QWidget):
         self.tabla.setColumnWidth(4, 90)
         self.tabla.setColumnWidth(5, 60)
         self.tabla.setColumnWidth(6, 90)
+        self.tabla.setColumnWidth(7, 50)
         self.tabla.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        self.tabla.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.tabla)
 
@@ -1163,13 +1165,38 @@ class CajaScreen(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
+    def reimprimir_ticket(self, venta_id, numero):
+        try:
+            r = requests.get(f"{API_URL}/ventas/{venta_id}/detalle", timeout=5)
+            if r.status_code != 200:
+                QMessageBox.warning(self, "Error", "No se pudo obtener el ticket")
+                return
+            data = r.json()
+            try:
+                from ui.pantallas.impresora import imprimir_ticket
+                ok, msg = imprimir_ticket(
+                    venta={"numero": data["numero"], "fecha": data["fecha"]},
+                    items=data["items"],
+                    metodo_pago=data["metodo_pago"],
+                    descuento=data.get("descuento", 0),
+                    recargo=data.get("recargo", 0),
+                )
+                if ok:
+                    QMessageBox.information(self, "🖨 Impreso", f"Ticket #{numero} impreso correctamente")
+                else:
+                    QMessageBox.warning(self, "⚠️ Impresora", msg)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Error al imprimir:\n{str(e)}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
     def actualizar_ventas(self):
         try:
             r = requests.get(f"{API_URL}/reportes/hoy", timeout=5)
             if r.status_code == 200:
                 datos = r.json()
                 total = datos.get("total_vendido", 0)
-                self.lbl_total_caja.setText(f"Total acumulado: ${total:.2f}")
+                self.lbl_total_caja.setText(f"Total acumulado: ${total:,.0f}".replace(",", "."))
                 ventas = datos.get("ventas", [])
                 self.ventas_data = ventas
                 self.tabla.setRowCount(len(ventas))
@@ -1183,7 +1210,7 @@ class CajaScreen(QWidget):
                 }
                 for i, v in enumerate(ventas):
                     self.tabla.setItem(i, 0, QTableWidgetItem(v["numero"]))
-                    item_total = QTableWidgetItem(f"${float(v['total']):.2f}")
+                    item_total = QTableWidgetItem(f"${float(v['total']):,.0f}".replace(",", "."))
                     if v.get("estado") == "anulada":
                         item_total.setForeground(Qt.GlobalColor.red)
                     self.tabla.setItem(i, 1, item_total)
@@ -1211,9 +1238,15 @@ class CajaScreen(QWidget):
                         btn_anular.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 4px; font-size: 11px; padding: 0 6px; }")
                         btn_anular.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.anular_venta(vid, num))
                         self.tabla.setCellWidget(i, 6, btn_anular)
+                    btn_reimp = QPushButton("🖨")
+                    btn_reimp.setFixedHeight(26)
+                    btn_reimp.setToolTip("Reimprimir ticket")
+                    btn_reimp.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; font-size: 13px; border: 1px solid {BORDER}; }}")
+                    btn_reimp.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.reimprimir_ticket(vid, num))
+                    self.tabla.setCellWidget(i, 7, btn_reimp)
                     if metodo in totales_metodo and estado == "completada":
                         totales_metodo[metodo] += float(v["total"])
                 for key, lbl in self.cards_metodo.items():
-                    lbl.setText(f"${totales_metodo.get(key, 0):.2f}")
+                    lbl.setText(f"${totales_metodo.get(key, 0):,.0f}".replace(",", "."))
         except Exception:
             pass

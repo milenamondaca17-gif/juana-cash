@@ -451,7 +451,17 @@ class ConfigScreen(QWidget):
         # ── TAB: RESPALDO ────────────────────────────────────────────────────
         tab_resp = QWidget()
         tab_resp.setStyleSheet(f"background: {_CARD};")
-        resp_layout = QVBoxLayout(tab_resp)
+        _tab_resp_outer = QVBoxLayout(tab_resp)
+        _tab_resp_outer.setContentsMargins(0, 0, 0, 0)
+        _tab_resp_outer.setSpacing(0)
+        _scroll_resp = QScrollArea()
+        _scroll_resp.setWidgetResizable(True)
+        _scroll_resp.setStyleSheet(f"QScrollArea {{ background: {_CARD}; border: none; }} QScrollBar:vertical {{ background: {_BG}; width: 6px; border-radius: 3px; }} QScrollBar::handle:vertical {{ background: {_BOR}; border-radius: 3px; }}")
+        _inner_resp = QWidget()
+        _inner_resp.setStyleSheet(f"background: {_CARD};")
+        _scroll_resp.setWidget(_inner_resp)
+        _tab_resp_outer.addWidget(_scroll_resp)
+        resp_layout = QVBoxLayout(_inner_resp)
         resp_layout.setContentsMargins(20, 20, 20, 20)
         resp_layout.setSpacing(14)
 

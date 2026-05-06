@@ -132,6 +132,36 @@ def obtener_venta(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Venta no encontrada")
     return v
 
+@router.get("/{id}/detalle")
+def detalle_venta(id: int, db: Session = Depends(get_db)):
+    v = db.query(Venta).filter(Venta.id == id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Venta no encontrada")
+    items = []
+    for item in v.items:
+        p = db.query(Producto).filter(Producto.id == item.producto_id).first()
+        nombre = p.nombre if p else f"Producto #{item.producto_id}"
+        items.append({
+            "nombre": nombre,
+            "cantidad": float(item.cantidad),
+            "precio_unitario": float(item.precio_unitario),
+            "descuento": float(item.descuento),
+            "subtotal": float(item.subtotal),
+        })
+    metodo = v.pagos[0].metodo if v.pagos else "efectivo"
+    return {
+        "id": v.id,
+        "numero": v.numero,
+        "total": float(v.total),
+        "descuento": float(v.descuento or 0),
+        "recargo": float(v.recargo if hasattr(v, "recargo") else 0),
+        "fecha": str(v.fecha),
+        "estado": v.estado,
+        "metodo_pago": metodo,
+        "items": items,
+        "pagos": [{"metodo": p.metodo, "monto": float(p.monto)} for p in v.pagos],
+    }
+
 @router.post("/{id}/anular")
 def anular_venta(id: int, datos: AnularVentaSchema, db: Session = Depends(get_db)):
     venta = db.query(Venta).filter(Venta.id == id).first()

@@ -56,6 +56,10 @@ ACCENT_BOTON   = _T["primary"]
 
 from PyQt6.QtWidgets import QCheckBox
 
+def _p(v):
+    """Precio en formato argentino: $10.000"""
+    return f"${float(v):,.0f}".replace(",", ".")
+
 # ─── AUDITORÍA PERSISTENTE ────────────────────────────────────────────────────
 AUDITORIA_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Tickets", "auditoria.json")
 
@@ -116,7 +120,7 @@ class CobrarDialog(QDialog):
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
-        lbl_total = QLabel(f"Total: ${self.total_original:.2f}")
+        lbl_total = QLabel(f"Total: {_p(self.total_original)}")
         lbl_total.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         lbl_total.setStyleSheet(f"color: {ACCENT_OFERTAS};")
         lbl_total.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -172,7 +176,7 @@ class CobrarDialog(QDialog):
         cupon_lay.addWidget(self.lbl_cupon_status)
         layout.addWidget(cupon_frame)
 
-        self.lbl_total_final = QLabel(f"A cobrar: ${self.total_original:.2f}")
+        self.lbl_total_final = QLabel(f"A cobrar: {_p(self.total_original)}")
         self.lbl_total_final.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.lbl_total_final.setStyleSheet(f"color: {ACCENT_TOTAL};")
         self.lbl_total_final.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -369,7 +373,7 @@ class CobrarDialog(QDialog):
         nom_sec = nombres.get(self.metodo_secundario, "Segundo método") if self.metodo_secundario else "Segundo método"
         
         if self.metodo_secundario:
-            self.lbl_resumen_mixto.setText(f"Pago: ${monto_prin:,.0f} ({nom_prin}) + ${self.monto_secundario:,.0f} ({nom_sec})")
+            self.lbl_resumen_mixto.setText(f"Pago: {_p(monto_prin)} ({nom_prin}) + {_p(self.monto_secundario)} ({nom_sec})")
             self.btn_cobrar.setText("F4 - COBRAR MIXTO")
         else:
             self.lbl_resumen_mixto.setText("⚠️ Elegí el segundo método de pago")
@@ -391,10 +395,10 @@ class CobrarDialog(QDialog):
             entrega = float(self.input_entrega.text().replace(",", "."))
             vuelto = entrega - monto_en_efectivo
             if vuelto < 0:
-                self.lbl_vuelto.setText(f"Falta: ${abs(vuelto):,.0f}")
+                self.lbl_vuelto.setText(f"Falta: {_p(abs(vuelto))}")
                 self.lbl_vuelto.setStyleSheet("color: #F46A6A; font-size: 20px; font-weight: bold;")
             else:
-                self.lbl_vuelto.setText(f"Vuelto: ${vuelto:,.0f}")
+                self.lbl_vuelto.setText(f"Vuelto: {_p(vuelto)}")
                 self.lbl_vuelto.setStyleSheet(f"color: {ACCENT_TOTAL}; font-size: 20px; font-weight: bold;")
         except:
             self.lbl_vuelto.setText("Vuelto: -")
@@ -437,13 +441,13 @@ class CobrarDialog(QDialog):
             self.recargo_monto = round(subtotal * self.recargo_pct / 100, 2)
             self.total_final = subtotal + self.recargo_monto
             self.lbl_detalle_recargo.setText(
-                f"Subtotal: ${subtotal:,.0f}  +  {self.recargo_pct:.0f}%: ${self.recargo_monto:,.0f}  =  ${self.total_final:,.0f}"
+                f"Subtotal: {_p(subtotal)}  +  {self.recargo_pct:.0f}%: {_p(self.recargo_monto)}  =  {_p(self.total_final)}"
             )
         else:
             self.recargo_pct = 0.0
             self.recargo_monto = 0.0
             self.total_final = subtotal
-        self.lbl_total_final.setText(f"A cobrar: ${self.total_final:,.0f}")
+        self.lbl_total_final.setText(f"A cobrar: {_p(self.total_final)}")
         self.calcular_mixto()
 
     def aplicar_descuento_puntos(self, monto):
@@ -702,7 +706,7 @@ class VentasScreen(QWidget):
         lbl_total_titulo.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; letter-spacing: 2px; font-weight: bold;")
         total_layout.addWidget(lbl_total_titulo)
 
-        self.lbl_total = QLabel("$0.00")
+        self.lbl_total = QLabel("$0")
         self.lbl_total.setFont(QFont("Arial", 44, QFont.Weight.Bold))
         self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px; margin-top: -8px; margin-bottom: 8px;")
         self.lbl_total.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -1139,7 +1143,7 @@ class VentasScreen(QWidget):
             QListWidget::item:selected {{ background: {ACCENT_BOTON}; }}
         """)
         for p in productos[:20]:
-            texto_item = f"{p['nombre']}   ${float(p.get('precio_venta') or 0):,.0f}"
+            texto_item = f"{p['nombre']}   {_p(p.get('precio_venta') or 0)}"
             item = QListWidgetItem(texto_item)
             item.setData(Qt.ItemDataRole.UserRole, p)
             lista.addItem(item)
@@ -1382,9 +1386,9 @@ class VentasScreen(QWidget):
             if item["producto_id"] == 0:
                 nombre_item.setForeground(Qt.GlobalColor.green)
             self.tabla.setItem(i, 0, nombre_item)
-            self.tabla.setItem(i, 1, QTableWidgetItem(f"${item['precio_unitario']:,.0f}"))
+            self.tabla.setItem(i, 1, QTableWidgetItem(_p(item['precio_unitario'])))
             self.tabla.setItem(i, 2, QTableWidgetItem(str(item["cantidad"])))
-            self.tabla.setItem(i, 3, QTableWidgetItem(f"${item['subtotal']:,.0f}"))
+            self.tabla.setItem(i, 3, QTableWidgetItem(_p(item['subtotal'])))
 
             # Crear botones solo si la celda está vacía (fila nueva)
             if self.tabla.cellWidget(i, 4) is None:
@@ -1412,7 +1416,7 @@ class VentasScreen(QWidget):
             total += item["subtotal"]
 
         self.tabla.setUpdatesEnabled(True)
-        self.lbl_total.setText(f"${total:,.0f}")
+        self.lbl_total.setText(_p(total))
 
     def eliminar_item(self, idx):
         if idx >= len(self.items_venta): return
@@ -1772,7 +1776,7 @@ class VentasScreen(QWidget):
             for i, p in enumerate(productos_encontrados):
                 tabla_b.setItem(i, 0, QTableWidgetItem(p.get("codigo_barra") or ""))
                 tabla_b.setItem(i, 1, QTableWidgetItem(p["nombre"]))
-                tabla_b.setItem(i, 2, QTableWidgetItem(f"${float(p['precio_venta']):,.0f}"))
+                tabla_b.setItem(i, 2, QTableWidgetItem(_p(p['precio_venta'])))
                 stock = float(p.get("stock_actual", 0))
                 item_s = QTableWidgetItem(f"{stock:g}")
                 if stock <= 0:
@@ -1906,7 +1910,7 @@ class VentasScreen(QWidget):
             for i, p in enumerate(productos):
                 tabla_b.setItem(i, 0, QTableWidgetItem(p.get("codigo_barra") or ""))
                 tabla_b.setItem(i, 1, QTableWidgetItem(p["nombre"]))
-                tabla_b.setItem(i, 2, QTableWidgetItem(f"${float(p['precio_venta']):,.0f}"))
+                tabla_b.setItem(i, 2, QTableWidgetItem(_p(p['precio_venta'])))
                 stock = float(p.get("stock_actual", 0))
                 item_stock = QTableWidgetItem(f"{stock:g}")
                 if stock <= 0:
