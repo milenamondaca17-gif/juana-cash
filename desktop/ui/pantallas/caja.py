@@ -130,6 +130,7 @@ class CajaScreen(QWidget):
         self.usuario_id = 1
         self.nombre_cajero = ""
         self.ventas_data = []
+        self._pagos_empleados_guardados = []
         self.setup_ui()
 
     def set_usuario(self, usuario):
@@ -701,7 +702,7 @@ class CajaScreen(QWidget):
         super().showEvent(event)
         self._cargar_turno_activo()
         self.cargar_historial()
-        self.cargar_historial_efectivo()
+        self.actualizar_ventas()
 
     def cargar_historial(self):
         try:
@@ -818,7 +819,7 @@ class CajaScreen(QWidget):
             ("Tickets", str(cant_tickets), "#3498db"),
             ("📱 Celular", str(cant_celular), "#9b59b6"),
             ("Promedio", f"${ticket_prom:,.0f}", "#27ae60"),
-            ("Apertura", str(self.turno_actual.get("fecha_apertura","?"))[:16].replace("T"," "), "#f39c12"),
+            ("Apertura", str(self.turno_actual.get("apertura","?"))[:16].replace("T"," "), "#f39c12"),
         ]:
             col = QVBoxLayout()
             l1 = QLabel(s_txt); l1.setStyleSheet("color: #a0a0b0; font-size: 11px;"); l1.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1029,7 +1030,8 @@ class CajaScreen(QWidget):
             diferencia = monto_declarado - efectivo_esperado
             try:
                 r = requests.post(f"{API_URL}/caja/cerrar/{self.turno_actual['id']}",
-                                   json={"monto_cierre": monto_declarado}, timeout=5)
+                                   json={"monto_cierre": monto_declarado,
+                                         "pagos_empleados": self._pagos_empleados_guardados}, timeout=5)
                 if r.status_code == 200:
                     try:
                         requests.post(f"{API_URL}/sesiones/registrar", json={
@@ -1112,6 +1114,9 @@ class CajaScreen(QWidget):
                 monto = float(input_monto.text())
             except ValueError:
                 QMessageBox.warning(dialog, "Error", "Ingresá un monto válido")
+                return
+            if monto <= 0:
+                QMessageBox.warning(dialog, "Error", "El monto debe ser mayor a cero")
                 return
             try:
                 r = requests.post(f"{API_URL}/gastos/", json={"descripcion": desc, "monto": monto, "categoria": combo.currentText(), "usuario_id": self.usuario_id}, timeout=5)

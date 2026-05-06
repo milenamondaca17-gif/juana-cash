@@ -229,6 +229,10 @@ class ProductosScreen(QWidget):
         self.productos = []
         self.setup_ui()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.cargar_productos()
+
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
         layout = QVBoxLayout(self)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import date
@@ -17,6 +17,8 @@ class GastoCreate(BaseModel):
 
 @router.post("/")
 def crear_gasto(gasto: GastoCreate, db: Session = Depends(get_db)):
+    if gasto.monto <= 0:
+        raise HTTPException(status_code=400, detail="El monto debe ser mayor a cero")
     nuevo = Gasto(
         descripcion=gasto.descripcion,
         monto=gasto.monto,

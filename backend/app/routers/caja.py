@@ -112,7 +112,8 @@ def turno_actual(usuario_id: int, db: Session = Depends(get_db)):
     ).first()
     if not turno:
         return {"abierto": False}
-    return {"abierto": True, "id": turno.id, "monto_apertura": float(turno.monto_apertura)}
+    return {"abierto": True, "id": turno.id, "monto_apertura": float(turno.monto_apertura),
+            "apertura": str(turno.apertura)[:16] if turno.apertura else ""}
 
 @router.get("/historial")
 def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):

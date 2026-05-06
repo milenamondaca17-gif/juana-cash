@@ -1,5 +1,5 @@
 {
-  "version": "3.4.1",
+  "version": "3.4.2",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.4.1 - Recargo tarjeta crédito en cobro"
+  "notas": "v3.4.2 - Fix caja: crash showEvent, pagos empleados, ventas al abrir, validaciones"
 }
