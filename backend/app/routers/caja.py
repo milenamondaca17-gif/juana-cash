@@ -146,19 +146,18 @@ def resumen_rapido(usuario_id: int = 1, db: Session = Depends(get_db)):
 
     def _agrupar(ventas):
         tots = defaultdict(float)
+        total = 0.0
         cantidad = 0
         for v in ventas:
             if v.estado != "completada":
                 continue
             cantidad += 1
-            # Usar tabla pagos si existe, si no metodo_pago
-            metodo = "efectivo"
+            total += float(v.total or 0)
             if hasattr(v, "pagos") and v.pagos:
-                metodo = v.pagos[0].metodo.lower()
+                for p in v.pagos:
+                    tots[p.metodo.lower()] += float(p.monto or 0)
             elif getattr(v, "metodo_pago", None):
-                metodo = v.metodo_pago.lower()
-            tots[metodo] += float(v.total or 0)
-        total = sum(tots.values())
+                tots[v.metodo_pago.lower()] += float(v.total or 0)
         ticket = total / cantidad if cantidad else 0
         return {
             "efectivo":       round(tots.get("efectivo", 0), 2),
@@ -225,16 +224,17 @@ def historial_efectivo(dias: int = 30, db: Session = Depends(get_db)):
 
     for v in ventas:
         dia = str(v.fecha)[:10]
-        metodo = "efectivo"
-        if hasattr(v, "pagos") and v.pagos:
-            metodo = v.pagos[0].metodo.lower()
-        elif getattr(v, "metodo_pago", None):
-            metodo = v.metodo_pago.lower()
-        monto = float(v.total or 0)
-        if metodo in por_dia[dia]:
-            por_dia[dia][metodo] += monto
-        por_dia[dia]["total"] += monto
+        por_dia[dia]["total"] += float(v.total or 0)
         por_dia[dia]["cantidad"] += 1
+        if hasattr(v, "pagos") and v.pagos:
+            for p in v.pagos:
+                m = p.metodo.lower()
+                if m in por_dia[dia]:
+                    por_dia[dia][m] += float(p.monto or 0)
+        elif getattr(v, "metodo_pago", None):
+            m = v.metodo_pago.lower()
+            if m in por_dia[dia]:
+                por_dia[dia][m] += float(v.total or 0)
 
     resultado = []
     for dia in sorted(por_dia.keys(), reverse=True):

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional
 from ..database import get_db
@@ -15,6 +16,7 @@ class ProductoCrear(BaseModel):
     stock_actual: float = 0
     stock_minimo: float = 0
     categoria_id: Optional[int] = None
+    categoria: Optional[str] = None  # nombre de categoría (frontend legacy)
     tasa_iva: float = 21.0
 
 class ActualizacionMasiva(BaseModel):
@@ -51,9 +53,23 @@ def obtener_producto(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return p
 
+def _resolver_categoria(datos: ProductoCrear, db: Session) -> dict:
+    d = {k: v for k, v in datos.model_dump().items() if k != "categoria"}
+    if datos.categoria and not datos.categoria_id:
+        cat = db.query(Categoria).filter(
+            func.lower(Categoria.nombre) == datos.categoria.lower(),
+            Categoria.activo == True
+        ).first()
+        if not cat:
+            cat = Categoria(nombre=datos.categoria)
+            db.add(cat)
+            db.flush()
+        d["categoria_id"] = cat.id
+    return d
+
 @router.post("/")
 def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
-    p = Producto(**datos.dict())
+    p = Producto(**_resolver_categoria(datos, db))
     db.add(p)
     db.commit()
     db.refresh(p)
@@ -76,15 +92,15 @@ def actualizar_producto(id: int, datos: ProductoCrear, db: Session = Depends(get
                 nombre_producto=p.nombre,
                 precio_anterior=precio_anterior,
                 precio_nuevo=precio_nuevo,
-                usuario=datos.dict().get("usuario_modificacion", "sistema")
+                usuario="sistema"
             )
             db.add(alerta)
         except Exception:
             pass
 
-    for key, value in datos.dict().items():
-        if key != "usuario_modificacion":
-            setattr(p, key, value)
+    d = _resolver_categoria(datos, db)
+    for key, value in d.items():
+        setattr(p, key, value)
     db.commit()
     db.refresh(p)
     return p

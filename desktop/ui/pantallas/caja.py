@@ -772,7 +772,14 @@ class CajaScreen(QWidget):
             datos_gastos = {}
 
         ventas = datos_hoy.get("ventas", [])
-        totales = {"efectivo": 0, "tarjeta": 0, "mercadopago_qr": 0, "transferencia": 0, "fiado": 0}
+        desglose = datos_hoy.get("desglose_metodos", {})
+        totales = {
+            "efectivo":       float(desglose.get("efectivo", 0)),
+            "tarjeta":        float(desglose.get("tarjeta", 0)),
+            "mercadopago_qr": float(desglose.get("mercadopago_qr", 0)),
+            "transferencia":  float(desglose.get("transferencia", 0)),
+            "fiado":          float(desglose.get("fiado", 0)),
+        }
         cant_tickets = 0
         cant_celular = 0
         for v in ventas:
@@ -780,9 +787,6 @@ class CajaScreen(QWidget):
                 cant_tickets += 1
                 if v.get("origen", "") in ("celular", "celular_offline"):
                     cant_celular += 1
-                m = v.get("metodo_pago", "efectivo")
-                if m in totales:
-                    totales[m] += float(v.get("total", 0))
 
         total_vendido = datos_hoy.get("total_vendido", 0)
         total_gastos  = datos_gastos.get("total", 0)
