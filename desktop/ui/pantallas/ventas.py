@@ -1546,9 +1546,19 @@ class VentasScreen(QWidget):
                 vuelto = max(0, entrega - monto_secundario)
         except (ValueError, TypeError):
             pass
-        items_backend = [i for i in self.items_venta if i["producto_id"] != 0]
+        # Incluir TODOS los items — balanza/depto (pid=0) como genérico (pid=1)
+        # Si se filtraban, venta.total quedaba menor que lo cobrado (el bug)
+        items_backend = []
+        for _i in self.items_venta:
+            if _i["producto_id"] != 0:
+                items_backend.append(_i)
+            else:
+                items_backend.append({"producto_id": 1, "cantidad": 1,
+                                       "precio_unitario": _i["subtotal"], "descuento": 0})
         if not items_backend:
-            items_backend = [{"producto_id": 1, "cantidad": 1, "precio_unitario": total_final, "descuento": 0}]
+            # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
+            items_backend = [{"producto_id": 1, "cantidad": 1,
+                               "precio_unitario": total_final - recargo_monto, "descuento": 0}]
         pagos = [{"metodo": metodo_pago, "monto": total_final - monto_secundario}]
         if metodo_secundario and monto_secundario > 0:
             pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
@@ -1629,9 +1639,19 @@ class VentasScreen(QWidget):
                 vuelto = max(0, entrega - monto_secundario)
         except (ValueError, TypeError):
             pass
-        items_backend = [i for i in self.items_venta if i["producto_id"] != 0]
+        # Incluir TODOS los items — balanza/depto (pid=0) como genérico (pid=1)
+        # Si se filtraban, venta.total quedaba menor que lo cobrado (el bug)
+        items_backend = []
+        for _i in self.items_venta:
+            if _i["producto_id"] != 0:
+                items_backend.append(_i)
+            else:
+                items_backend.append({"producto_id": 1, "cantidad": 1,
+                                       "precio_unitario": _i["subtotal"], "descuento": 0})
         if not items_backend:
-            items_backend = [{"producto_id": 1, "cantidad": 1, "precio_unitario": total_final, "descuento": 0}]
+            # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
+            items_backend = [{"producto_id": 1, "cantidad": 1,
+                               "precio_unitario": total_final - recargo_monto, "descuento": 0}]
         pagos = [{"metodo": metodo_pago, "monto": total_final - monto_secundario}]
         if metodo_secundario and monto_secundario > 0:
             pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
