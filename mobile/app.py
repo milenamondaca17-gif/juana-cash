@@ -848,6 +848,13 @@ def _main(page: ft.Page):
         on_click=lambda e: ir_ticket()
     )
 
+    btn_ir_fiados = ft.ElevatedButton(
+        "💸 COBRAR FIADO", expand=True, height=44,
+        bgcolor="#1E293B", color="#EF4444",
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
+        on_click=lambda e: _ir_fiados()
+    )
+
     view_cobrar = ft.Container(
         content=ft.Column([
             ft.Column([
@@ -863,6 +870,7 @@ def _main(page: ft.Page):
                 panel_buscar_cliente,
                 lista_compra,
             ], spacing=10, scroll=ft.ScrollMode.AUTO, expand=True),
+            btn_ir_fiados,
             btn_cobrar,
         ], spacing=8),
         padding=16, visible=False, expand=True
@@ -1938,6 +1946,30 @@ def _main(page: ft.Page):
         if sel == "hoy":
             resumen_hoy_data = resumen.get("hoy", {}) if resumen else None
             if resumen_hoy_data:
+                # ── Card efectivo en caja ─────────────────────────────────
+                gastos_data  = api_get("/gastos/hoy") or {}
+                total_gastos = float(gastos_data.get("total", 0))
+                apertura     = float((resumen.get("turno") or {}).get("monto_apertura", 0))
+                ef_ventas    = float(resumen_hoy_data.get("efectivo", 0))
+                efectivo_caja = apertura + ef_ventas - total_gastos
+                lista_caja_ui.controls.append(
+                    ft.Container(
+                        content=ft.Column([
+                            ft.Text("💵 EFECTIVO EN CAJA", size=11, weight="bold", color="#94A3B8"),
+                            ft.Row([ft.Text("Apertura", size=12, color="#94A3B8", expand=True),
+                                    ft.Text(f"+{_p(apertura)}", size=12, color="#94A3B8")]),
+                            ft.Row([ft.Text("+ Ventas efectivo", size=12, color="#10B981", expand=True),
+                                    ft.Text(f"+{_p(ef_ventas)}", size=12, color="#10B981")]),
+                            ft.Row([ft.Text("- Gastos del día", size=12, color="#EF4444", expand=True),
+                                    ft.Text(f"-{_p(total_gastos)}", size=12, color="#EF4444")]),
+                            ft.Divider(color="#334155", height=6),
+                            ft.Row([ft.Text("EN CAJA AHORA", size=14, weight="bold", color="white", expand=True),
+                                    ft.Text(_p(efectivo_caja), size=18, weight="w900", color="#10B981")]),
+                        ], spacing=5),
+                        bgcolor="#0F172A", padding=14, border_radius=12,
+                        border=ft.border.all(1, "#10B981"),
+                    )
+                )
                 # Desglose de hoy: una barra por método
                 total_hoy = float(resumen_hoy_data.get("total", 0))
                 for m, icon in MICON.items():
@@ -2292,6 +2324,16 @@ def _main(page: ft.Page):
          view_ventas, view_precios_mobile, view_fiados, view_caja, view_config],
         expand=True
     )
+
+    def _ir_fiados():
+        for k, v in vistas.items():
+            v.visible = (k == "F")
+        view_ticket.visible = False
+        lbl_aviso.value = ""
+        for k, btn in nav_btns.items():
+            btn.bgcolor = COLOR_ACTIVO if k == "F" else COLOR_INACTIVO
+        cargar_fiados()
+        page.update()
 
     page.add(app_bar, banner_update, all_views, nav_bar)
     page.update()
