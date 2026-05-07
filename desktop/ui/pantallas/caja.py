@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QDialog, QComboBox, QScrollArea, QSizePolicy,
                               QSpinBox, QCheckBox)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont
 from datetime import datetime
 
 # ─── Config de email ─────────────────────────────────────────────────────────
@@ -170,6 +170,10 @@ class CajaScreen(QWidget):
         self.lbl_total_caja.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         self.lbl_total_caja.setStyleSheet(f"color: {DANGER}; background: transparent;")
         card_layout.addWidget(self.lbl_total_caja)
+        self.lbl_ef_caja = QLabel("💵 Efectivo en caja: —")
+        self.lbl_ef_caja.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        self.lbl_ef_caja.setStyleSheet(f"color: #16a34a; background: transparent;")
+        card_layout.addWidget(self.lbl_ef_caja)
         layout.addWidget(self.card_estado)
 
         # Desglose por método
@@ -641,47 +645,6 @@ class CajaScreen(QWidget):
         btn_test.clicked.connect(probar)
         dialog.exec()
 
-    def guardar_config_email(self):
-        cfg = {
-            "smtp_user": self.in_email_user.text().strip(),
-            "smtp_pass": self.in_email_pass.text().strip(),
-            "destinatarios": [d.strip() for d in self.in_email_dest.text().split(",") if d.strip()],
-            "habilitado": self.chk_email.isChecked()
-        }
-        guardar_email_config(cfg)
-        self.lbl_mail_status.setText("✅ Configuración guardada")
-        QTimer.singleShot(3000, lambda: self.lbl_mail_status.setText(""))
-
-    def cargar_historial_efectivo(self):
-        def _fetch():
-            try:
-                r = requests.get(f"{API_URL}/caja/historial-efectivo?dias=30", timeout=5)
-                datos = r.json() if r.status_code == 200 else []
-            except Exception:
-                datos = []
-            QTimer.singleShot(0, lambda: self._actualizar_tabla_efectivo(datos))
-        threading.Thread(target=_fetch, daemon=True).start()
-
-    def _actualizar_tabla_efectivo(self, datos):
-        self.tabla_efectivo.setRowCount(0)
-        for d in datos:
-            row = self.tabla_efectivo.rowCount()
-            self.tabla_efectivo.insertRow(row)
-            valores = [
-                d.get("fecha", ""),
-                f"${float(d.get('efectivo', 0)):,.0f}",
-                f"${float(d.get('tarjeta', 0)):,.0f}",
-                f"${float(d.get('mercadopago_qr', 0)):,.0f}",
-                f"${float(d.get('transferencia', 0)):,.0f}",
-                f"${float(d.get('fiado', 0)):,.0f}",
-                f"${float(d.get('total', 0)):,.0f}",
-            ]
-            colores = ["white", "#27ae60", "#3498db", "#009ee3", "#9b59b6", "#e74c3c", "#f39c12"]
-            for col, (val, color) in enumerate(zip(valores, colores)):
-                item = QTableWidgetItem(str(val))
-                item.setForeground(QColor(color))
-                self.tabla_efectivo.setItem(row, col, item)
-
     def _cargar_turno_activo(self):
         if self.turno_actual:
             return
@@ -990,9 +953,7 @@ class CajaScreen(QWidget):
             from datetime import datetime
             ts = datetime.now().strftime("%Y-%m-%d %H:%M")
             # Usar pagos del dialog de empleados si los hay
-            pagos_emp = getattr(self, '_pagos_empleados_guardados', [])
-            # Limpiar después de usar
-            self._pagos_empleados_guardados = []
+            pagos_emp = list(getattr(self, '_pagos_empleados_guardados', []))
             total_emp = sum(p["monto"] for p in pagos_emp)
             ls = ["="*40, "   JUANA CASH - CIERRE DE CAJA", "="*40,
                   f"Fecha:       {ts}", f"Cajero:      {getattr(self,'nombre_cajero','?')}",
@@ -1063,8 +1024,10 @@ class CajaScreen(QWidget):
                     self.lbl_estado.setStyleSheet("color: #a0a0b0; font-size: 16px; font-weight: bold;")
                     self.lbl_apertura.setText("")
                     self.lbl_total_caja.setText("Total acumulado: $0")
+                    self._pagos_empleados_guardados = []
                     self.btn_abrir.setEnabled(True); self.btn_cerrar.setEnabled(False)
                     for lbl in self.cards_metodo.values(): lbl.setText("$0")
+                    self.lbl_ef_caja.setText("💵 Efectivo en caja: —")
                     color_dif = "OK" if abs(diferencia) < 100 else "REVISAR"
                     QMessageBox.information(self, "Caja cerrada",
                         f"Cierre confirmado\n{color_dif} Diferencia: ${diferencia:+.2f}\n"
@@ -1252,5 +1215,13 @@ class CajaScreen(QWidget):
                         totales_metodo[metodo] += float(v["total"])
                 for key, lbl in self.cards_metodo.items():
                     lbl.setText(f"${totales_metodo.get(key, 0):,.0f}".replace(",", "."))
+                try:
+                    r_gastos = requests.get(f"{API_URL}/gastos/hoy", timeout=5)
+                    total_gastos = float(r_gastos.json().get("total", 0)) if r_gastos.status_code == 200 else 0
+                except Exception:
+                    total_gastos = 0
+                monto_apertura = float((self.turno_actual or {}).get("monto_apertura", 0))
+                ef_caja = monto_apertura + totales_metodo["efectivo"] - total_gastos
+                self.lbl_ef_caja.setText(f"💵 Efectivo en caja: {_p(ef_caja)}")
         except Exception:
             pass
