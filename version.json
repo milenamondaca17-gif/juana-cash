@@ -1,5 +1,5 @@
 {
-  "version": "3.4.9",
+  "version": "3.5.0",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.4.9 - Fix: módulos email incluidos correctamente"
+  "notas": "v3.5.0 - Fix definitivo: email.mime incluido con --collect-all"
 }
