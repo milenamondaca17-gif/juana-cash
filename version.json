@@ -1,5 +1,5 @@
 {
-  "version": "3.5.0",
+  "version": "3.5.1",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.5.0 - Fix definitivo: email.mime incluido con --collect-all"
+  "notas": "v3.5.1 - Fix: passlib bcrypt incluido correctamente en el build"
 }
