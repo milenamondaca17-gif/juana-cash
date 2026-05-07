@@ -1,14 +1,9 @@
 
 dist/
 build/
-
-dist/
-build/
-
-dist/
-build/
-
 __pycache__/
 *.pyc
-app.py
 mobile/juana_cash.db
+instalador_output/*.zip
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
