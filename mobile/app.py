@@ -2309,7 +2309,7 @@ def _main(page: ft.Page):
     @en_hilo
     def verificar_actualizacion(e=None):
         try:
-            r = requests.get(VERSION_URL, timeout=8)
+            r = requests.get(VERSION_URL, timeout=8, verify=False)
             data = r.json()
             nueva = data.get("version", "")
             if nueva and _version_mayor(nueva, APP_VERSION):

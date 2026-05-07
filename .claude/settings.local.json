@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/lucas/OneDrive/Escritorio/JUANA CASH$/**)",
+      "Bash(venv\\\\Scripts\\\\pip.exe freeze *)",
+      "Read(//c/Users/lucas/OneDrive/Escritorio/JUANA CASH$/instalador_output//**)",
+      "Read(//c/Users/lucas/OneDrive/Escritorio/JUANA CASH$/dist//**)",
+      "Bash(git -C \"c:/Users/lucas/OneDrive/Escritorio/JUANA CASH$\" status --short)",
+      "Bash(git -C \"c:/Users/lucas/OneDrive/Escritorio/JUANA CASH$\" log --oneline -3)",
+      "Bash(where iscc *)",
+      "Bash(where gh *)",
+      "Bash(where pyinstaller *)",
+      "Bash(git -C \"c:/Users/lucas/OneDrive/Escritorio/JUANA CASH$\" diff --stat HEAD)",
+      "Bash(venv/Scripts/pyinstaller.exe JuanaCash.spec)",
+      "Bash(venv/Scripts/pyinstaller.exe JuanaCash.spec -y)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/lucas/OneDrive/Escritorio/JUANA CASH$/mobile/**)",
+      "Bash(PYTHONIOENCODING=utf-8 NO_COLOR=1 \"C:/Users/lucas/OneDrive/Escritorio/JUANA CASH$/venv/Scripts/flet.exe\" build apk)",
+      "Bash(PYTHONIOENCODING=utf-8 NO_COLOR=1 \"C:/Users/lucas/OneDrive/Escritorio/JUANA CASH$/venv/Scripts/flet.exe\" build apk --module-name app)",
+      "PowerShell(cd \"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Escritorio\\\\JUANA CASH$\"; & \"$env:LOCALAPPDATA\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\" JuanaCash.iss 2>&1 | Select-String -Pattern \"Successful|Error|error\" | Select-Object -Last 5)",
+      "Bash(venv/Scripts/python.exe -m PyInstaller --noconfirm --onedir --windowed --name JuanaCash --icon juana_cash.ico --add-data 'backend;backend' --add-data 'desktop;desktop' --add-data 'juana_cash.db;.' --collect-all uvicorn --collect-all fastapi --collect-all sqlalchemy --collect-all passlib --collect-all jose --collect-all starlette --collect-all pydantic --collect-all anyio --collect-all h11 --hidden-import uvicorn.lifespan.on --hidden-import uvicorn.loops.auto --hidden-import uvicorn.protocols.http.auto --hidden-import uvicorn.protocols.websockets.auto --hidden-import passlib.handlers.bcrypt --hidden-import sqlalchemy.dialects.sqlite desktop/main.py)",
+      "PowerShell(cd \"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Escritorio\\\\JUANA CASH$\"; & \"$env:LOCALAPPDATA\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\" JuanaCash.iss 2>&1 | Select-String \"Successful|error\" | Select-Object -Last 3)",
+      "Bash(venv/Scripts/python.exe -m PyInstaller --noconfirm --onedir --windowed --name JuanaCash --icon juana_cash.ico --add-data 'backend;backend' --add-data 'desktop;desktop' --add-data 'juana_cash.db;.' --collect-all uvicorn --collect-all fastapi --collect-all sqlalchemy --collect-all passlib --collect-all jose --collect-all starlette --collect-all pydantic --collect-all anyio --collect-all h11 --hidden-import uvicorn.lifespan.on --hidden-import uvicorn.loops.auto --hidden-import uvicorn.protocols.http.auto --hidden-import uvicorn.protocols.websockets.auto --hidden-import passlib.handlers.bcrypt --hidden-import sqlalchemy.dialects.sqlite JuanaCash_main.py)",
+      "PowerShell(cd \"C:\\\\Users\\\\lucas\\\\OneDrive\\\\Escritorio\\\\JUANA CASH$\"; & \"$env:LOCALAPPDATA\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\" JuanaCash.iss 2>&1 | Select-String \"Successful|error\" | Select-Object -Last 2)"
+    ]
+  }
+}
