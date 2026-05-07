@@ -10,6 +10,17 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
+APP_VERSION = "3.4.6"
+APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
+VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
+
+def _version_mayor(v1, v2):
+    """True si v1 > v2 (formato X.Y.Z)"""
+    try:
+        return tuple(int(x) for x in v1.split(".")) > tuple(int(x) for x in v2.split("."))
+    except Exception:
+        return False
+
 # ─── Configuración de IP ──────────────────────────────────────────────────────
 CONFIG_PATH   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobile_config.json")
 OFFLINE_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ventas_offline.json")
@@ -2246,18 +2257,49 @@ def _main(page: ft.Page):
         padding=ft.padding.only(bottom=40)
     )
 
+    # ── Banner de actualización disponible ───────────────────────────────────
+    lbl_update_version = ft.Text("", size=13, color="white", expand=True)
+    banner_update = ft.Container(
+        content=ft.Row([
+            ft.Text("🆕", size=16),
+            lbl_update_version,
+            ft.ElevatedButton(
+                "Descargar", height=32,
+                bgcolor="#10B981", color="white",
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                on_click=lambda e: page.launch_url(APK_URL),
+            ),
+        ], spacing=8, vertical_alignment="center"),
+        bgcolor="#1E3A2E", padding=ft.padding.symmetric(horizontal=16, vertical=8),
+        visible=False,
+    )
+
+    @en_hilo
+    def verificar_actualizacion(e=None):
+        try:
+            r = requests.get(VERSION_URL, timeout=8)
+            data = r.json()
+            nueva = data.get("version", "")
+            if nueva and _version_mayor(nueva, APP_VERSION):
+                lbl_update_version.value = f"Nueva versión {nueva} disponible"
+                banner_update.visible = True
+                page.update()
+        except Exception:
+            pass
+
     all_views = ft.Column(
         [view_dashboard, view_cobrar, view_ticket, view_ofertas,
          view_ventas, view_precios_mobile, view_fiados, view_caja, view_config],
         expand=True
     )
 
-    page.add(app_bar, all_views, nav_bar)
+    page.add(app_bar, banner_update, all_views, nav_bar)
     page.update()
     cargar_dashboard()
     cargar_cache_productos()
     _actualizar_badge()
     _autoconectar_en_hilo()
+    verificar_actualizacion()
 
 
 ft.app(target=main)
