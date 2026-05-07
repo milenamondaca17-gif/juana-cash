@@ -1,5 +1,5 @@
 {
-  "version": "3.4.8",
+  "version": "3.4.9",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.4.8 - Fix: inicio correcto del servidor (backend + UI)"
+  "notas": "v3.4.9 - Fix: módulos email incluidos correctamente"
 }
