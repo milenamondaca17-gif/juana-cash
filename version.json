@@ -1,5 +1,5 @@
 {
-  "version": "3.4.6",
+  "version": "3.4.7",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.4.6 - APK: auto-actualización al abrir la app"
+  "notas": "v3.4.7 - APK: efectivo en caja en tiempo real + botón cobrar fiado"
 }
