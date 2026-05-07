@@ -2080,7 +2080,7 @@ def _main(page: ft.Page):
             ft.Row([
                 ft.Text("🏦 CAJA", size=20, weight="w900", expand=True),
                 ft.IconButton(
-                    ft.icons.REFRESH, icon_color="#94A3B8",
+                    "refresh", icon_color="#94A3B8",
                     icon_size=20, tooltip="Actualizar",
                     on_click=cargar_caja
                 ),
