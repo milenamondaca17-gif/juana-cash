@@ -1,5 +1,5 @@
 {
-  "version": "3.5.2",
+  "version": "3.5.3",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.5.2 - Caja: efectivo en caja en tiempo real + fix bugs"
+  "notas": "v3.5.3 - Fix críticos: recargo en BD, id en venta, clientes auto-carga"
 }

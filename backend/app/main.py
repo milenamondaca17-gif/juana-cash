@@ -15,12 +15,13 @@ Base.metadata.create_all(bind=engine)
 # Migración: agrega columnas nuevas si no existen (SQLite no tiene IF NOT EXISTS en ALTER)
 from sqlalchemy import text as _text
 with engine.connect() as _conn:
-    for _col, _def in [
-        ("pagos_empleados", "TEXT"),
-        ("total_empleados", "NUMERIC DEFAULT 0"),
+    for _table, _col, _def in [
+        ("caja_turnos", "pagos_empleados", "TEXT"),
+        ("caja_turnos", "total_empleados",  "NUMERIC DEFAULT 0"),
+        ("ventas",      "recargo",          "NUMERIC DEFAULT 0"),
     ]:
         try:
-            _conn.execute(_text(f"ALTER TABLE caja_turnos ADD COLUMN {_col} {_def}"))
+            _conn.execute(_text(f"ALTER TABLE {_table} ADD COLUMN {_col} {_def}"))
             _conn.commit()
         except Exception:
             pass  # columna ya existe

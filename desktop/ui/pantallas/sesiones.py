@@ -53,6 +53,10 @@ class SesionesScreen(QWidget):
         self.lbl_total.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
         layout.addWidget(self.lbl_total)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.cargar_sesiones()
+
     def cargar_sesiones(self):
         dias_map = {"Hoy": 1, "Últimos 3 días": 3, "Última semana": 7, "Último mes": 30}
         dias = dias_map.get(self.combo_dias.currentText(), 1)

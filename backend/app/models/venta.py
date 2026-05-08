@@ -12,11 +12,10 @@ class Venta(Base):
     fecha       = Column(DateTime, server_default=func.now())
     subtotal    = Column(Numeric(12,2), nullable=False)
     descuento   = Column(Numeric(12,2), default=0)
+    recargo     = Column(Numeric(12,2), default=0)
     total       = Column(Numeric(12,2), nullable=False)
     estado      = Column(String(15), default="completada")
-    
-    # --- LA COLUMNA NUEVA QUE FALTABA ---
-    origen      = Column(String(20), default="mostrador") 
+    origen      = Column(String(20), default="mostrador")
     
     items       = relationship("ItemVenta", back_populates="venta")
     pagos       = relationship("Pago", back_populates="venta")

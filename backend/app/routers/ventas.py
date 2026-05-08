@@ -54,9 +54,10 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
         cliente_id=datos.cliente_id,
         subtotal=subtotal,
         descuento=datos.descuento,
+        recargo=datos.recargo,
         total=total,
         origen=datos.origen,
-        fecha=datetime.now()  # Hora local, no UTC
+        fecha=datetime.now()
     )
     db.add(venta)
     db.flush()
@@ -105,6 +106,7 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
     db.refresh(venta)
     return {
         "mensaje": "Venta registrada",
+        "id": venta.id,
         "numero": venta.numero,
         "total": float(venta.total)
     }
@@ -154,7 +156,7 @@ def detalle_venta(id: int, db: Session = Depends(get_db)):
         "numero": v.numero,
         "total": float(v.total),
         "descuento": float(v.descuento or 0),
-        "recargo": float(v.recargo if hasattr(v, "recargo") else 0),
+        "recargo": float(v.recargo or 0),
         "fecha": str(v.fecha),
         "estado": v.estado,
         "metodo_pago": metodo,

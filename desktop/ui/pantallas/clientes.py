@@ -313,6 +313,10 @@ class ClientesScreen(QWidget):
         c_layout.addWidget(lbl_v)
         return card, lbl_v
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.cargar_clientes()
+
     def cargar_clientes(self):
         try:
             r = requests.get(f"{API_URL}/clientes/", timeout=5)
