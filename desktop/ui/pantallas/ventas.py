@@ -903,8 +903,13 @@ class VentasScreen(QWidget):
         btn_ok.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_ok.setStyleSheet(f"QPushButton {{ background: {ACCENT_BOTON}; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }}")
         def sel_highlighted():
+            if lista.count() == 0 and input_b.text().strip():
+                buscar()
             items = lista.selectedItems()
-            if items: seleccionar(items[0])
+            if items:
+                seleccionar(items[0])
+            elif lista.count() == 1:
+                seleccionar(lista.item(0))
         btn_ok.clicked.connect(sel_highlighted)
         btns.addWidget(btn_ok)
         lay.addLayout(btns)
@@ -1615,7 +1620,12 @@ class VentasScreen(QWidget):
                 self.lbl_total.setStyleSheet(f"color: #27ae60; font-size: 28px; font-weight: bold;")
                 self.cancelar_venta()
                 QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px;"))
-            else: QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
+            else:
+                try:
+                    detalle = r.json().get("detail", "No se pudo registrar la venta")
+                except Exception:
+                    detalle = "No se pudo registrar la venta"
+                QMessageBox.critical(self, "Error", detalle)
         except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
 
     def cobrar(self):
@@ -1727,7 +1737,12 @@ class VentasScreen(QWidget):
                         )
                     except Exception:
                         pass
-            else: QMessageBox.critical(self, "Error", "No se pudo registrar la venta")
+            else:
+                try:
+                    detalle = r.json().get("detail", "No se pudo registrar la venta")
+                except Exception:
+                    detalle = "No se pudo registrar la venta"
+                QMessageBox.critical(self, "Error", detalle)
         except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
 
     def abrir_busqueda_avanzada(self):

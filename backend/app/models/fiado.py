@@ -14,7 +14,7 @@ class Fiado(Base):
     estado       = Column(String(15), default="pendiente")
     vencimiento  = Column(Date, nullable=True)
     created_at   = Column(DateTime, server_default=func.now())
-    cliente      = relationship("Cliente")
+    cliente      = relationship("Cliente", back_populates="fiados")
 
 class PagoFiado(Base):
     __tablename__ = "pagos_fiado"

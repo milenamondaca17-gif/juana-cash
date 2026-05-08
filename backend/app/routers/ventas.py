@@ -89,8 +89,15 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
         if pago.metodo.lower() == "fiado" and datos.cliente_id:
             cliente = db.query(Cliente).filter(Cliente.id == datos.cliente_id).first()
             if cliente:
+                limite = float(cliente.limite_credito or 0)
+                deuda_actual = float(cliente.deuda_actual or 0)
+                if limite > 0 and deuda_actual + float(pago.monto) > limite:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Límite de crédito superado. Límite: ${limite:,.0f} | Deuda actual: ${deuda_actual:,.0f}"
+                    )
                 # Actualizar deuda_actual (campo correcto del modelo)
-                cliente.deuda_actual = float(cliente.deuda_actual or 0) + float(pago.monto)
+                cliente.deuda_actual = deuda_actual + float(pago.monto)
 
                 # Crear registro en tabla fiados
                 fiado = Fiado(
