@@ -1165,9 +1165,10 @@ class CajaScreen(QWidget):
                 total = datos.get("total_vendido", 0)
                 self.lbl_total_caja.setText(f"Total acumulado: ${total:,.0f}".replace(",", "."))
                 ventas = datos.get("ventas", [])
+                # desglose_metodos ya suma p.monto por método, incluye cobros mixtos
+                desglose = datos.get("desglose_metodos", {})
                 self.ventas_data = ventas
                 self.tabla.setRowCount(len(ventas))
-                totales_metodo = {"efectivo": 0, "tarjeta": 0, "mercadopago_qr": 0, "transferencia": 0, "fiado": 0}
                 nombres_m = {
                     "efectivo":       "💵 Efectivo",
                     "tarjeta":        "💳 Tarjeta",
@@ -1184,7 +1185,6 @@ class CajaScreen(QWidget):
                     metodo = v.get("metodo_pago", "efectivo")
                     self.tabla.setItem(i, 2, QTableWidgetItem(nombres_m.get(metodo, metodo)))
 
-                    # Columna Origen — diferencia celular vs mostrador
                     origen = v.get("origen", "mostrador")
                     if origen == "celular":
                         item_origen = QTableWidgetItem("📱 Celular")
@@ -1211,17 +1211,16 @@ class CajaScreen(QWidget):
                     btn_reimp.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; font-size: 13px; border: 1px solid {BORDER}; }}")
                     btn_reimp.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.reimprimir_ticket(vid, num))
                     self.tabla.setCellWidget(i, 7, btn_reimp)
-                    if metodo in totales_metodo and estado == "completada":
-                        totales_metodo[metodo] += float(v["total"])
+                # Cards por método — usa desglose del server (correcto con cobros mixtos)
                 for key, lbl in self.cards_metodo.items():
-                    lbl.setText(f"${totales_metodo.get(key, 0):,.0f}".replace(",", "."))
+                    lbl.setText(f"${float(desglose.get(key, 0)):,.0f}".replace(",", "."))
                 try:
                     r_gastos = requests.get(f"{API_URL}/gastos/hoy", timeout=5)
                     total_gastos = float(r_gastos.json().get("total", 0)) if r_gastos.status_code == 200 else 0
                 except Exception:
                     total_gastos = 0
                 monto_apertura = float((self.turno_actual or {}).get("monto_apertura", 0))
-                ef_caja = monto_apertura + totales_metodo["efectivo"] - total_gastos
+                ef_caja = monto_apertura + float(desglose.get("efectivo", 0)) - total_gastos
                 self.lbl_ef_caja.setText(f"💵 Efectivo en caja: {_p(ef_caja)}")
         except Exception:
             pass

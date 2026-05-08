@@ -1,5 +1,5 @@
 {
-  "version": "3.5.4",
+  "version": "3.5.5",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.5.4 - Fix fiado: límite de crédito, mensajes de error, UX buscar cliente"
+  "notas": "v3.5.5 - Fix caja: montos por método ahora correctos en cobros mixtos"
 }
