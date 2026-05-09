@@ -118,24 +118,8 @@ class CobrarDialog(QDialog):
             super().keyPressEvent(event)
 
     def accept(self):
-        # Leer el monto secundario directamente del widget en este instante exacto
-        if self.chk_mixto.isChecked():
-            txt = self.input_monto_sec.text().strip()
-            if "," in txt and "." in txt:
-                txt = txt.replace(".", "").replace(",", ".")
-            elif "." in txt and txt.replace(".", "").isdigit():
-                txt = txt.replace(".", "")
-            else:
-                txt = txt.replace(",", ".")
-            try:
-                self.monto_secundario = float(txt) if txt else 0
-            except ValueError:
-                self.monto_secundario = 0
-        else:
-            self.monto_secundario = 0
-            self.metodo_secundario = None
-
-        # Construir lista de pagos como objeto Python puro — inmune a eventos Qt posteriores
+        # Usar atributos Python ya computados por calcular_mixto() y seleccionar_metodo_sec()
+        # NO leer widgets aquí — su estado puede cambiar al cerrarse el dialog
         if self.monto_secundario > 0 and self.metodo_secundario:
             self.pagos_confirmados = [
                 {"metodo": self.metodo_pago,       "monto": round(self.total_final - self.monto_secundario, 2)},
@@ -145,7 +129,6 @@ class CobrarDialog(QDialog):
             self.pagos_confirmados = [
                 {"metodo": self.metodo_pago, "monto": round(self.total_final, 2)},
             ]
-
         super().accept()
 
     def setup_ui(self):
@@ -1621,37 +1604,7 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        # Usar pagos_confirmados construido dentro de accept() del dialog — inmune a eventos Qt
-        pagos = getattr(dialog, "pagos_confirmados", None)
-        if pagos is None:
-            pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
-            if metodo_secundario and monto_secundario > 0:
-                pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
-        # ── DEBUG TEMPORAL ──
-        import os as _os, datetime as _dt
-        _dbg = (
-            f"pagos_confirmados: {getattr(dialog, 'pagos_confirmados', 'NO EXISTE')}\n"
-            f"chk_mixto checked: {dialog.chk_mixto.isChecked()}\n"
-            f"input_monto_sec: {dialog.input_monto_sec.text()!r}\n"
-            f"metodo_sec: {dialog.metodo_secundario!r}\n"
-            f"monto_sec: {dialog.monto_secundario}\n\n"
-            f"PAGOS A ENVIAR: {pagos}"
-        )
-        _dbg_path = _os.path.join(_os.path.expanduser("~"), "JuanaCash_Data", "debug_cobro.txt")
-        try:
-            with open(_dbg_path, "a", encoding="utf-8") as _f:
-                _f.write(f"\n--- {_dt.datetime.now()} [cobrar_sin_ticket] ---\n{_dbg}\n")
-        except Exception:
-            pass
-        try:
-            from PyQt6.QtWidgets import QApplication as _QApp
-            _QApp.clipboard().setText(_dbg)
-        except Exception:
-            pass
-        from PyQt6.QtWidgets import QMessageBox as _QMB
-        _QMB.information(self, "DEBUG copiado al portapapeles",
-            f"Info guardada en:\n{_dbg_path}\n\nTambién en el portapapeles (Ctrl+V en el chat).")
-        # ── FIN DEBUG ──
+        pagos = dialog.pagos_confirmados
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
             r = requests.post(f"{API_URL}/ventas/", json={
@@ -1754,37 +1707,7 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        # Usar pagos_confirmados construido dentro de accept() del dialog — inmune a eventos Qt
-        pagos = getattr(dialog, "pagos_confirmados", None)
-        if pagos is None:
-            pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
-            if metodo_secundario and monto_secundario > 0:
-                pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
-        # ── DEBUG TEMPORAL ──
-        import os as _os2, datetime as _dt2
-        _dbg2 = (
-            f"pagos_confirmados: {getattr(dialog, 'pagos_confirmados', 'NO EXISTE')}\n"
-            f"chk_mixto checked: {dialog.chk_mixto.isChecked()}\n"
-            f"input_monto_sec: {dialog.input_monto_sec.text()!r}\n"
-            f"metodo_sec: {dialog.metodo_secundario!r}\n"
-            f"monto_sec: {dialog.monto_secundario}\n\n"
-            f"PAGOS A ENVIAR: {pagos}"
-        )
-        _dbg_path2 = _os2.path.join(_os2.path.expanduser("~"), "JuanaCash_Data", "debug_cobro.txt")
-        try:
-            with open(_dbg_path2, "a", encoding="utf-8") as _f2:
-                _f2.write(f"\n--- {_dt2.datetime.now()} [cobrar] ---\n{_dbg2}\n")
-        except Exception:
-            pass
-        try:
-            from PyQt6.QtWidgets import QApplication as _QApp2
-            _QApp2.clipboard().setText(_dbg2)
-        except Exception:
-            pass
-        from PyQt6.QtWidgets import QMessageBox as _QMB2
-        _QMB2.information(self, "DEBUG copiado al portapapeles",
-            f"Info guardada en:\n{_dbg_path2}\n\nTambién en el portapapeles (Ctrl+V en el chat).")
-        # ── FIN DEBUG ──
+        pagos = dialog.pagos_confirmados
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
             r = requests.post(f"{API_URL}/ventas/", json={

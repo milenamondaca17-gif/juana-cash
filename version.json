@@ -1,5 +1,5 @@
 {
-  "version": "3.6.5",
+  "version": "3.6.6",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.6.5 - Fix fiado: migración columna monto_pagado en tabla fiados"
+  "notas": "v3.6.6 - Fix cobro mixto: accept() usa atributos Python en vez de widgets"
 }
