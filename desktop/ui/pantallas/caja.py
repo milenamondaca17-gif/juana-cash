@@ -244,7 +244,12 @@ class CajaScreen(QWidget):
         btn_paleta.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_paleta.clicked.connect(self.elegir_paleta)
 
-        for b in [self.btn_abrir, self.btn_cerrar, btn_gasto, btn_empleados, btn_histef, btn_email_cfg, btn_paleta]:
+        btn_refresh = QPushButton("🔄 Actualizar")
+        btn_refresh.setFixedHeight(BTN_H)
+        btn_refresh.setStyleSheet(f"QPushButton {{ background: #0f766e; color: white; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: #0d9488; }}")
+        btn_refresh.clicked.connect(self.actualizar_ventas)
+
+        for b in [self.btn_abrir, self.btn_cerrar, btn_gasto, btn_empleados, btn_histef, btn_email_cfg, btn_paleta, btn_refresh]:
             btns.addWidget(b)
         btns.addStretch()
         layout.addLayout(btns)

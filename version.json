@@ -1,5 +1,5 @@
 {
-  "version": "3.5.8",
+  "version": "3.5.9",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.5.8 - Caja se actualiza automáticamente cada 10 segundos (ya no quedaba en $0 al volver a la pantalla)"
+  "notas": "v3.5.9 - Caja: auto-refresh cada 10s + botón Actualizar manual para ver montos en tiempo real"
 }
