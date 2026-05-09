@@ -1,5 +1,5 @@
 {
-  "version": "3.5.7",
+  "version": "3.5.8",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.5.7 - Fix cobro mixto: montos en formato argentino (2.000) ahora se dividen correctamente entre métodos"
+  "notas": "v3.5.8 - Caja se actualiza automáticamente cada 10 segundos (ya no quedaba en $0 al volver a la pantalla)"
 }

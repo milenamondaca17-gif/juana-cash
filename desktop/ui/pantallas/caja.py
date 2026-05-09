@@ -136,6 +136,9 @@ class CajaScreen(QWidget):
         self.ventas_data = []
         self._pagos_empleados_guardados = []
         self.setup_ui()
+        self._timer_refresh = QTimer(self)
+        self._timer_refresh.setInterval(10000)  # 10 segundos
+        self._timer_refresh.timeout.connect(self.actualizar_ventas)
 
     def set_usuario(self, usuario):
         self.usuario_id = usuario.get("id", 1)
@@ -672,6 +675,11 @@ class CajaScreen(QWidget):
         self._cargar_turno_activo()
         self.cargar_historial()
         self.actualizar_ventas()
+        self._timer_refresh.start()
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self._timer_refresh.stop()
 
     def cargar_historial(self):
         try:
