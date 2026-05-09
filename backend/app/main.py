@@ -27,6 +27,7 @@ with engine.connect() as _conn:
         ("caja_turnos", "pagos_empleados", "TEXT"),
         ("caja_turnos", "total_empleados",  "NUMERIC DEFAULT 0"),
         ("ventas",      "recargo",          "NUMERIC DEFAULT 0"),
+        ("fiados",      "monto_pagado",     "NUMERIC DEFAULT 0"),
     ]:
         try:
             _conn.execute(_text(f"ALTER TABLE {_table} ADD COLUMN {_col} {_def}"))
