@@ -37,6 +37,20 @@ with engine.connect() as _conn:
 
 app = FastAPI(title="Juana Cash API")
 
+import traceback as _tb, os as _os, datetime as _datetime
+_DATA_DIR = _os.path.join(_os.path.expanduser("~"), "JuanaCash_Data")
+
+@app.exception_handler(Exception)
+async def _handler_global(request, exc):
+    from fastapi.responses import JSONResponse
+    msg = f"{type(exc).__name__}: {exc}"
+    try:
+        with open(_os.path.join(_DATA_DIR, "debug.log"), "a") as _f:
+            _f.write(f"\n[{_datetime.datetime.now()}] ERROR en {request.url.path}\n{msg}\n{_tb.format_exc()}\n")
+    except Exception:
+        pass
+    return JSONResponse(status_code=500, content={"detail": msg})
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

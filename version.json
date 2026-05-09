@@ -1,5 +1,5 @@
 {
-  "version": "3.6.6",
+  "version": "3.6.7",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.6.6 - Fix cobro mixto: accept() usa atributos Python en vez de widgets"
+  "notas": "v3.6.7 - Error exacto del backend visible en pantalla + logging en debug.log"
 }

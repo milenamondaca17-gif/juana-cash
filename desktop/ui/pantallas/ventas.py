@@ -1656,11 +1656,12 @@ class VentasScreen(QWidget):
                 QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px;"))
             else:
                 try:
-                    detalle = r.json().get("detail", "No se pudo registrar la venta")
+                    data = r.json()
+                    detalle = str(data.get("detail", data))
                 except Exception:
-                    detalle = "No se pudo registrar la venta"
-                QMessageBox.critical(self, "Error", detalle)
-        except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
+                    detalle = r.text[:300] if r.text else f"HTTP {r.status_code}"
+                QMessageBox.critical(self, f"Error {r.status_code}", detalle)
+        except Exception as e: QMessageBox.critical(self, "Error conexión", str(e))
 
     def cobrar(self):
         if not self.items_venta:
@@ -1778,11 +1779,12 @@ class VentasScreen(QWidget):
                         pass
             else:
                 try:
-                    detalle = r.json().get("detail", "No se pudo registrar la venta")
+                    data = r.json()
+                    detalle = str(data.get("detail", data))
                 except Exception:
-                    detalle = "No se pudo registrar la venta"
-                QMessageBox.critical(self, "Error", detalle)
-        except Exception as e: QMessageBox.critical(self, "Error", f"No se puede conectar al servidor\n{str(e)}")
+                    detalle = r.text[:300] if r.text else f"HTTP {r.status_code}"
+                QMessageBox.critical(self, f"Error {r.status_code}", detalle)
+        except Exception as e: QMessageBox.critical(self, "Error conexión", str(e))
 
     def abrir_busqueda_avanzada(self):
         """F6 — Buscador de artículos. Enter agrega directo al ticket."""
