@@ -1,5 +1,5 @@
 {
-  "version": "3.6.0",
+  "version": "3.6.1",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.6.0 - Fix definitivo cobro mixto: monto secundario se captura al momento de confirmar"
+  "notas": "v3.6.1 - Fix cobro mixto: pagos se construyen dentro del dialog antes de cerrar, inmune a eventos Qt"
 }

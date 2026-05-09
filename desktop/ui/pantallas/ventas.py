@@ -118,8 +118,19 @@ class CobrarDialog(QDialog):
             super().keyPressEvent(event)
 
     def accept(self):
-        # Snapshot monto_secundario from the input field at confirmation time,
-        # preventing any post-signal event from resetting it to 0 before cobrar() reads it.
+        # Desconectar señales ANTES de leer valores para que ningún evento en cascada
+        # (textChanged → calcular_mixto, stateChanged → toggle_mixto) sobreescriba
+        # monto_secundario entre que lo leemos y que cobrar() lo recibe.
+        try:
+            self.input_monto_sec.textChanged.disconnect(self.calcular_mixto)
+        except Exception:
+            pass
+        try:
+            self.chk_mixto.stateChanged.disconnect(self.toggle_mixto)
+        except Exception:
+            pass
+
+        # Leer el monto secundario directamente del widget en este instante exacto
         if self.chk_mixto.isChecked():
             txt = self.input_monto_sec.text().strip()
             if "," in txt and "." in txt:
@@ -135,6 +146,18 @@ class CobrarDialog(QDialog):
         else:
             self.monto_secundario = 0
             self.metodo_secundario = None
+
+        # Construir la lista de pagos aquí — lista Python pura, inmutable ante eventos Qt
+        if self.monto_secundario > 0 and self.metodo_secundario:
+            self.pagos_confirmados = [
+                {"metodo": self.metodo_pago,       "monto": round(self.total_final - self.monto_secundario, 2)},
+                {"metodo": self.metodo_secundario, "monto": round(self.monto_secundario, 2)},
+            ]
+        else:
+            self.pagos_confirmados = [
+                {"metodo": self.metodo_pago, "monto": round(self.total_final, 2)},
+            ]
+
         super().accept()
 
     def setup_ui(self):
@@ -1610,9 +1633,12 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
-        if metodo_secundario and monto_secundario > 0:
-            pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
+        # Usar pagos_confirmados construido dentro de accept() del dialog — inmune a eventos Qt
+        pagos = getattr(dialog, "pagos_confirmados", None)
+        if pagos is None:
+            pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
+            if metodo_secundario and monto_secundario > 0:
+                pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
             r = requests.post(f"{API_URL}/ventas/", json={
@@ -1715,9 +1741,12 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
-        if metodo_secundario and monto_secundario > 0:
-            pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
+        # Usar pagos_confirmados construido dentro de accept() del dialog — inmune a eventos Qt
+        pagos = getattr(dialog, "pagos_confirmados", None)
+        if pagos is None:
+            pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
+            if metodo_secundario and monto_secundario > 0:
+                pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
             r = requests.post(f"{API_URL}/ventas/", json={
