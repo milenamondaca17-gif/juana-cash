@@ -358,7 +358,15 @@ class CobrarDialog(QDialog):
             return
             
         try:
-            monto_sec = float(self.input_monto_sec.text().replace(",", "."))
+            txt = self.input_monto_sec.text().strip()
+            # Formato argentino: "2.000" → 2000, "2.000,50" → 2000.50
+            if "," in txt and "." in txt:
+                txt = txt.replace(".", "").replace(",", ".")   # 2.000,50 → 2000.50
+            elif "." in txt and txt.replace(".", "").isdigit():
+                txt = txt.replace(".", "")                      # 2.000 → 2000
+            else:
+                txt = txt.replace(",", ".")
+            monto_sec = float(txt) if txt else 0
         except ValueError:
             monto_sec = 0
             
@@ -392,7 +400,14 @@ class CobrarDialog(QDialog):
             monto_en_efectivo = self.monto_secundario
 
         try:
-            entrega = float(self.input_entrega.text().replace(",", "."))
+            txt_e = self.input_entrega.text().strip()
+            if "," in txt_e and "." in txt_e:
+                txt_e = txt_e.replace(".", "").replace(",", ".")
+            elif "." in txt_e and txt_e.replace(".", "").isdigit():
+                txt_e = txt_e.replace(".", "")
+            else:
+                txt_e = txt_e.replace(",", ".")
+            entrega = float(txt_e) if txt_e else 0
             vuelto = entrega - monto_en_efectivo
             if vuelto < 0:
                 self.lbl_vuelto.setText(f"Falta: {_p(abs(vuelto))}")
@@ -1548,7 +1563,14 @@ class VentasScreen(QWidget):
         descuento_monto   = max(0, total_original - (total_final - recargo_monto))
         vuelto = 0
         try:
-            entrega = float(dialog.input_entrega.text().replace(",", "."))
+            txt_ef = dialog.input_entrega.text().strip()
+            if "," in txt_ef and "." in txt_ef:
+                txt_ef = txt_ef.replace(".", "").replace(",", ".")
+            elif "." in txt_ef and txt_ef.replace(".", "").isdigit():
+                txt_ef = txt_ef.replace(".", "")
+            else:
+                txt_ef = txt_ef.replace(",", ".")
+            entrega = float(txt_ef) if txt_ef else 0
             if metodo_pago == "efectivo":
                 vuelto = max(0, entrega - (total_final - monto_secundario))
             elif metodo_secundario == "efectivo":
@@ -1568,9 +1590,9 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        pagos = [{"metodo": metodo_pago, "monto": total_final - monto_secundario}]
+        pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
         if metodo_secundario and monto_secundario > 0:
-            pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
+            pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
             r = requests.post(f"{API_URL}/ventas/", json={
@@ -1646,7 +1668,14 @@ class VentasScreen(QWidget):
         descuento_monto = max(0, total_original - (total_final - recargo_monto))
         vuelto = 0
         try:
-            entrega = float(dialog.input_entrega.text().replace(",", "."))
+            txt_ef = dialog.input_entrega.text().strip()
+            if "," in txt_ef and "." in txt_ef:
+                txt_ef = txt_ef.replace(".", "").replace(",", ".")
+            elif "." in txt_ef and txt_ef.replace(".", "").isdigit():
+                txt_ef = txt_ef.replace(".", "")
+            else:
+                txt_ef = txt_ef.replace(",", ".")
+            entrega = float(txt_ef) if txt_ef else 0
             if metodo_pago == "efectivo":
                 vuelto = max(0, entrega - (total_final - monto_secundario))
             elif metodo_secundario == "efectivo":
@@ -1666,9 +1695,9 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        pagos = [{"metodo": metodo_pago, "monto": total_final - monto_secundario}]
+        pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
         if metodo_secundario and monto_secundario > 0:
-            pagos.append({"metodo": metodo_secundario, "monto": monto_secundario})
+            pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
             r = requests.post(f"{API_URL}/ventas/", json={
