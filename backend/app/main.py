@@ -10,7 +10,15 @@ from .routers import ofertas_api
 from .routers import alertas
 from .routers import cupones as cupones_router
 
-Base.metadata.create_all(bind=engine)
+import time as _time
+for _intento in range(6):
+    try:
+        Base.metadata.create_all(bind=engine)
+        break
+    except Exception:
+        if _intento == 5:
+            raise
+        _time.sleep(1)
 
 # Migración: agrega columnas nuevas si no existen (SQLite no tiene IF NOT EXISTS en ALTER)
 from sqlalchemy import text as _text

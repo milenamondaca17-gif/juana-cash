@@ -25,7 +25,7 @@ if os.path.exists(_db_vieja) and not os.path.exists(DB_PATH):
     import shutil
     shutil.copy2(_db_vieja, DB_PATH)
 
-os.environ['DATABASE_URL'] = f"sqlite:///{DB_PATH}"
+os.environ['DATABASE_URL'] = "sqlite:///" + DB_PATH.replace("\\", "/")
 
 def run_backend():
     import socket as _socket
