@@ -1,5 +1,5 @@
 {
-  "version": "3.6.8",
+  "version": "3.6.9",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.6.8 - Build limpio sin cache + fix fiado + fix cobro mixto"
+  "notas": "v3.6.9 - Elimina archivos backup que causaban error en fiado y cobro mixto"
 }
