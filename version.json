@@ -1,5 +1,5 @@
 {
-  "version": "3.6.2",
+  "version": "3.6.3",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.6.2 - Debug: muestra pagos antes de enviar para diagnosticar cobro mixto"
+  "notas": "v3.6.3 - Debug: guarda pagos en archivo y portapapeles para diagnosticar cobro mixto"
 }

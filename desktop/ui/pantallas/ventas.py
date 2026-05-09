@@ -1627,7 +1627,8 @@ class VentasScreen(QWidget):
             pagos = [{"metodo": metodo_pago, "monto": round(total_final - monto_secundario, 2)}]
             if metodo_secundario and monto_secundario > 0:
                 pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
-        # ── DEBUG TEMPORAL ── muestra pagos antes de enviar; borrar en próxima versión
+        # ── DEBUG TEMPORAL ──
+        import os as _os, datetime as _dt
         _dbg = (
             f"pagos_confirmados: {getattr(dialog, 'pagos_confirmados', 'NO EXISTE')}\n"
             f"chk_mixto checked: {dialog.chk_mixto.isChecked()}\n"
@@ -1636,8 +1637,20 @@ class VentasScreen(QWidget):
             f"monto_sec: {dialog.monto_secundario}\n\n"
             f"PAGOS A ENVIAR: {pagos}"
         )
+        _dbg_path = _os.path.join(_os.path.expanduser("~"), "JuanaCash_Data", "debug_cobro.txt")
+        try:
+            with open(_dbg_path, "a", encoding="utf-8") as _f:
+                _f.write(f"\n--- {_dt.datetime.now()} [cobrar_sin_ticket] ---\n{_dbg}\n")
+        except Exception:
+            pass
+        try:
+            from PyQt6.QtWidgets import QApplication as _QApp
+            _QApp.clipboard().setText(_dbg)
+        except Exception:
+            pass
         from PyQt6.QtWidgets import QMessageBox as _QMB
-        _QMB.information(self, "DEBUG pagos (borrar luego)", _dbg)
+        _QMB.information(self, "DEBUG copiado al portapapeles",
+            f"Info guardada en:\n{_dbg_path}\n\nTambién en el portapapeles (Ctrl+V en el chat).")
         # ── FIN DEBUG ──
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
@@ -1748,6 +1761,7 @@ class VentasScreen(QWidget):
             if metodo_secundario and monto_secundario > 0:
                 pagos.append({"metodo": metodo_secundario, "monto": round(monto_secundario, 2)})
         # ── DEBUG TEMPORAL ──
+        import os as _os2, datetime as _dt2
         _dbg2 = (
             f"pagos_confirmados: {getattr(dialog, 'pagos_confirmados', 'NO EXISTE')}\n"
             f"chk_mixto checked: {dialog.chk_mixto.isChecked()}\n"
@@ -1756,8 +1770,20 @@ class VentasScreen(QWidget):
             f"monto_sec: {dialog.monto_secundario}\n\n"
             f"PAGOS A ENVIAR: {pagos}"
         )
+        _dbg_path2 = _os2.path.join(_os2.path.expanduser("~"), "JuanaCash_Data", "debug_cobro.txt")
+        try:
+            with open(_dbg_path2, "a", encoding="utf-8") as _f2:
+                _f2.write(f"\n--- {_dt2.datetime.now()} [cobrar] ---\n{_dbg2}\n")
+        except Exception:
+            pass
+        try:
+            from PyQt6.QtWidgets import QApplication as _QApp2
+            _QApp2.clipboard().setText(_dbg2)
+        except Exception:
+            pass
         from PyQt6.QtWidgets import QMessageBox as _QMB2
-        _QMB2.information(self, "DEBUG pagos (borrar luego)", _dbg2)
+        _QMB2.information(self, "DEBUG copiado al portapapeles",
+            f"Info guardada en:\n{_dbg_path2}\n\nTambién en el portapapeles (Ctrl+V en el chat).")
         # ── FIN DEBUG ──
         cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
