@@ -1,5 +1,5 @@
 {
-  "version": "3.5.5",
+  "version": "3.5.6",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.5.5 - Fix caja: montos por método ahora correctos en cobros mixtos"
+  "notas": "v3.5.6 - Fix caja: tabla muestra ambos métodos en cobros mixtos"
 }

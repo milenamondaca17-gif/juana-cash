@@ -1183,7 +1183,15 @@ class CajaScreen(QWidget):
                         item_total.setForeground(Qt.GlobalColor.red)
                     self.tabla.setItem(i, 1, item_total)
                     metodo = v.get("metodo_pago", "efectivo")
-                    self.tabla.setItem(i, 2, QTableWidgetItem(nombres_m.get(metodo, metodo)))
+                    metodo_sec = v.get("metodo_secundario")
+                    monto_sec = float(v.get("monto_secundario", 0))
+                    if metodo_sec and monto_sec > 0:
+                        nombres_c = {"efectivo": "💵Ef", "tarjeta": "💳Tarj",
+                                     "mercadopago_qr": "📱QR", "transferencia": "🏦Tr", "fiado": "💸Fiado"}
+                        metodo_str = f"{nombres_c.get(metodo, metodo)}+{nombres_c.get(metodo_sec, metodo_sec)}"
+                    else:
+                        metodo_str = nombres_m.get(metodo, metodo)
+                    self.tabla.setItem(i, 2, QTableWidgetItem(metodo_str))
 
                     origen = v.get("origen", "mostrador")
                     if origen == "celular":
