@@ -1,6 +1,6 @@
 [Setup]
 AppName=Juana Cash
-AppVersion=3.6.7
+AppVersion=3.6.8
 AppPublisher=CAMMUS_25
 DefaultDirName={autopf}\JuanaCash
 DefaultGroupName=Juana Cash
