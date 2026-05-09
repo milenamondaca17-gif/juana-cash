@@ -1,5 +1,5 @@
 {
-  "version": "3.5.9",
+  "version": "3.6.0",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.5.9 - Caja: auto-refresh cada 10s + botón Actualizar manual para ver montos en tiempo real"
+  "notas": "v3.6.0 - Fix definitivo cobro mixto: monto secundario se captura al momento de confirmar"
 }

@@ -117,6 +117,26 @@ class CobrarDialog(QDialog):
         else:
             super().keyPressEvent(event)
 
+    def accept(self):
+        # Snapshot monto_secundario from the input field at confirmation time,
+        # preventing any post-signal event from resetting it to 0 before cobrar() reads it.
+        if self.chk_mixto.isChecked():
+            txt = self.input_monto_sec.text().strip()
+            if "," in txt and "." in txt:
+                txt = txt.replace(".", "").replace(",", ".")
+            elif "." in txt and txt.replace(".", "").isdigit():
+                txt = txt.replace(".", "")
+            else:
+                txt = txt.replace(",", ".")
+            try:
+                self.monto_secundario = float(txt) if txt else 0
+            except ValueError:
+                self.monto_secundario = 0
+        else:
+            self.monto_secundario = 0
+            self.metodo_secundario = None
+        super().accept()
+
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
