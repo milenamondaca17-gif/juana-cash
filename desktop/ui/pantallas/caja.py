@@ -188,6 +188,7 @@ class CajaScreen(QWidget):
         self.cards_metodo = {}
         metodos = [
             ("💵", "Efectivo",    "efectivo",       "#16a34a"),
+            ("🏧", "Débito",      "debito",          "#10b981"),
             ("💳", "Tarjeta",     "tarjeta",         "#2563eb"),
             ("📱", "QR / MP",     "mercadopago_qr",  "#0284c7"),
             ("🏦", "Transf.",     "transferencia",   "#7c3aed"),
@@ -398,11 +399,11 @@ class CajaScreen(QWidget):
         lay.addWidget(titulo)
 
         tabla = QTableWidget()
-        tabla.setColumnCount(7)
-        tabla.setHorizontalHeaderLabels(["Fecha", "💵 Efectivo", "💳 Tarjeta", "📱 QR/MP", "🏦 Transf.", "💸 Fiado", "💰 Total"])
+        tabla.setColumnCount(8)
+        tabla.setHorizontalHeaderLabels(["Fecha", "💵 Efectivo", "🏧 Débito", "💳 Tarjeta", "📱 QR/MP", "🏦 Transf.", "💸 Fiado", "💰 Total"])
         tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for col in range(1, 7):
-            tabla.setColumnWidth(col, 105)
+        for col in range(1, 8):
+            tabla.setColumnWidth(col, 100)
         tabla.setStyleSheet("QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; } QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; } QTableWidgetItem { color: white; padding: 6px; }")
         tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         lay.addWidget(tabla)
@@ -431,6 +432,7 @@ class CajaScreen(QWidget):
                 vals = [
                     d.get("fecha", ""),
                     f"${float(d.get('efectivo', 0)):,.0f}",
+                    f"${float(d.get('debito', 0)):,.0f}",
                     f"${float(d.get('tarjeta', 0)):,.0f}",
                     f"${float(d.get('mercadopago_qr', 0)):,.0f}",
                     f"${float(d.get('transferencia', 0)):,.0f}",
@@ -757,6 +759,7 @@ class CajaScreen(QWidget):
         desglose = datos_hoy.get("desglose_metodos", {})
         totales = {
             "efectivo":       float(desglose.get("efectivo", 0)),
+            "debito":         float(desglose.get("debito", 0)),
             "tarjeta":        float(desglose.get("tarjeta", 0)),
             "mercadopago_qr": float(desglose.get("mercadopago_qr", 0)),
             "transferencia":  float(desglose.get("transferencia", 0)),
@@ -840,11 +843,12 @@ class CajaScreen(QWidget):
             lay.addWidget(f)
 
         detalle_ef = f"{_p(monto_apertura)} + ef.{_p(totales['efectivo'])} - gastos {_p(total_gastos)}" + (f" - emp. {_p(total_emp_previo)}" if total_emp_previo else "")
-        fila_metodo("💵", "Efectivo",        efectivo_esperado,         "#27ae60", detalle_ef)
-        fila_metodo("💳", "Tarjeta",          totales["tarjeta"],        "#3498db")
-        fila_metodo("📱", "Mercado Pago/QR",  totales["mercadopago_qr"], "#009ee3")
-        fila_metodo("🏦", "Transferencia",    totales["transferencia"],  "#9b59b6")
-        fila_metodo("💸", "Fiado (pendiente)", totales["fiado"],         "#e74c3c")
+        fila_metodo("💵", "Efectivo",          efectivo_esperado,         "#27ae60", detalle_ef)
+        fila_metodo("🏧", "Débito",            totales["debito"],         "#10b981")
+        fila_metodo("💳", "Tarjeta",           totales["tarjeta"],        "#3498db")
+        fila_metodo("📱", "Mercado Pago/QR",   totales["mercadopago_qr"], "#009ee3")
+        fila_metodo("🏦", "Transferencia",     totales["transferencia"],  "#9b59b6")
+        fila_metodo("💸", "Fiado (pendiente)", totales["fiado"],          "#e74c3c")
 
         sep2 = QFrame(); sep2.setFixedHeight(1); sep2.setStyleSheet("background: #0f3460; border: none;")
         lay.addWidget(sep2)
@@ -973,6 +977,7 @@ class CajaScreen(QWidget):
                   f"Tickets:     {cant_tickets}", f"Prom ticket: ${ticket_prom:,.2f}",
                   "-"*40,
                   f"Efectivo:    ${totales['efectivo']:,.2f}",
+                  f"Debito:      ${totales['debito']:,.2f}",
                   f"Tarjeta:     ${totales['tarjeta']:,.2f}",
                   f"Mdo Pago:    ${totales['mercadopago_qr']:,.2f}",
                   f"Transfer.:   ${totales['transferencia']:,.2f}",
@@ -1184,6 +1189,7 @@ class CajaScreen(QWidget):
                 self.tabla.setRowCount(len(ventas))
                 nombres_m = {
                     "efectivo":       "💵 Efectivo",
+                    "debito":         "🏧 Débito",
                     "tarjeta":        "💳 Tarjeta",
                     "mercadopago_qr": "📱 QR/MP",
                     "transferencia":  "🏦 Transf.",
@@ -1199,7 +1205,7 @@ class CajaScreen(QWidget):
                     metodo_sec = v.get("metodo_secundario")
                     monto_sec = float(v.get("monto_secundario", 0))
                     if metodo_sec and monto_sec > 0:
-                        nombres_c = {"efectivo": "💵Ef", "tarjeta": "💳Tarj",
+                        nombres_c = {"efectivo": "💵Ef", "debito": "🏧Déb", "tarjeta": "💳Tarj",
                                      "mercadopago_qr": "📱QR", "transferencia": "🏦Tr", "fiado": "💸Fiado"}
                         metodo_str = f"{nombres_c.get(metodo, metodo)}+{nombres_c.get(metodo_sec, metodo_sec)}"
                     else:

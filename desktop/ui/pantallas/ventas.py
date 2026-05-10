@@ -92,7 +92,7 @@ class CobrarDialog(QDialog):
     def __init__(self, parent=None, total=0, cliente=None):
         super().__init__(parent)
         self.setWindowTitle("Cobrar venta")
-        self.setMinimumWidth(500)
+        self.setMinimumWidth(580)
         self.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
         self.total_original = total
         self.descuento_pct = 0
@@ -204,6 +204,7 @@ class CobrarDialog(QDialog):
         metodos_layout = QHBoxLayout()
         metodos = [
             ("Efectivo", "efectivo",      ACCENT_TOTAL),
+            ("Débito",   "debito",        "#10b981"),
             ("Tarjeta",  "tarjeta",       ACCENT_BOTON),
             ("QR/MP",    "mercadopago_qr","#009ee3"),
             ("Transf.",  "transferencia", "#9b59b6"),
@@ -365,7 +366,7 @@ class CobrarDialog(QDialog):
         if not self.chk_mixto.isChecked():
             self.monto_secundario = 0
             self.vuelto_frame.setVisible(self.metodo_pago == "efectivo")
-            nombres = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+            nombres = {"efectivo": "Efectivo", "debito": "Débito", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
             nom_prin = nombres.get(self.metodo_pago, self.metodo_pago)
             self.btn_cobrar.setText(f"F4 - COBRAR {nom_prin}")
             self.calcular_vuelto()
@@ -390,7 +391,7 @@ class CobrarDialog(QDialog):
         self.monto_secundario = monto_sec
         monto_prin = self.total_final - self.monto_secundario
         
-        nombres = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+        nombres = {"efectivo": "Efectivo", "debito": "Débito", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
         nom_prin = nombres.get(self.metodo_pago, self.metodo_pago)
         nom_sec = nombres.get(self.metodo_secundario, "Segundo método") if self.metodo_secundario else "Segundo método"
         
@@ -1620,7 +1621,7 @@ class VentasScreen(QWidget):
             if r.status_code == 200:
                 datos = r.json()
                 ticket = datos["numero"]
-                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta crédito", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+                nombres_metodo = {"efectivo": "Efectivo", "debito": "Débito", "tarjeta": "Tarjeta crédito", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
                 metodo_str = nombres_metodo.get(metodo_pago, metodo_pago)
                 if recargo_monto > 0:
                     metodo_str += f" (+{recargo_pct:.0f}% recargo)"
@@ -1725,7 +1726,7 @@ class VentasScreen(QWidget):
             if r.status_code == 200:
                 datos = r.json()
                 ticket = datos["numero"]
-                nombres_metodo = {"efectivo": "Efectivo", "tarjeta": "Tarjeta crédito", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
+                nombres_metodo = {"efectivo": "Efectivo", "debito": "Débito", "tarjeta": "Tarjeta crédito", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
                 metodo_str = nombres_metodo.get(metodo_pago, metodo_pago)
                 if recargo_monto > 0:
                     metodo_str += f" (+{recargo_pct:.0f}% recargo)"

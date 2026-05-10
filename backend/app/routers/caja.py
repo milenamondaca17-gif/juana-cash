@@ -161,6 +161,7 @@ def resumen_rapido(usuario_id: int = 1, db: Session = Depends(get_db)):
         ticket = total / cantidad if cantidad else 0
         return {
             "efectivo":       round(tots.get("efectivo", 0), 2),
+            "debito":         round(tots.get("debito", 0), 2),
             "tarjeta":        round(tots.get("tarjeta", 0), 2),
             "mercadopago_qr": round(tots.get("mercadopago_qr", 0), 2),
             "transferencia":  round(tots.get("transferencia", 0), 2),
@@ -217,7 +218,7 @@ def historial_efectivo(dias: int = 30, db: Session = Depends(get_db)):
     # Agrupar por fecha y método
     from collections import defaultdict
     por_dia = defaultdict(lambda: {
-        "efectivo": 0, "tarjeta": 0,
+        "efectivo": 0, "debito": 0, "tarjeta": 0,
         "mercadopago_qr": 0, "transferencia": 0,
         "fiado": 0, "total": 0, "cantidad": 0
     })
@@ -243,6 +244,7 @@ def historial_efectivo(dias: int = 30, db: Session = Depends(get_db)):
         resultado.append({
             "fecha":           dia,
             "efectivo":        round(d["efectivo"], 2),
+            "debito":          round(d["debito"], 2),
             "tarjeta":         round(d["tarjeta"], 2),
             "mercadopago_qr":  round(d["mercadopago_qr"], 2),
             "transferencia":   round(d["transferencia"], 2),
