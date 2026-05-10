@@ -789,8 +789,19 @@ class CajaScreen(QWidget):
         dialog.setWindowTitle("Cierre de caja")
         dialog.setMinimumWidth(520)
         dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
-        lay = QVBoxLayout(dialog)
-        lay.setContentsMargins(24, 20, 24, 20)
+        from PyQt6.QtWidgets import QScrollArea
+        outer_lay = QVBoxLayout(dialog)
+        outer_lay.setContentsMargins(0, 0, 0, 0)
+        outer_lay.setSpacing(0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: #1a1a2e; } QScrollBar:vertical { width: 8px; background: #0f3460; } QScrollBar::handle:vertical { background: #3498db; border-radius: 4px; }")
+        _contenedor = QWidget()
+        _contenedor.setStyleSheet("background: #1a1a2e;")
+        scroll.setWidget(_contenedor)
+        outer_lay.addWidget(scroll, 1)
+        lay = QVBoxLayout(_contenedor)
+        lay.setContentsMargins(24, 20, 24, 10)
         lay.setSpacing(10)
 
         titulo = QLabel("RESUMEN DE CIERRE")
@@ -939,6 +950,7 @@ class CajaScreen(QWidget):
         lay.addLayout(row_decl)
 
         btns = QHBoxLayout()
+        btns.setContentsMargins(24, 8, 24, 16)
         btn_c = QPushButton("Cancelar"); btn_c.setFixedHeight(42)
         btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
         btn_c.clicked.connect(dialog.reject); btns.addWidget(btn_c)
@@ -950,7 +962,7 @@ class CajaScreen(QWidget):
         btn_ok = QPushButton("Confirmar cierre"); btn_ok.setFixedHeight(42)
         btn_ok.setStyleSheet("QPushButton { background: #27ae60; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
         btns.addWidget(btn_ok)
-        lay.addLayout(btns)
+        outer_lay.addLayout(btns)
 
         def _obtener_pagos_empleados():
             pagos = []
