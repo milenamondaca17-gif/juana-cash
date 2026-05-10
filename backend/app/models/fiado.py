@@ -9,7 +9,7 @@ class Fiado(Base):
     cliente_id   = Column(Integer, ForeignKey("clientes.id"), nullable=False)
     venta_id     = Column(Integer, ForeignKey("ventas.id"), nullable=True)
     monto        = Column(Numeric(12,2), nullable=False)
-    monto_pagado = Column(Numeric(12,2), default=0)
+    monto_pagado = Column(Numeric(12,2), server_default="0")
     saldo        = Column(Numeric(12,2), nullable=False)
     estado       = Column(String(15), default="pendiente")
     vencimiento  = Column(Date, nullable=True)

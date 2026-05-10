@@ -20,8 +20,9 @@ for _intento in range(6):
             raise
         _time.sleep(1)
 
-# Migración: agrega columnas nuevas si no existen (SQLite no tiene IF NOT EXISTS en ALTER)
-from sqlalchemy import text as _text
+# Migración: agrega columnas nuevas si no existen
+from sqlalchemy import text as _text, inspect as _inspect
+_inspector = _inspect(engine)
 with engine.connect() as _conn:
     for _table, _col, _def in [
         ("caja_turnos", "pagos_empleados", "TEXT"),
@@ -30,10 +31,15 @@ with engine.connect() as _conn:
         ("fiados",      "monto_pagado",     "NUMERIC DEFAULT 0"),
     ]:
         try:
-            _conn.execute(_text(f"ALTER TABLE {_table} ADD COLUMN {_col} {_def}"))
-            _conn.commit()
+            tablas = _inspector.get_table_names()
+            if _table not in tablas:
+                continue
+            cols = [c["name"] for c in _inspector.get_columns(_table)]
+            if _col not in cols:
+                _conn.execute(_text(f"ALTER TABLE {_table} ADD COLUMN {_col} {_def}"))
+                _conn.commit()
         except Exception:
-            pass  # columna ya existe
+            pass
 
 app = FastAPI(title="Juana Cash API")
 

@@ -1604,9 +1604,9 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        pagos = dialog.pagos_confirmados
-        cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
+            pagos = dialog.pagos_confirmados
+            cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
             r = requests.post(f"{API_URL}/ventas/", json={
                 "usuario_id": self.usuario.get("id", 1) if self.usuario else 1,
                 "cliente_id": cliente_id,
@@ -1661,7 +1661,7 @@ class VentasScreen(QWidget):
                 except Exception:
                     detalle = r.text[:300] if r.text else f"HTTP {r.status_code}"
                 QMessageBox.critical(self, f"Error {r.status_code}", detalle)
-        except Exception as e: QMessageBox.critical(self, "Error conexión", str(e))
+        except Exception as e: QMessageBox.critical(self, "Error de conexión", str(e))
 
     def cobrar(self):
         if not self.items_venta:
@@ -1708,9 +1708,9 @@ class VentasScreen(QWidget):
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
-        pagos = dialog.pagos_confirmados
-        cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
         try:
+            pagos = dialog.pagos_confirmados
+            cliente_id = self.cliente_actual["id"] if self.cliente_actual else None
             r = requests.post(f"{API_URL}/ventas/", json={
                 "usuario_id": self.usuario.get("id", 1) if self.usuario else 1,
                 "cliente_id": cliente_id,
@@ -1784,7 +1784,7 @@ class VentasScreen(QWidget):
                 except Exception:
                     detalle = r.text[:300] if r.text else f"HTTP {r.status_code}"
                 QMessageBox.critical(self, f"Error {r.status_code}", detalle)
-        except Exception as e: QMessageBox.critical(self, "Error conexión", str(e))
+        except Exception as e: QMessageBox.critical(self, "Error de conexión", str(e))
 
     def abrir_busqueda_avanzada(self):
         """F6 — Buscador de artículos. Enter agrega directo al ticket."""
