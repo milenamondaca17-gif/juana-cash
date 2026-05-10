@@ -2014,15 +2014,6 @@ class VentasScreen(QWidget):
             self.input_buscar.setFocus()
 
     def cancelar_venta(self):
-        if self.items_venta:
-            resp = QMessageBox.question(
-                self, "Cancelar venta",
-                f"¿Cancelar la venta actual?\n({len(self.items_venta)} producto(s) se perderán)",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
-            )
-            if resp != QMessageBox.StandardButton.Yes:
-                return
         self.items_venta = []
         self.cliente_actual = None
         self.lbl_cliente_info.hide()
