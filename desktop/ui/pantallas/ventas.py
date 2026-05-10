@@ -766,10 +766,10 @@ class VentasScreen(QWidget):
         btn_repetir.clicked.connect(self.repetir_ultimo)
         fila_btns.addWidget(btn_repetir)
 
-        btn_cancelar = QPushButton("✕")
+        btn_cancelar = QPushButton("✕  Cancelar (ESC)")
         btn_cancelar.setFixedHeight(40)
         btn_cancelar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_cancelar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border-radius: 8px; font-size: 14px; font-weight: bold; border: 1px solid {BORDER}; }}")
+        btn_cancelar.setStyleSheet(f"QPushButton {{ background: #7f1d1d; color: #fca5a5; border-radius: 8px; font-size: 13px; font-weight: bold; border: 1px solid #ef4444; }} QPushButton:hover {{ background: #991b1b; }}")
         btn_cancelar.clicked.connect(self.cancelar_venta)
         fila_btns.addWidget(btn_cancelar)
 
@@ -817,6 +817,7 @@ class VentasScreen(QWidget):
         QShortcut(QKeySequence("F5"), self).activated.connect(self.pausar_venta_actual)
         QShortcut(QKeySequence("F6"), self).activated.connect(self.abrir_busqueda_avanzada)
         QShortcut(QKeySequence("F9"), self).activated.connect(self.cobrar)
+        QShortcut(QKeySequence("Escape"), self).activated.connect(self.cancelar_venta)
 
         # ── Foco automático para lectora de barras ──
         # Cada 600ms verifica si el foco está en otro lado y lo devuelve
@@ -2011,6 +2012,15 @@ class VentasScreen(QWidget):
             self.input_buscar.setFocus()
 
     def cancelar_venta(self):
+        if self.items_venta:
+            resp = QMessageBox.question(
+                self, "Cancelar venta",
+                f"¿Cancelar la venta actual?\n({len(self.items_venta)} producto(s) se perderán)",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if resp != QMessageBox.StandardButton.Yes:
+                return
         self.items_venta = []
         self.cliente_actual = None
         self.lbl_cliente_info.hide()

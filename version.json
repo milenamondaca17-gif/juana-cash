@@ -1,5 +1,5 @@
 {
-  "version": "3.7.1",
+  "version": "3.7.2",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.7.0 - Fix definitivo fiado (server_default) + migracion robusta + error messages claros"
+  "notas": "v3.7.2 - Botón cancelar venta visible + confirmación + atajo ESC"
 }
