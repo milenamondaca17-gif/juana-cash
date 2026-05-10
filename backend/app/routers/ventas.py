@@ -19,6 +19,7 @@ class ItemVentaSchema(BaseModel):
     cantidad: float
     precio_unitario: float
     descuento: float = 0
+    es_departamento: bool = False  # True para 930/1003/7/balanza/manual — no descuenta stock
 
 class PagoSchema(BaseModel):
     metodo: str
@@ -73,12 +74,13 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
             subtotal=item.cantidad * item.precio_unitario - item.descuento
         )
         db.add(iv)
-        p = db.query(Producto).filter(Producto.id == item.producto_id).first()
-        if p:
-            stock_nuevo = float(p.stock_actual) - item.cantidad
-            if stock_nuevo < 0:
-                stock_nuevo = 0
-            p.stock_actual = stock_nuevo
+        if not item.es_departamento:
+            p = db.query(Producto).filter(Producto.id == item.producto_id).first()
+            if p:
+                stock_nuevo = float(p.stock_actual) - item.cantidad
+                if stock_nuevo < 0:
+                    stock_nuevo = 0
+                p.stock_actual = stock_nuevo
 
     # Registrar pagos — CORREGIDO: el bloque de fiado va DENTRO del for
     for pago in datos.pagos:

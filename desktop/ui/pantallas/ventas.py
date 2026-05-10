@@ -1600,7 +1600,8 @@ class VentasScreen(QWidget):
                 items_backend.append(_i)
             else:
                 items_backend.append({"producto_id": 1, "cantidad": 1,
-                                       "precio_unitario": _i["subtotal"], "descuento": 0})
+                                       "precio_unitario": _i["subtotal"], "descuento": 0,
+                                       "es_departamento": True})
         if not items_backend:
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
@@ -1704,7 +1705,8 @@ class VentasScreen(QWidget):
                 items_backend.append(_i)
             else:
                 items_backend.append({"producto_id": 1, "cantidad": 1,
-                                       "precio_unitario": _i["subtotal"], "descuento": 0})
+                                       "precio_unitario": _i["subtotal"], "descuento": 0,
+                                       "es_departamento": True})
         if not items_backend:
             # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,

@@ -1,5 +1,5 @@
 {
-  "version": "3.7.2",
+  "version": "3.7.3",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.7.2 - Botón cancelar venta visible + confirmación + atajo ESC"
+  "notas": "v3.7.3 - Fix stock: codigos 930/1003/7/balanza ya no descuentan stock del producto 1"
 }
