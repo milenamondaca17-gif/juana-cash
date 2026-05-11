@@ -1,5 +1,5 @@
 {
-  "version": "3.7.8",
+  "version": "3.7.9",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.7.8 - Mobile: conexion Tailscale PC negocio corregida"
+  "notas": "v3.7.9 - Envio de tickets por WhatsApp integrado"
 }

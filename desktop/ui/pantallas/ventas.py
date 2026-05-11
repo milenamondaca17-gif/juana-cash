@@ -1751,6 +1751,8 @@ class VentasScreen(QWidget):
                 if descuento_pct > 0: msg += f"\nDescuento: {descuento_pct:.1f}%"
                 if metodo_pago == "efectivo" and vuelto > 0: msg += f"\nVuelto: ${vuelto:,.0f}"
                 cliente_nombre = self.cliente_actual.get("nombre") if self.cliente_actual else None
+                # Intentar imprimir
+                msg_impresora = ""
                 try:
                     from ui.pantallas.impresora import imprimir_ticket
                     ok, txt = imprimir_ticket(
@@ -1763,14 +1765,24 @@ class VentasScreen(QWidget):
                         recargo=recargo_monto,
                         recargo_pct=recargo_pct,
                     )
-                    if ok:
-                        QMessageBox.information(self, "✅ Venta registrada", msg)
-                    else:
-                        QMessageBox.warning(self, "✅ Venta registrada  ⚠️ Sin impresión",
-                            msg + f"\n\n⚠️ {txt}")
+                    if not ok:
+                        msg_impresora = f"⚠️ {txt}"
                 except Exception as ex:
-                    QMessageBox.warning(self, "✅ Venta registrada  ⚠️ Sin impresión",
-                        msg + f"\n\n⚠️ Error impresora: {ex}")
+                    msg_impresora = f"⚠️ Sin impresora: {ex}"
+
+                # Dialog post-venta con botón WhatsApp
+                self._dialog_post_venta(
+                    ticket=ticket,
+                    total_final=total_final,
+                    msg=msg,
+                    msg_impresora=msg_impresora,
+                    metodo_pago=metodo_pago,
+                    descuento_monto=descuento_monto,
+                    vuelto=vuelto,
+                    cliente_nombre=cliente_nombre,
+                    recargo_monto=recargo_monto,
+                    recargo_pct=recargo_pct,
+                )
                 self.cancelar_venta()
                 if hasattr(dialog, 'cupon_aplicado') and dialog.cupon_aplicado:
                     try:
@@ -1789,6 +1801,91 @@ class VentasScreen(QWidget):
                     detalle = r.text[:300] if r.text else f"HTTP {r.status_code}"
                 QMessageBox.critical(self, f"Error {r.status_code}", detalle)
         except Exception as e: QMessageBox.critical(self, "Error de conexión", str(e))
+
+    def _dialog_post_venta(self, ticket, total_final, msg, msg_impresora,
+                            metodo_pago, descuento_monto, vuelto,
+                            cliente_nombre, recargo_monto, recargo_pct):
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit
+        from PyQt6.QtCore import Qt
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("✅ Venta registrada")
+        dlg.setMinimumWidth(420)
+        dlg.setStyleSheet(f"background:{BG_MAIN}; color:{TEXT_MAIN};")
+        lay = QVBoxLayout(dlg)
+        lay.setSpacing(12)
+        lay.setContentsMargins(24, 20, 24, 20)
+
+        lbl = QLabel(msg + (f"\n\n{msg_impresora}" if msg_impresora else ""))
+        lbl.setWordWrap(True)
+        lbl.setStyleSheet(f"font-size:14px; color:{TEXT_MAIN};")
+        lay.addWidget(lbl)
+
+        # Panel WhatsApp
+        from ui.pantallas.whatsapp_ticket import servidor_activo, formatear_ticket_whatsapp, enviar_ticket_whatsapp
+        lbl_wa_titulo = QLabel("📱 Enviar ticket por WhatsApp")
+        lbl_wa_titulo.setStyleSheet("font-size:13px; font-weight:bold; color:#25D366; margin-top:8px;")
+        lay.addWidget(lbl_wa_titulo)
+
+        row_tel = QHBoxLayout()
+        in_tel = QLineEdit()
+        in_tel.setPlaceholderText("Número sin 0 ni 15 — ej: 3512345678")
+        in_tel.setStyleSheet(f"background:{BG_PANEL}; color:{TEXT_MAIN}; border:1px solid {BORDER}; border-radius:8px; padding:8px; font-size:13px;")
+        row_tel.addWidget(in_tel)
+
+        btn_wa = QPushButton("📱 Enviar")
+        btn_wa.setFixedHeight(36)
+        btn_wa.setStyleSheet("QPushButton { background:#25D366; color:white; border-radius:8px; font-size:13px; font-weight:bold; padding:0 14px; } QPushButton:hover { background:#1ebe57; }")
+        row_tel.addWidget(btn_wa)
+        lay.addLayout(row_tel)
+
+        lbl_wa_status = QLabel("")
+        lbl_wa_status.setStyleSheet("font-size:12px;")
+        lay.addWidget(lbl_wa_status)
+
+        def _enviar_wa():
+            tel = in_tel.text().strip()
+            if not tel:
+                lbl_wa_status.setText("⚠️ Ingresá el número primero")
+                lbl_wa_status.setStyleSheet("font-size:12px; color:#F59E0B;")
+                return
+            if not servidor_activo():
+                lbl_wa_status.setText("❌ Servidor WhatsApp no activo — ejecutá iniciar.bat")
+                lbl_wa_status.setStyleSheet("font-size:12px; color:#EF4444;")
+                return
+            lbl_wa_status.setText("⏳ Enviando...")
+            lbl_wa_status.setStyleSheet("font-size:12px; color:#94A3B8;")
+            btn_wa.setEnabled(False)
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()
+            ticket_texto = formatear_ticket_whatsapp(
+                {"numero": ticket, "total": total_final},
+                self.items_venta,
+                metodo_pago=metodo_pago,
+                descuento=descuento_monto,
+                vuelto=vuelto,
+                cliente=cliente_nombre,
+                recargo=recargo_monto,
+            )
+            ok, respuesta = enviar_ticket_whatsapp(tel, ticket_texto)
+            if ok:
+                lbl_wa_status.setText("✅ Ticket enviado por WhatsApp!")
+                lbl_wa_status.setStyleSheet("font-size:12px; color:#10B981;")
+            else:
+                lbl_wa_status.setText(f"❌ {respuesta}")
+                lbl_wa_status.setStyleSheet("font-size:12px; color:#EF4444;")
+            btn_wa.setEnabled(True)
+
+        btn_wa.clicked.connect(_enviar_wa)
+        in_tel.returnPressed.connect(_enviar_wa)
+
+        btn_ok = QPushButton("OK")
+        btn_ok.setFixedHeight(40)
+        btn_ok.setStyleSheet(f"QPushButton {{ background:{ACCENT_BOTON}; color:white; border-radius:8px; font-size:14px; font-weight:bold; }} QPushButton:hover {{ background:#2563eb; }}")
+        btn_ok.clicked.connect(dlg.accept)
+        lay.addWidget(btn_ok)
+
+        dlg.exec()
 
     def abrir_busqueda_avanzada(self):
         """F6 — Buscador de artículos. Enter agrega directo al ticket."""
