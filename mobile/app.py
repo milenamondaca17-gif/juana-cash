@@ -10,7 +10,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "3.7.7"
+APP_VERSION = "3.7.8"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -24,7 +24,8 @@ def _version_mayor(v1, v2):
 # ─── Configuración de IP ──────────────────────────────────────────────────────
 CONFIG_PATH   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mobile_config.json")
 OFFLINE_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ventas_offline.json")
-TAILSCALE_IP  = "100.72.212.67"
+TAILSCALE_IP  = "100.99.149.105"   # desktop-ssmn0im (PC negocio)
+TAILSCALE_IP2 = "100.72.212.67"    # mondacalucas (laptop)
 
 def leer_config():
     try:
@@ -197,12 +198,14 @@ def detectar_mejor_ip(callback_progreso=None):
         _ip_activa["ip"] = resultado[0]
         return resultado[0]
 
-    # Fallback Tailscale
+    # Fallback Tailscale — prueba ambas IPs
     if callback_progreso:
         callback_progreso("🌐 Probando Tailscale VPN...")
-    if _probar_ip(TAILSCALE_IP, 3):
-        _ip_activa["ip"] = TAILSCALE_IP
-        return TAILSCALE_IP
+    for ts_ip in [TAILSCALE_IP, TAILSCALE_IP2]:
+        if _probar_ip(ts_ip, 3):
+            _ip_activa["ip"] = ts_ip
+            guardar_ip(ts_ip)
+            return ts_ip
 
     # Sin conexión — mantener última IP conocida
     _ip_activa["ip"] = ip_guardada
