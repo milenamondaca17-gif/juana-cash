@@ -10,7 +10,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "3.4.7"
+APP_VERSION = "3.7.7"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -542,8 +542,8 @@ def _main(page: ft.Page):
 
     # ── PANTALLA 2: COBRAR ────────────────────────────────────────────────────
     lbl_aviso    = ft.Text("", size=13, weight="bold")
-    lista_compra = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=160)
-    lbl_total_c  = ft.Text("$0", size=34, weight="w900", color="#F43F5E")
+    lista_compra = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=140)
+    lbl_total_c  = ft.Text("$0", size=28, weight="w900", color="#F43F5E")
     in_scan = ft.TextField(
         label="Escanear o buscar...", filled=True, border_color="transparent",
         border_radius=12, content_padding=16, bgcolor="#1E293B", expand=True
@@ -558,7 +558,7 @@ def _main(page: ft.Page):
             ft.dropdown.Option(key="transferencia",  text="🏦 Transf."),
             ft.dropdown.Option(key="fiado",          text="💸 Fiado"),
         ],
-        value="efectivo", width=150, border_radius=10,
+        value="efectivo", expand=True, border_radius=10,
         filled=True, bgcolor="#1E293B", border_color="transparent"
     )
 
@@ -843,14 +843,14 @@ def _main(page: ft.Page):
     in_scan.on_submit = buscar_prod
 
     btn_cobrar = ft.ElevatedButton(
-        "🧾 COBRAR", expand=True, height=58,
+        "🧾 COBRAR", expand=True, height=46,
         bgcolor="#F43F5E", color="white",
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=14)),
         on_click=lambda e: ir_ticket()
     )
 
     btn_ir_fiados = ft.ElevatedButton(
-        "💸 COBRAR FIADO", expand=True, height=44,
+        "💸 FIADO", expand=True, height=46,
         bgcolor="#1E293B", color="#EF4444",
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
         on_click=lambda e: _ir_fiados()
@@ -866,13 +866,12 @@ def _main(page: ft.Page):
                 ft.Row([in_scan,
                         ft.ElevatedButton("➕", on_click=buscar_prod, bgcolor="#10B981", color="white", height=48)]),
                 panel_resultados,
-                ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween"),
+                ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween", expand=False),
                 btn_vincular_fiado,
                 panel_buscar_cliente,
                 lista_compra,
-            ], spacing=10, scroll=ft.ScrollMode.AUTO, expand=True),
-            btn_ir_fiados,
-            btn_cobrar,
+            ], spacing=8, scroll=ft.ScrollMode.AUTO, expand=True),
+            ft.Row([btn_ir_fiados, btn_cobrar], spacing=8),
         ], spacing=8),
         padding=16, visible=False, expand=True
     )
@@ -2292,6 +2291,17 @@ def _main(page: ft.Page):
 
     # ── Banner de actualización disponible ───────────────────────────────────
     lbl_update_version = ft.Text("", size=13, color="white", expand=True)
+
+    def _descargar_apk(e):
+        try:
+            page.launch_url(APK_URL)
+        except Exception:
+            try:
+                import webbrowser
+                webbrowser.open(APK_URL)
+            except Exception:
+                pass
+
     banner_update = ft.Container(
         content=ft.Row([
             ft.Text("🆕", size=16),
@@ -2300,7 +2310,7 @@ def _main(page: ft.Page):
                 "Descargar", height=32,
                 bgcolor="#10B981", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                on_click=lambda e: page.launch_url(APK_URL),
+                on_click=_descargar_apk,
             ),
         ], spacing=8, vertical_alignment="center"),
         bgcolor="#1E3A2E", padding=ft.padding.symmetric(horizontal=16, vertical=8),
