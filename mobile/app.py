@@ -476,7 +476,7 @@ def _main(page: ft.Page):
             if metodos:
                 top_m = max(metodos, key=metodos.get)
                 nombres_m = {
-                    "efectivo": "💵 Efectivo", "tarjeta": "💳 Tarjeta",
+                    "efectivo": "💵 Efectivo", "debito": "🏧 Débito", "tarjeta": "💳 Tarjeta",
                     "mercadopago_qr": "📱 QR/MP", "transferencia": "🏦 Transf.",
                     "fiado": "💸 Fiado"
                 }
@@ -552,6 +552,7 @@ def _main(page: ft.Page):
     drop_metodo = ft.Dropdown(
         options=[
             ft.dropdown.Option(key="efectivo",       text="💵 Efectivo"),
+            ft.dropdown.Option(key="debito",         text="🏧 Débito"),
             ft.dropdown.Option(key="tarjeta",        text="💳 Tarjeta"),
             ft.dropdown.Option(key="mercadopago_qr", text="📱 QR/MP"),
             ft.dropdown.Option(key="transferencia",  text="🏦 Transf."),
@@ -891,7 +892,7 @@ def _main(page: ft.Page):
     lbl_pendiente = ft.Text("", size=13, color="#F59E0B", weight="bold")
 
     MNAMES = {
-        "efectivo": "💵 Efectivo", "tarjeta": "💳 Tarjeta",
+        "efectivo": "💵 Efectivo", "debito": "🏧 Débito", "tarjeta": "💳 Tarjeta",
         "mercadopago_qr": "📱 QR/MP", "transferencia": "🏦 Transf.", "fiado": "💸 Fiado"
     }
 
@@ -1467,9 +1468,9 @@ def _main(page: ft.Page):
             ventas = data.get("ventas", [])
             lbl_ventas_total.value   = _p(total)
             lbl_ventas_resumen.value = f"{cant} venta{'s' if cant!=1 else ''} — {desde} al {hasta}"
-            MCOLOR = {"efectivo": "#10B981", "tarjeta": "#3B82F6",
+            MCOLOR = {"efectivo": "#10B981", "debito": "#34D399", "tarjeta": "#3B82F6",
                       "mercadopago_qr": "#9333EA", "transferencia": "#F59E0B", "fiado": "#EF4444"}
-            MICON  = {"efectivo": "💵", "tarjeta": "💳",
+            MICON  = {"efectivo": "💵", "debito": "🏧", "tarjeta": "💳",
                       "mercadopago_qr": "📱", "transferencia": "🏦", "fiado": "💸"}
             for v in ventas:
                 metodo = v.get("metodo_pago", "efectivo").lower()
@@ -1745,9 +1746,9 @@ def _main(page: ft.Page):
     )
 
     # ── PANTALLA 7: CAJA ─────────────────────────────────────────────────────
-    MCOLOR = {"efectivo": "#10B981", "tarjeta": "#3B82F6",
+    MCOLOR = {"efectivo": "#10B981", "debito": "#34D399", "tarjeta": "#3B82F6",
                "mercadopago_qr": "#9333EA", "transferencia": "#F59E0B", "fiado": "#EF4444"}
-    MICON  = {"efectivo": "💵", "tarjeta": "💳",
+    MICON  = {"efectivo": "💵", "debito": "🏧", "tarjeta": "💳",
                "mercadopago_qr": "📱", "transferencia": "🏦", "fiado": "💸"}
 
     # ── Cabecera: total del día + delta + turno ───────────────────────────────
