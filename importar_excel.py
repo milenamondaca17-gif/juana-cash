@@ -1,5 +1,9 @@
 """
-Importador directo — carga productos del Excel a la DB sin pasar por la API.
+Importador / Actualizador de productos desde Excel.
+- Si el producto ya existe (por código o nombre): actualiza precio venta y costo.
+- Si el producto es nuevo: lo inserta.
+- Nunca duplica ni borra nada.
+
 Ejecutar desde la raíz del proyecto con el sistema CERRADO.
 """
 import sqlite3
@@ -31,9 +35,11 @@ def limpiar_precio(texto):
     try: return float(texto)
     except: return 0.0
 
+def normalizar(texto):
+    return str(texto).lower().strip()
+
 # Buscar el archivo Excel
 if not os.path.exists(ARCHIVO_EXCEL):
-    # Buscar en Downloads
     alt = os.path.join(os.path.expanduser("~"), "Downloads", ARCHIVO_EXCEL)
     if os.path.exists(alt):
         ARCHIVO_EXCEL = alt
@@ -63,10 +69,10 @@ print(f"📊 Total filas: {len(filas) - 1}")
 # Detectar columnas
 col_codigo = -1
 col_nombre = -1
-col_costo = -1
-col_venta = -1
-col_stock = -1
-col_depto = -1
+col_costo  = -1
+col_venta  = -1
+col_stock  = -1
+col_depto  = -1
 
 for i, h in enumerate(headers):
     if "prod" in h or h == "nombre" or h == "descripcion":
@@ -82,7 +88,6 @@ for i, h in enumerate(headers):
     elif "depart" in h or "categ" in h:
         if col_depto == -1: col_depto = i
 
-# Fallback: buscar "precio" si no encontró p_venta
 if col_venta == -1:
     for i, h in enumerate(headers):
         if "precio" in h and i != col_costo and "tipo" not in h:
@@ -105,56 +110,78 @@ if not os.path.exists(DB_PATH):
 conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
-# Leer códigos existentes para evitar duplicados
-existentes = set()
-for row in cursor.execute("SELECT codigo_barra FROM productos WHERE codigo_barra IS NOT NULL"):
-    existentes.add(row[0])
-print(f"\n📦 Productos existentes en DB: {cursor.execute('SELECT COUNT(*) FROM productos').fetchone()[0]}")
-print(f"   Códigos ya cargados: {len(existentes)}")
+# Cargar productos existentes en memoria (por código y por nombre normalizado)
+productos_por_codigo = {}
+productos_por_nombre = {}
+for row in cursor.execute("SELECT id, codigo_barra, nombre FROM productos"):
+    pid, cod, nom = row
+    if cod:
+        productos_por_codigo[cod] = pid
+    if nom:
+        productos_por_nombre[normalizar(nom)] = pid
 
-# Importar
-exitos = 0
-duplicados = 0
-sin_precio = 0
-errores = 0
+total_en_db = cursor.execute("SELECT COUNT(*) FROM productos").fetchone()[0]
+print(f"\n📦 Productos en DB: {total_en_db}")
+
+# Procesar
+actualizados = 0
+insertados   = 0
+sin_precio   = 0
+sin_nombre   = 0
+errores      = 0
+
+max_col = max(v for v in [col_codigo, col_nombre, col_costo, col_venta, col_stock, col_depto] if v >= 0)
 
 for fila in filas[1:]:
     try:
-        if len(fila) <= max(v for v in [col_codigo, col_nombre, col_costo, col_venta, col_stock, col_depto] if v >= 0):
+        if len(fila) <= max_col:
             continue
 
-        nombre = str(fila[col_nombre]).strip() if col_nombre >= 0 else ""
+        nombre  = str(fila[col_nombre]).strip() if col_nombre >= 0 else ""
         p_venta = limpiar_precio(fila[col_venta]) if col_venta >= 0 else 0
         p_costo = limpiar_precio(fila[col_costo]) if col_costo >= 0 else 0
-        codigo = str(fila[col_codigo]).strip() if col_codigo >= 0 else ""
-        stock = limpiar_precio(fila[col_stock]) if col_stock >= 0 else 0
-        depto = str(fila[col_depto]).strip() if col_depto >= 0 else ""
+        codigo  = str(fila[col_codigo]).strip() if col_codigo >= 0 else ""
+        stock   = limpiar_precio(fila[col_stock]) if col_stock >= 0 else 0
 
-        # Limpiar código
         if codigo.endswith(".0"): codigo = codigo[:-2]
         if codigo.lower() in ("none", "0", ""): codigo = None
 
         if not nombre or nombre.lower() in ("none", ""):
+            sin_nombre += 1
             continue
         if p_venta <= 0:
             sin_precio += 1
             continue
 
-        # Verificar duplicado
-        if codigo and codigo in existentes:
-            duplicados += 1
-            continue
+        # Buscar si ya existe (primero por código, luego por nombre)
+        pid_existente = None
+        if codigo and codigo in productos_por_codigo:
+            pid_existente = productos_por_codigo[codigo]
+        elif normalizar(nombre) in productos_por_nombre:
+            pid_existente = productos_por_nombre[normalizar(nombre)]
 
-        cursor.execute(
-            "INSERT INTO productos (nombre, codigo_barra, precio_venta, precio_costo, stock_actual, activo) VALUES (?, ?, ?, ?, ?, 1)",
-            (nombre, codigo, p_venta, p_costo, stock)
-        )
-        if codigo:
-            existentes.add(codigo)
-        exitos += 1
+        if pid_existente:
+            # Actualizar precio (nunca toca stock ni historial)
+            cursor.execute(
+                "UPDATE productos SET precio_venta=?, precio_costo=? WHERE id=?",
+                (p_venta, p_costo if p_costo > 0 else None, pid_existente)
+            )
+            actualizados += 1
+        else:
+            # Insertar nuevo producto
+            cursor.execute(
+                "INSERT INTO productos (nombre, codigo_barra, precio_venta, precio_costo, stock_actual, activo) VALUES (?, ?, ?, ?, ?, 1)",
+                (nombre, codigo, p_venta, p_costo if p_costo > 0 else None, stock)
+            )
+            nuevo_id = cursor.lastrowid
+            productos_por_nombre[normalizar(nombre)] = nuevo_id
+            if codigo:
+                productos_por_codigo[codigo] = nuevo_id
+            insertados += 1
 
     except Exception as e:
         errores += 1
+        print(f"   ⚠️  Error en fila: {e}")
 
 conn.commit()
 conn.close()
@@ -162,9 +189,10 @@ conn.close()
 print(f"\n{'='*50}")
 print(f"✅ IMPORTACIÓN COMPLETADA")
 print(f"{'='*50}")
-print(f"   Importados:  {exitos}")
-print(f"   Duplicados:  {duplicados} (ya existían)")
-print(f"   Sin precio:  {sin_precio} (precio $0)")
-print(f"   Errores:     {errores}")
+print(f"   Actualizados: {actualizados} (precios modificados)")
+print(f"   Nuevos:       {insertados}   (productos agregados)")
+print(f"   Sin precio:   {sin_precio}   (precio $0, omitidos)")
+print(f"   Sin nombre:   {sin_nombre}   (omitidos)")
+print(f"   Errores:      {errores}")
 print(f"{'='*50}")
 input("\nPresioná Enter para salir...")
