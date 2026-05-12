@@ -101,9 +101,9 @@ def _aplicar_precios_update():
         _conn.close()
         with open(_applied, "w") as _f:
             _f.write(_version)
-        print(f"✅ Precios aplicados: {_upd} actualizados, {_ins} nuevos")
+        print(f"Precios aplicados: {_upd} actualizados, {_ins} nuevos")
     except Exception as _e:
-        print(f"⚠️  Error al aplicar precios: {_e}")
+        print(f"Error al aplicar precios: {_e}")
 
 _aplicar_precios_update()
 # ─────────────────────────────────────────────────────────────────────────────
