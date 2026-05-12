@@ -21,7 +21,7 @@ def formatear_ticket_whatsapp(venta, items, metodo_pago="", descuento=0,
     except Exception:
         pass
 
-    nombre_negocio = cfg.get("nombre_negocio", "JUANA CASH")
+    nombre_negocio = "AUTOSERVICIO SAN VALENTIN"
     mensaje1 = cfg.get("mensaje1", "Gracias por su compra!")
     mensaje2 = cfg.get("mensaje2", "Vuelva pronto :)")
 
@@ -79,6 +79,8 @@ def formatear_ticket_whatsapp(venta, items, metodo_pago="", descuento=0,
         "--------------------",
         f"_{mensaje1}_",
         f"_{mensaje2}_",
+        "",
+        "_Juana Cash_",
     ]
 
     return "\n".join(lineas)
@@ -88,7 +90,7 @@ def enviar_ticket_whatsapp(telefono, mensaje):
     try:
         r = requests.post(
             f"{WHATSAPP_SERVER}/send",
-            json={"phone": telefono, "message": mensaje},
+            json={"phone": telefono, "message": mensaje, "logo": True},
             timeout=10
         )
         data = r.json()

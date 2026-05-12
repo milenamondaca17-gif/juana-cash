@@ -1,6 +1,6 @@
 [Setup]
 AppName=Juana Cash
-AppVersion=3.8.2
+AppVersion=3.8.3
 AppPublisher=CAMMUS_25
 DefaultDirName={autopf}\JuanaCash
 DefaultGroupName=Juana Cash
@@ -26,6 +26,7 @@ Source: "version.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "version.json"; DestDir: "{app}\_internal"; Flags: ignoreversion
 Source: "precios_update.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "precios_update.json"; DestDir: "{app}\_internal"; Flags: ignoreversion
+Source: "whatsapp_server\server.js"; DestDir: "C:\JuanaCash\whatsapp"; Flags: ignoreversion
 Source: "updater.py"; DestDir: "{app}"; Flags: ignoreversion
 ; Base de datos inicial con usuarios cargados (solo si no existe una ya)
 Source: "juana_cash.db"; DestDir: "{userdocs}\..\JuanaCash_Data"; Flags: ignoreversion onlyifdoesntexist uninsneveruninstall
