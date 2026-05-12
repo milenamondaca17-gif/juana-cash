@@ -1,6 +1,6 @@
 [Setup]
 AppName=Juana Cash
-AppVersion=3.8.3
+AppVersion=3.8.4
 AppPublisher=CAMMUS_25
 DefaultDirName={autopf}\JuanaCash
 DefaultGroupName=Juana Cash
@@ -40,4 +40,6 @@ Name: "{group}\Desinstalar Juana Cash"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Juana Cash"; Filename: "{app}\JuanaCash.exe"; Tasks: desktopicon
 
 [Run]
+Filename: "schtasks"; Parameters: "/delete /tn ""JuanaCash WhatsApp"" /f"; Flags: runhidden waituntilterminated; StatusMsg: "Configurando servidor WhatsApp..."
+Filename: "schtasks"; Parameters: "/create /tn ""JuanaCash WhatsApp"" /tr ""cmd /c cd /d C:\JuanaCash\whatsapp && node server.js"" /sc onlogon /rl highest /f /delay 0000:30"; Flags: runhidden waituntilterminated
 Filename: "{app}\JuanaCash.exe"; Description: "Abrir Juana Cash"; Flags: nowait postinstall skipifsilent
