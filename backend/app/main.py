@@ -47,15 +47,29 @@ import traceback as _tb, os as _os, datetime as _datetime, json as _json, sys as
 _DATA_DIR = _os.path.join(_os.path.expanduser("~"), "JuanaCash_Data")
 
 # ── Aplicar precios_update.json al inicio si hay versión nueva ────────────────
+def _log_precios(msg):
+    try:
+        _os.makedirs(_DATA_DIR, exist_ok=True)
+        with open(_os.path.join(_DATA_DIR, "precios_update.log"), "a", encoding="utf-8") as _f:
+            _f.write(f"[{_datetime.datetime.now()}] {msg}\n")
+    except Exception:
+        pass
+
 def _aplicar_precios_update():
     try:
         if getattr(_sys, "frozen", False):
             _base = _os.path.dirname(_sys.executable)
+            _base2 = getattr(_sys, "_MEIPASS", _base)
         else:
             _base = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+            _base2 = _base
         _archivo = _os.path.join(_base, "precios_update.json")
         if not _os.path.exists(_archivo):
+            _archivo = _os.path.join(_base2, "precios_update.json")
+        if not _os.path.exists(_archivo):
+            _log_precios(f"precios_update.json no encontrado en: {_base} ni {_base2}")
             return
+        _log_precios(f"Archivo encontrado: {_archivo}")
         with open(_archivo, "r", encoding="utf-8") as _f:
             _data = _json.load(_f)
         _version = str(_data.get("version", ""))
@@ -63,10 +77,12 @@ def _aplicar_precios_update():
         if _os.path.exists(_applied):
             with open(_applied, "r") as _f:
                 if _f.read().strip() == _version:
+                    _log_precios(f"Version {_version} ya aplicada, saltando")
                     return
         from .config import DATABASE_URL as _DB_URL
         import sqlite3 as _sq
         _db_path = _DB_URL.replace("sqlite:///", "")
+        _log_precios(f"Aplicando {len(_data.get('productos',[]))} productos a {_db_path}")
         _conn = _sq.connect(_db_path)
         _cur = _conn.cursor()
         _por_cod = {}
@@ -99,11 +115,11 @@ def _aplicar_precios_update():
                 _ins += 1
         _conn.commit()
         _conn.close()
-        with open(_applied, "w") as _f:
+        with open(_applied, "w", encoding="utf-8") as _f:
             _f.write(_version)
-        print(f"Precios aplicados: {_upd} actualizados, {_ins} nuevos")
+        _log_precios(f"OK: {_upd} actualizados, {_ins} nuevos")
     except Exception as _e:
-        print(f"Error al aplicar precios: {_e}")
+        _log_precios(f"ERROR: {_e}")
 
 _aplicar_precios_update()
 # ─────────────────────────────────────────────────────────────────────────────
