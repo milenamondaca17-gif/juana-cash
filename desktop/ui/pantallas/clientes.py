@@ -236,7 +236,16 @@ class ClientesScreen(QWidget):
     def __init__(self):
         super().__init__()
         self.clientes = []
+        self.usuario_actual = {}
         self.setup_ui()
+
+    def set_usuario(self, usuario):
+        self.usuario_actual = usuario or {}
+
+    def _puede_cargar_fiado(self):
+        rol    = self.usuario_actual.get("rol", "")
+        nombre = self.usuario_actual.get("nombre", "").lower()
+        return rol in ("admin", "encargado") or "fernanda" in nombre
 
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
@@ -386,7 +395,8 @@ class ClientesScreen(QWidget):
                     QMenu::item:selected {{ background: {_T['bg_hover']}; }}
                 """)
                 menu.addAction("✏️  Editar cliente",    lambda: self.editar_cliente(idx))
-                menu.addAction("💸  Registrar fiado",   lambda: self.registrar_fiado(idx))
+                if self._puede_cargar_fiado():
+                    menu.addAction("💸  Cargar deuda",   lambda: self.registrar_fiado(idx))
                 if deu > 0:
                     menu.addAction("💰  Registrar pago", lambda: self.registrar_pago_cliente(idx))
                 if pts >= 100:
@@ -407,6 +417,14 @@ class ClientesScreen(QWidget):
             btn_hist.setStyleSheet("QPushButton { background: #3498db; color: white; border-radius: 4px; }")
             btn_hist.clicked.connect(lambda _, idx=i: self.ver_historial(idx))
             self.tabla.setCellWidget(i, 7, btn_hist)
+
+            if self._puede_cargar_fiado():
+                btn_deuda = QPushButton("💸 Deuda")
+                btn_deuda.setFixedHeight(28)
+                btn_deuda.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 6px; font-size: 11px; font-weight: bold; padding: 0 6px; } QPushButton:hover { background: #c0392b; }")
+                btn_deuda.clicked.connect(lambda _, idx=i: self.registrar_fiado(idx))
+                self.tabla.setCellWidget(i, 8, btn_deuda)
+                self.tabla.setColumnHidden(8, False)
 
             self.tabla.setColumnHidden(8, True)
 

@@ -422,6 +422,7 @@ class MainWindow(QMainWindow):
 
         self.ventas_screen.set_usuario(cajero)
         self.caja_screen.set_usuario(cajero)
+        self.clientes_screen.set_usuario(cajero)
 
         # Timer para detectar ventas nuevas del celular
         if not hasattr(self, '_timer_celular'):

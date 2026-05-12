@@ -41,14 +41,14 @@ class LoginScreen(QWidget):
                 border: 1.5px solid {_T['border_card']};
             }}
         """)
-        caja.setFixedSize(420, 760)
+        caja.setFixedSize(400, 640)
         lay_caja = QVBoxLayout(caja)
-        lay_caja.setSpacing(10)
-        lay_caja.setContentsMargins(32, 28, 32, 28)
+        lay_caja.setSpacing(6)
+        lay_caja.setContentsMargins(28, 16, 28, 16)
 
         # Logo / título
         lbl_logo = QLabel("JUANA CASH")
-        lbl_logo.setFont(QFont("Segoe UI", 32, QFont.Weight.Bold))
+        lbl_logo.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
         lbl_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_logo.setStyleSheet(f"color: {_T['logo_color']}; background: transparent; border: none; letter-spacing: 2px;")
         lay_caja.addWidget(lbl_logo)
@@ -108,14 +108,14 @@ class LoginScreen(QWidget):
         self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.input_password.setReadOnly(True)
         self.input_password.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.input_password.setFixedHeight(60)
+        self.input_password.setFixedHeight(48)
         self.input_password.setStyleSheet(f"""
             QLineEdit {{
                 background: {_T['bg_input']};
                 color: {_T['primary']};
                 border: 1.5px solid {_T['border']};
                 border-radius: 10px;
-                font-size: 42px;
+                font-size: 32px;
                 font-weight: bold;
                 letter-spacing: 8px;
                 padding: 0 12px;
@@ -129,10 +129,10 @@ class LoginScreen(QWidget):
             QPushButton {{
                 background: {_T['bg_input']};
                 color: {_T['text_main']};
-                font-size: 22px;
+                font-size: 18px;
                 font-weight: bold;
-                border-radius: 12px;
-                min-height: 58px;
+                border-radius: 10px;
+                min-height: 44px;
                 border: 1.5px solid {_T['border']};
             }}
             QPushButton:hover {{ background: {_T['bg_hover']}; border-color: {_T['primary']}; }}
@@ -172,14 +172,14 @@ class LoginScreen(QWidget):
 
         # Botón ingresar
         btn_e = QPushButton("INGRESAR")
-        btn_e.setFixedHeight(52)
+        btn_e.setFixedHeight(44)
         btn_e.setStyleSheet(f"""
             QPushButton {{
                 background: {_T['primary']};
                 color: white;
-                font-size: 17px;
+                font-size: 15px;
                 font-weight: bold;
-                border-radius: 12px;
+                border-radius: 10px;
                 border: none;
             }}
             QPushButton:hover {{ background: {_T['primary_hover']}; }}

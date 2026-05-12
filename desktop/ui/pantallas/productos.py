@@ -231,7 +231,13 @@ class ProductosScreen(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.cargar_productos()
+        self._cargar_resumen()
+        self.tabla.setRowCount(0)
+        self.tabla.setRowCount(1)
+        item = QTableWidgetItem("Escribí al menos 2 letras para buscar un producto")
+        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tabla.setItem(0, 0, item)
+        self.tabla.setSpan(0, 0, 1, 9)
 
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
@@ -306,6 +312,18 @@ class ProductosScreen(QWidget):
         c_layout.addWidget(lbl_v)
         return card, lbl_v
 
+    def _cargar_resumen(self):
+        try:
+            r = requests.get(f"{API_URL}/productos/resumen", timeout=5)
+            if r.status_code == 200:
+                d = r.json()
+                self.card_total[1].setText(str(d.get("total", "—")))
+                self.card_stock_bajo[1].setText(str(d.get("stock_bajo", "—")))
+                self.card_sin_stock[1].setText(str(d.get("sin_stock", "—")))
+                self.card_valor[1].setText(f"${d.get('valor_inventario', 0):,.0f}")
+        except Exception:
+            pass
+
     def cargar_productos(self):
         try:
             r = requests.get(f"{API_URL}/productos/", timeout=30)
@@ -332,13 +350,22 @@ class ProductosScreen(QWidget):
         self.card_valor[1].setText(f"${valor:.0f}")
 
     def filtrar(self, texto):
-        if not texto:
-            self.mostrar_productos(self.productos)
+        if len(texto) < 2:
+            self.tabla.setRowCount(0)
+            self.tabla.setRowCount(1)
+            item = QTableWidgetItem("Escribí al menos 2 letras para buscar un producto")
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tabla.setItem(0, 0, item)
+            self.tabla.setSpan(0, 0, 1, 9)
+            self.productos = []
             return
-        filtrados = [p for p in self.productos
-                     if texto.lower() in p["nombre"].lower()
-                     or texto in (p.get("codigo_barra") or "")]
-        self.mostrar_productos(filtrados, es_filtro=True)
+        try:
+            r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
+            if r.status_code == 200:
+                self.productos = r.json()
+                self.mostrar_productos(self.productos, es_filtro=True)
+        except Exception:
+            pass
 
     def mostrar_productos(self, productos, es_filtro=False):
         MAX_MOSTRAR = 50

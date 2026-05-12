@@ -39,12 +39,27 @@ class CambioPrecio(BaseModel):
 def listar_productos(db: Session = Depends(get_db)):
     return db.query(Producto).filter(Producto.activo == True).all()
 
+@router.get("/resumen")
+def resumen_productos(db: Session = Depends(get_db)):
+    activos = db.query(Producto).filter(Producto.activo == True)
+    total = activos.count()
+    sin_stock = activos.filter(Producto.stock_actual <= 0).count()
+    stock_bajo = activos.filter(
+        Producto.stock_minimo > 0,
+        Producto.stock_actual <= Producto.stock_minimo,
+        Producto.stock_actual > 0
+    ).count()
+    valor = db.query(func.sum(Producto.stock_actual * Producto.precio_costo)).filter(
+        Producto.activo == True, Producto.precio_costo != None
+    ).scalar() or 0
+    return {"total": total, "sin_stock": sin_stock, "stock_bajo": stock_bajo, "valor_inventario": float(valor)}
+
 @router.get("/buscar")
 def buscar_producto(q: str, db: Session = Depends(get_db)):
     return db.query(Producto).filter(
         (Producto.nombre.contains(q)) | (Producto.codigo_barra == q),
         Producto.activo == True
-    ).limit(20).all()
+    ).limit(50).all()
 
 @router.get("/{id}")
 def obtener_producto(id: int, db: Session = Depends(get_db)):
