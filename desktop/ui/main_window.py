@@ -424,6 +424,9 @@ class MainWindow(QMainWindow):
         self.caja_screen.set_usuario(cajero)
         self.clientes_screen.set_usuario(cajero)
 
+        # Verificar si hay turno abierto; si no, pedir monto inicial obligatorio
+        self._pedir_monto_inicial_si_necesario(cajero)
+
         # Timer para detectar ventas nuevas del celular
         if not hasattr(self, '_timer_celular'):
             self._timer_celular = QTimer()
@@ -453,6 +456,85 @@ class MainWindow(QMainWindow):
         self._timer_alertas.start(20000)
         self._actualizar_badge_alertas()
         self.setWindowTitle(f"Juana Cash — {nombre} | {rol} | {turno[:5]}")
+
+    def _pedir_monto_inicial_si_necesario(self, cajero):
+        usuario_id = cajero.get("id", 1)
+        try:
+            r = requests.get(f"{API_URL}/caja/turno-actual/{usuario_id}", timeout=4)
+            if r.status_code == 200 and r.json().get("abierto"):
+                return  # Ya hay turno abierto, no hace falta pedir monto
+        except Exception:
+            return
+
+        # No hay turno abierto — mostrar diálogo obligatorio para ingresar monto inicial
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
+        from PyQt6.QtGui import QFont
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Abrir caja")
+        dlg.setFixedWidth(380)
+        dlg.setWindowFlags(dlg.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint)
+        dlg.setStyleSheet(f"background: {_T['bg_card']}; color: {_T['text_main']};")
+
+        lay = QVBoxLayout(dlg)
+        lay.setSpacing(14)
+        lay.setContentsMargins(28, 24, 28, 24)
+
+        titulo = QLabel("💵 Ingresar monto inicial de caja")
+        titulo.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_T['text_main']}; background: transparent;")
+        lay.addWidget(titulo)
+
+        sub = QLabel(f"Cajero: {cajero.get('nombre', '')}  |  {cajero.get('turno', '')}")
+        sub.setStyleSheet(f"color: {_T['text_muted']}; font-size: 12px; background: transparent;")
+        lay.addWidget(sub)
+
+        lbl = QLabel("¿Cuánto efectivo hay en la caja para empezar el turno?")
+        lbl.setWordWrap(True)
+        lbl.setStyleSheet(f"color: {_T['text_muted']}; font-size: 13px; background: transparent;")
+        lay.addWidget(lbl)
+
+        inp = QLineEdit()
+        inp.setPlaceholderText("Ej: 10000")
+        inp.setFixedHeight(48)
+        inp.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        inp.setStyleSheet(f"QLineEdit {{ background: {_T['bg_app']}; border: 2px solid {_T['primary']}; border-radius: 10px; padding: 8px 14px; color: {_T['text_main']}; }}")
+        lay.addWidget(inp)
+
+        lbl_err = QLabel("")
+        lbl_err.setStyleSheet("color: #dc2626; font-size: 12px; background: transparent;")
+        lay.addWidget(lbl_err)
+
+        btn_ok = QPushButton("✅ Abrir caja")
+        btn_ok.setFixedHeight(44)
+        btn_ok.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        btn_ok.setStyleSheet(f"QPushButton {{ background: {_T['success']}; color: white; border-radius: 10px; font-weight: bold; }} QPushButton:hover {{ background: #15803d; }}")
+        lay.addWidget(btn_ok)
+
+        def confirmar():
+            txt = inp.text().strip().replace(".", "").replace(",", ".")
+            try:
+                monto = float(txt) if txt else 0.0
+            except ValueError:
+                lbl_err.setText("Ingresá un número válido")
+                return
+            try:
+                r2 = requests.post(f"{API_URL}/caja/abrir",
+                                   json={"usuario_id": usuario_id, "monto_apertura": monto},
+                                   timeout=5)
+                if r2.status_code == 200:
+                    self.caja_screen.turno_actual = None
+                    self.caja_screen._cargar_turno_activo()
+                    dlg.accept()
+                else:
+                    lbl_err.setText("No se pudo abrir la caja, intentá de nuevo")
+            except Exception:
+                lbl_err.setText("Sin conexión al servidor")
+
+        btn_ok.clicked.connect(confirmar)
+        inp.returnPressed.connect(confirmar)
+        inp.setFocus()
+        dlg.exec()
 
     def verificar_cumpleanos(self):
         try:

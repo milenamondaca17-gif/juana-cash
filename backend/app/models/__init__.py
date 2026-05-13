@@ -9,3 +9,4 @@ from .gasto import Gasto
 from .auditoria import RegistroBorrados
 from .alerta_precio import AlertaPrecio
 from .cupon import Cupon
+from .caja_aporte import CajaAporte

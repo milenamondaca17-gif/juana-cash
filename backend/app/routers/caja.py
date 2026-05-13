@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 from typing import Optional, List
 from ..database import get_db
 from ..models.caja_turno import CajaTurno
+from ..models.caja_aporte import CajaAporte
 from ..models.venta import Venta
 
 router = APIRouter(prefix="/caja", tags=["Caja"])
@@ -13,6 +14,11 @@ router = APIRouter(prefix="/caja", tags=["Caja"])
 class AbrirCajaSchema(BaseModel):
     usuario_id: int
     monto_apertura: float = 0
+
+class AporteSchema(BaseModel):
+    turno_id: int
+    monto: float
+    descripcion: Optional[str] = "Aporte de caja"
 
 class PagoEmpleado(BaseModel):
     nombre: str
@@ -73,13 +79,19 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     ).all()
     total_gastos = sum(float(g.monto) for g in gastos_hoy)
 
+    # Aportes de caja del turno
+    aportes_turno = db.query(CajaAporte).filter(
+        CajaAporte.turno_id == turno_id
+    ).all()
+    total_aportes = sum(float(a.monto) for a in aportes_turno)
+
     # Pagos de empleados del cierre
     pagos_emp = datos.pagos_empleados or []
     total_empleados = sum(p.monto for p in pagos_emp)
 
-    # Efectivo esperado en caja = apertura + ventas efectivo - gastos - empleados
+    # Efectivo esperado = apertura + aportes + efectivo ventas - gastos - empleados
     monto_apertura = float(turno.monto_apertura or 0)
-    efectivo_esperado = monto_apertura + efectivo_ventas - total_gastos - total_empleados
+    efectivo_esperado = monto_apertura + total_aportes + efectivo_ventas - total_gastos - total_empleados
 
     # Diferencia: lo que declaró el cajero vs lo que debería haber
     diferencia = datos.monto_cierre - efectivo_esperado
@@ -98,10 +110,34 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
         "total_vendido":     total_vendido,
         "efectivo_ventas":   efectivo_ventas,
         "total_gastos":      total_gastos,
+        "total_aportes":     total_aportes,
         "efectivo_esperado": efectivo_esperado,
         "diferencia":        diferencia,
         "total_empleados":   total_empleados,
         "pagos_empleados":   [{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp],
+    }
+
+@router.post("/aporte")
+def registrar_aporte(datos: AporteSchema, db: Session = Depends(get_db)):
+    turno = db.query(CajaTurno).filter(CajaTurno.id == datos.turno_id, CajaTurno.estado == "abierto").first()
+    if not turno:
+        raise HTTPException(status_code=404, detail="Turno no encontrado o cerrado")
+    if datos.monto <= 0:
+        raise HTTPException(status_code=400, detail="El monto debe ser mayor a cero")
+    aporte = CajaAporte(turno_id=datos.turno_id, monto=datos.monto, descripcion=datos.descripcion)
+    db.add(aporte)
+    db.commit()
+    db.refresh(aporte)
+    return {"id": aporte.id, "monto": aporte.monto, "descripcion": aporte.descripcion}
+
+@router.get("/aportes/{turno_id}")
+def aportes_turno(turno_id: int, db: Session = Depends(get_db)):
+    aportes = db.query(CajaAporte).filter(CajaAporte.turno_id == turno_id).order_by(CajaAporte.fecha).all()
+    total = sum(float(a.monto) for a in aportes)
+    return {
+        "aportes": [{"id": a.id, "monto": float(a.monto), "descripcion": a.descripcion,
+                     "hora": a.fecha.strftime("%H:%M")} for a in aportes],
+        "total": total
     }
 
 @router.get("/turno-actual/{usuario_id}")

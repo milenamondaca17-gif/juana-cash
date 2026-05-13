@@ -227,6 +227,7 @@ class CajaScreen(QWidget):
         btn_empleados   = _btn("👥 Empleados",      "#ea580c", self.ver_historial_empleados)
         btn_histef      = _btn("💵 Efectivo",       SUCCESS,   self.ver_historial_efectivo)
         btn_email_cfg   = _btn("📧 Email",          "#2563eb", self.ver_config_email)
+        self.btn_aporte = _btn("💰 Aporte",         "#b45309", self.registrar_aporte, enabled=False)
 
         btn_paleta = QPushButton("🎨 Paleta")
         btn_paleta.setFixedHeight(BTN_H)
@@ -253,6 +254,7 @@ class CajaScreen(QWidget):
         fila1.addWidget(self.btn_abrir)
         fila1.addWidget(self.btn_cerrar)
         fila1.addWidget(btn_gasto)
+        fila1.addWidget(self.btn_aporte)
         fila1.addWidget(btn_empleados)
         fila1.addStretch()
         fila1.addWidget(btn_refresh)
@@ -686,6 +688,7 @@ class CajaScreen(QWidget):
                     )
                     self.btn_abrir.setEnabled(False)
                     self.btn_cerrar.setEnabled(True)
+                    self.btn_aporte.setEnabled(True)
         except Exception:
             pass
 
@@ -743,6 +746,7 @@ class CajaScreen(QWidget):
                 self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 16px; font-weight: bold;")
                 self.btn_abrir.setEnabled(False)
                 self.btn_cerrar.setEnabled(True)
+                self.btn_aporte.setEnabled(True)
                 try:
                     requests.post(f"{API_URL}/sesiones/registrar", json={"usuario_id": self.usuario_id, "nombre_cajero": self.nombre_cajero, "accion": "APERTURA_CAJA", "detalle": f"Monto inicial: ${monto:.2f}"}, timeout=3)
                 except Exception:
@@ -798,8 +802,15 @@ class CajaScreen(QWidget):
         except Exception:
             monto_apertura = 0
 
+        total_aportes = 0.0
+        try:
+            r_ap = requests.get(f"{API_URL}/caja/aportes/{self.turno_actual['id']}", timeout=3)
+            total_aportes = float(r_ap.json().get("total", 0)) if r_ap.status_code == 200 else 0
+        except Exception:
+            pass
+
         total_emp_previo = sum(p["monto"] for p in getattr(self, '_pagos_empleados_guardados', []))
-        efectivo_esperado = monto_apertura + totales["efectivo"] - total_gastos - total_emp_previo
+        efectivo_esperado = monto_apertura + total_aportes + totales["efectivo"] - total_gastos - total_emp_previo
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Cierre de caja")
@@ -869,7 +880,7 @@ class CajaScreen(QWidget):
             fl.addWidget(lbl_m)
             lay.addWidget(f)
 
-        detalle_ef = f"{_p(monto_apertura)} + ef.{_p(totales['efectivo'])} - gastos {_p(total_gastos)}" + (f" - emp. {_p(total_emp_previo)}" if total_emp_previo else "")
+        detalle_ef = f"inicio {_p(monto_apertura)}" + (f" + aporte {_p(total_aportes)}" if total_aportes else "") + f" + ef.{_p(totales['efectivo'])} - gastos {_p(total_gastos)}" + (f" - emp. {_p(total_emp_previo)}" if total_emp_previo else "")
         fila_metodo("💵", "Efectivo",          efectivo_esperado,         "#27ae60", detalle_ef)
         fila_metodo("🏧", "Débito",            totales["debito"],         "#10b981")
         fila_metodo("💳", "Tarjeta",           totales["tarjeta"],        "#3498db")
@@ -1072,6 +1083,7 @@ class CajaScreen(QWidget):
                     self.lbl_total_caja.setText("Total acumulado: $0")
                     self._pagos_empleados_guardados = []
                     self.btn_abrir.setEnabled(True); self.btn_cerrar.setEnabled(False)
+                    self.btn_aporte.setEnabled(False)
                     for lbl in self.cards_metodo.values(): lbl.setText("$0")
                     self.lbl_ef_caja.setText("💵 Efectivo en caja: —")
                     color_dif = "OK" if abs(diferencia) < 100 else "REVISAR"
@@ -1084,6 +1096,85 @@ class CajaScreen(QWidget):
         btn_ok.clicked.connect(confirmar_cierre)
         dialog.exec()
 
+
+    def registrar_aporte(self):
+        if not self.turno_actual:
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle("💰 Aporte de caja")
+        dialog.setMinimumWidth(340)
+        dialog.setStyleSheet(f"background: {BG_CARD}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(12)
+        lay.setContentsMargins(24, 20, 24, 20)
+
+        titulo = QLabel("💰 Ingresá un aporte de efectivo")
+        titulo.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {TEXT_MAIN}; background: transparent;")
+        lay.addWidget(titulo)
+
+        sub = QLabel("Se suma al efectivo esperado en caja (ej: plata del sobre, cambio extra).")
+        sub.setWordWrap(True)
+        sub.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; background: transparent;")
+        lay.addWidget(sub)
+
+        lbl_m = QLabel("Monto ($):")
+        lbl_m.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
+        lay.addWidget(lbl_m)
+        inp_monto = QLineEdit()
+        inp_monto.setFixedHeight(46)
+        inp_monto.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        inp_monto.setStyleSheet(f"QLineEdit {{ background: {BG_MAIN}; border: 2px solid {PRIMARY}; border-radius: 10px; padding: 8px 12px; color: {TEXT_MAIN}; }}")
+        lay.addWidget(inp_monto)
+
+        lbl_d = QLabel("Descripción (opcional):")
+        lbl_d.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
+        lay.addWidget(lbl_d)
+        inp_desc = QLineEdit()
+        inp_desc.setPlaceholderText("Ej: Plata del sobre")
+        inp_desc.setFixedHeight(38)
+        inp_desc.setStyleSheet(f"QLineEdit {{ background: {BG_MAIN}; border: 1.5px solid {BORDER}; border-radius: 8px; padding: 6px 12px; color: {TEXT_MAIN}; }}")
+        lay.addWidget(inp_desc)
+
+        btns = QHBoxLayout()
+        btn_c = QPushButton("Cancelar")
+        btn_c.setFixedHeight(40)
+        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; }}")
+        btn_c.clicked.connect(dialog.reject)
+        btns.addWidget(btn_c)
+        btn_ok = QPushButton("✅ Confirmar")
+        btn_ok.setFixedHeight(40)
+        btn_ok.setStyleSheet(f"QPushButton {{ background: #b45309; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: #92400e; }}")
+        btns.addWidget(btn_ok)
+        lay.addLayout(btns)
+
+        def confirmar():
+            txt = inp_monto.text().strip().replace(".", "").replace(",", ".")
+            try:
+                monto = float(txt)
+                if monto <= 0:
+                    raise ValueError
+            except ValueError:
+                QMessageBox.warning(dialog, "Error", "Ingresá un monto válido mayor a cero")
+                return
+            desc = inp_desc.text().strip() or "Aporte de caja"
+            try:
+                r = requests.post(f"{API_URL}/caja/aporte",
+                                  json={"turno_id": self.turno_actual["id"], "monto": monto, "descripcion": desc},
+                                  timeout=5)
+                if r.status_code == 200:
+                    dialog.accept()
+                    QMessageBox.information(self, "✅ Aporte registrado", f"Se agregaron {_p(monto)} a la caja.")
+                    self.actualizar_ventas()
+                else:
+                    QMessageBox.warning(dialog, "Error", r.json().get("detail", "No se pudo registrar"))
+            except Exception:
+                QMessageBox.critical(dialog, "Error", "Sin conexión al servidor")
+
+        btn_ok.clicked.connect(confirmar)
+        inp_monto.returnPressed.connect(confirmar)
+        inp_monto.setFocus()
+        dialog.exec()
 
     def registrar_gasto(self):
         dialog = QDialog(self)
@@ -1285,7 +1376,15 @@ class CajaScreen(QWidget):
                 except Exception:
                     total_gastos = 0
                 monto_apertura = float((self.turno_actual or {}).get("monto_apertura", 0))
-                ef_caja = monto_apertura + float(desglose.get("efectivo", 0)) - total_gastos
+                total_aportes = 0.0
+                turno_id = (self.turno_actual or {}).get("id")
+                if turno_id:
+                    try:
+                        r_ap = requests.get(f"{API_URL}/caja/aportes/{turno_id}", timeout=3)
+                        total_aportes = float(r_ap.json().get("total", 0)) if r_ap.status_code == 200 else 0
+                    except Exception:
+                        pass
+                ef_caja = monto_apertura + total_aportes + float(desglose.get("efectivo", 0)) - total_gastos
                 self.lbl_ef_caja.setText(f"💵 Efectivo en caja: {_p(ef_caja)}")
         except Exception:
             pass
