@@ -52,8 +52,54 @@ def reporte_por_fechas(db, desde, hasta=None):
     }
 
 @router.get("/hoy")
-def reporte_hoy(db: Session = Depends(get_db)):
+def reporte_hoy(desde: str = None, db: Session = Depends(get_db)):
     hoy = date.today()
+    if desde:
+        try:
+            from datetime import datetime as _dt
+            dt_desde = _dt.fromisoformat(desde.replace("T", " "))
+            ventas = db.query(Venta).filter(
+                Venta.fecha >= dt_desde
+            ).order_by(Venta.fecha.desc()).all()
+            total = sum(float(v.total) for v in ventas if v.estado == "completada")
+
+            def _fmt_fecha(f):
+                if f is None:
+                    return ""
+                try:
+                    if hasattr(f, 'strftime'):
+                        return f.strftime("%Y-%m-%d %H:%M:%S")
+                    s = str(f).replace("T", " ")
+                    return s[:19]
+                except Exception:
+                    return str(f)[:19]
+
+            datos = {
+                "cantidad_ventas": len([v for v in ventas if v.estado == "completada"]),
+                "total_vendido": total,
+                "fecha": str(hoy),
+                "ventas": [
+                    {
+                        "id": v.id, "numero": v.numero, "total": float(v.total),
+                        "estado": v.estado,
+                        "origen": (getattr(v, 'origen', None) or 'mostrador'),
+                        "metodo_pago": (v.pagos[0].metodo if v.pagos else (getattr(v, 'metodo_pago', None) or 'efectivo')).lower(),
+                        "metodo_secundario": v.pagos[1].metodo if v.pagos and len(v.pagos) > 1 else None,
+                        "monto_secundario": float(v.pagos[1].monto) if v.pagos and len(v.pagos) > 1 else 0.0,
+                        "fecha": _fmt_fecha(v.fecha)
+                    }
+                    for v in ventas
+                ]
+            }
+            ids_ventas = [v.id for v in ventas if v.estado == "completada"]
+            pagos_turno = db.query(Pago).filter(Pago.venta_id.in_(ids_ventas)).all() if ids_ventas else []
+            desglose = {}
+            for p in pagos_turno:
+                desglose[p.metodo] = desglose.get(p.metodo, 0.0) + float(p.monto)
+            datos["desglose_metodos"] = desglose
+            return datos
+        except Exception:
+            pass
     datos = reporte_por_fechas(db, hoy)
     datos["fecha"] = str(hoy)
     pagos_hoy = db.query(Pago).join(Venta).filter(

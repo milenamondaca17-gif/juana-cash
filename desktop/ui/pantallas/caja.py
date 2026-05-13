@@ -210,50 +210,62 @@ class CajaScreen(QWidget):
             self.cards_metodo[key] = lbl_v
         layout.addWidget(desglose_frame)
 
-        # Botones de acción
-        BTN_H = 40
-        btns = QHBoxLayout()
-        btns.setSpacing(8)
-
-        lbl_monto = QLabel("Monto inicial ($):")
-        lbl_monto.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 14px; background: transparent;")
-        btns.addWidget(lbl_monto)
-
-        self.input_monto = QLineEdit()
-        self.input_monto.setPlaceholderText("5000")
-        self.input_monto.setFixedWidth(120)
-        self.input_monto.setFixedHeight(BTN_H)
-        btns.addWidget(self.input_monto)
+        # Botones de acción — 2 filas para no amontonar
+        BTN_H = 38
 
         def _btn(texto, color_bg, slot, enabled=True):
             b = QPushButton(texto)
             b.setFixedHeight(BTN_H)
-            b.setStyleSheet(f"QPushButton {{ background: {color_bg}; color: white; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ opacity: 0.85; }} QPushButton:disabled {{ background: {BORDER}; color: {TEXT_MUTED}; }}")
+            b.setStyleSheet(f"QPushButton {{ background: {color_bg}; color: white; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ opacity: 0.85; }} QPushButton:disabled {{ background: {BORDER}; color: {TEXT_MUTED}; }}")
             b.clicked.connect(slot)
             b.setEnabled(enabled)
             return b
 
-        self.btn_abrir  = _btn("🔓 Abrir caja",       SUCCESS,   self.abrir_caja)
-        self.btn_cerrar = _btn("🔒 Cerrar caja",       DANGER,    self.cerrar_caja, enabled=False)
-        btn_gasto       = _btn("💸 Gasto",             "#7c3aed", self.registrar_gasto)
-        btn_empleados   = _btn("👥 Empleados",         "#ea580c", self.ver_historial_empleados)
-        btn_histef      = _btn("💵 Hist. efectivo",    SUCCESS,   self.ver_historial_efectivo)
-        btn_email_cfg   = _btn("📧 Email",             "#2563eb", self.ver_config_email)
+        self.btn_abrir  = _btn("🔓 Abrir caja",    SUCCESS,   self.abrir_caja)
+        self.btn_cerrar = _btn("🔒 Cerrar caja",    DANGER,    self.cerrar_caja, enabled=False)
+        btn_gasto       = _btn("💸 Gasto",          "#7c3aed", self.registrar_gasto)
+        btn_empleados   = _btn("👥 Empleados",      "#ea580c", self.ver_historial_empleados)
+        btn_histef      = _btn("💵 Efectivo",       SUCCESS,   self.ver_historial_efectivo)
+        btn_email_cfg   = _btn("📧 Email",          "#2563eb", self.ver_config_email)
 
         btn_paleta = QPushButton("🎨 Paleta")
         btn_paleta.setFixedHeight(BTN_H)
-        btn_paleta.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+        btn_paleta.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_paleta.clicked.connect(self.elegir_paleta)
 
-        btn_refresh = QPushButton("🔄 Actualizar")
-        btn_refresh.setFixedHeight(BTN_H)
-        btn_refresh.setStyleSheet(f"QPushButton {{ background: #0f766e; color: white; border-radius: 8px; padding: 0 14px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: #0d9488; }}")
+        btn_refresh = QPushButton("🔄")
+        btn_refresh.setFixedSize(38, BTN_H)
+        btn_refresh.setToolTip("Actualizar")
+        btn_refresh.setStyleSheet(f"QPushButton {{ background: #0f766e; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: #0d9488; }}")
         btn_refresh.clicked.connect(self.actualizar_ventas)
 
-        for b in [self.btn_abrir, self.btn_cerrar, btn_gasto, btn_empleados, btn_histef, btn_email_cfg, btn_paleta, btn_refresh]:
-            btns.addWidget(b)
-        btns.addStretch()
-        layout.addLayout(btns)
+        # Fila 1: apertura y acciones principales
+        fila1 = QHBoxLayout()
+        fila1.setSpacing(8)
+        lbl_monto = QLabel("Monto inicial $:")
+        lbl_monto.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
+        fila1.addWidget(lbl_monto)
+        self.input_monto = QLineEdit()
+        self.input_monto.setPlaceholderText("5000")
+        self.input_monto.setFixedWidth(100)
+        self.input_monto.setFixedHeight(BTN_H)
+        fila1.addWidget(self.input_monto)
+        fila1.addWidget(self.btn_abrir)
+        fila1.addWidget(self.btn_cerrar)
+        fila1.addWidget(btn_gasto)
+        fila1.addWidget(btn_empleados)
+        fila1.addStretch()
+        fila1.addWidget(btn_refresh)
+        layout.addLayout(fila1)
+
+        # Fila 2: herramientas secundarias
+        fila2 = QHBoxLayout()
+        fila2.setSpacing(8)
+        fila2.addWidget(btn_histef)
+        fila2.addWidget(btn_email_cfg)
+        fila2.addWidget(btn_paleta)
+        fila2.addStretch()
+        layout.addLayout(fila2)
 
         # Label y tabla ventas turno
         lbl_resumen = QLabel("Ventas del turno")
@@ -724,10 +736,11 @@ class CajaScreen(QWidget):
         try:
             r = requests.post(f"{API_URL}/caja/abrir", json={"usuario_id": self.usuario_id, "monto_apertura": monto}, timeout=5)
             if r.status_code == 200:
-                self.turno_actual = r.json()
+                # Reload full turno data so apertura datetime and monto_apertura are correct
+                self.turno_actual = None
+                self._cargar_turno_activo()
                 self.lbl_estado.setText("🟢 Caja abierta")
                 self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 16px; font-weight: bold;")
-                self.lbl_apertura.setText(f"Apertura: {datetime.now().strftime('%H:%M')} — Cajero: {self.nombre_cajero} — Monto inicial: {_p(monto)}")
                 self.btn_abrir.setEnabled(False)
                 self.btn_cerrar.setEnabled(True)
                 try:
@@ -743,14 +756,17 @@ class CajaScreen(QWidget):
         if not self.turno_actual:
             return
 
+        apertura = self._apertura_iso()
+        params_turno = {"desde": apertura} if apertura else {}
+
         try:
-            r_hoy = requests.get(f"{API_URL}/reportes/hoy", timeout=5)
+            r_hoy = requests.get(f"{API_URL}/reportes/hoy", params=params_turno, timeout=5)
             datos_hoy = r_hoy.json() if r_hoy.status_code == 200 else {}
         except Exception:
             datos_hoy = {}
 
         try:
-            r_gastos = requests.get(f"{API_URL}/gastos/hoy", timeout=5)
+            r_gastos = requests.get(f"{API_URL}/gastos/hoy", params=params_turno, timeout=5)
             datos_gastos = r_gastos.json() if r_gastos.status_code == 200 else {}
         except Exception:
             datos_gastos = {}
@@ -1187,9 +1203,18 @@ class CajaScreen(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
+    def _apertura_iso(self):
+        """Retorna la hora de apertura del turno en formato ISO para filtrar por turno."""
+        ap = (self.turno_actual or {}).get("apertura", "")
+        if ap and len(ap) >= 16:
+            return ap[:16].replace(" ", "T") + ":00"
+        return None
+
     def actualizar_ventas(self):
         try:
-            r = requests.get(f"{API_URL}/reportes/hoy", timeout=5)
+            apertura = self._apertura_iso()
+            params = {"desde": apertura} if apertura else {}
+            r = requests.get(f"{API_URL}/reportes/hoy", params=params, timeout=5)
             if r.status_code == 200:
                 datos = r.json()
                 total = datos.get("total_vendido", 0)
@@ -1254,7 +1279,8 @@ class CajaScreen(QWidget):
                 for key, lbl in self.cards_metodo.items():
                     lbl.setText(f"${float(desglose.get(key, 0)):,.0f}".replace(",", "."))
                 try:
-                    r_gastos = requests.get(f"{API_URL}/gastos/hoy", timeout=5)
+                    g_params = {"desde": apertura} if apertura else {}
+                    r_gastos = requests.get(f"{API_URL}/gastos/hoy", params=g_params, timeout=5)
                     total_gastos = float(r_gastos.json().get("total", 0)) if r_gastos.status_code == 200 else 0
                 except Exception:
                     total_gastos = 0

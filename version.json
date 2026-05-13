@@ -1,5 +1,5 @@
 {
-  "version": "3.8.6",
+  "version": "3.8.7",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.8.6 - Fix cierre de caja por turno"
+  "notas": "v3.8.7 - Caja por turno: efectivo, debito y gastos de cada turno separados"
 }

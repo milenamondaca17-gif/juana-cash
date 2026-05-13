@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import date
+from datetime import date, datetime
 from ..database import get_db
 from ..models.gasto import Gasto
 from pydantic import BaseModel
@@ -31,11 +31,23 @@ def crear_gasto(gasto: GastoCreate, db: Session = Depends(get_db)):
     return {"id": nuevo.id, "descripcion": nuevo.descripcion, "monto": nuevo.monto}
 
 @router.get("/hoy")
-def gastos_hoy(db: Session = Depends(get_db)):
-    hoy = date.today()
-    gastos = db.query(Gasto).filter(
-        func.date(Gasto.fecha) == hoy
-    ).order_by(Gasto.fecha.desc()).all()
+def gastos_hoy(desde: Optional[str] = None, db: Session = Depends(get_db)):
+    if desde:
+        try:
+            dt_desde = datetime.fromisoformat(desde.replace("T", " "))
+            gastos = db.query(Gasto).filter(
+                Gasto.fecha >= dt_desde
+            ).order_by(Gasto.fecha.desc()).all()
+        except Exception:
+            hoy = date.today()
+            gastos = db.query(Gasto).filter(
+                func.date(Gasto.fecha) == hoy
+            ).order_by(Gasto.fecha.desc()).all()
+    else:
+        hoy = date.today()
+        gastos = db.query(Gasto).filter(
+            func.date(Gasto.fecha) == hoy
+        ).order_by(Gasto.fecha.desc()).all()
     total = sum(g.monto for g in gastos)
     return {
         "gastos": [
