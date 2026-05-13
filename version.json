@@ -1,5 +1,5 @@
 {
-  "version": "3.8.5",
+  "version": "3.8.6",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.8.5 - Productos rapido, login chico, carga deuda manual"
+  "notas": "v3.8.6 - Fix cierre de caja por turno"
 }

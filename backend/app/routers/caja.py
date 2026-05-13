@@ -49,17 +49,17 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     if not turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
 
-    ventas_hoy = db.query(Venta).filter(
-        func.date(Venta.fecha) == date.today(),
+    ventas_turno = db.query(Venta).filter(
+        Venta.fecha >= turno.apertura,
         Venta.estado == "completada"
     ).all()
 
     # Total vendido (todos los métodos) — para columna "Vendido $" del historial
-    total_vendido = sum(float(v.total) for v in ventas_hoy)
+    total_vendido = sum(float(v.total) for v in ventas_turno)
 
     # Efectivo real de ventas (solo pagos en efectivo)
     efectivo_ventas = 0.0
-    for v in ventas_hoy:
+    for v in ventas_turno:
         if v.pagos:
             for p in v.pagos:
                 if p.metodo == "efectivo":
@@ -67,9 +67,9 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
         elif getattr(v, "metodo_pago", None) == "efectivo":
             efectivo_ventas += float(v.total or 0)
 
-    # Gastos del día
+    # Gastos del turno (desde apertura)
     gastos_hoy = db.query(Gasto).filter(
-        func.date(Gasto.fecha) == date.today()
+        Gasto.fecha >= turno.apertura
     ).all()
     total_gastos = sum(float(g.monto) for g in gastos_hoy)
 
