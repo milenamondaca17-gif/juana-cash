@@ -1,5 +1,5 @@
 {
-  "version": "3.8.9",
+  "version": "3.9.0",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.8.9 - Turnos independientes por empleado + Historial de cierres completo"
+  "notas": "v3.9.0 - Fix desglose de metodos de pago en caja (efectivo, debito, tarjeta, QR)"
 }

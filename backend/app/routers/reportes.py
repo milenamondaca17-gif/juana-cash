@@ -51,66 +51,63 @@ def reporte_por_fechas(db, desde, hasta=None):
         ]
     }
 
+def _build_desglose(ventas):
+    desglose = {}
+    for v in ventas:
+        if v.estado != "completada":
+            continue
+        if v.pagos:
+            for p in v.pagos:
+                m = p.metodo.lower()
+                desglose[m] = desglose.get(m, 0.0) + float(p.monto or 0)
+        else:
+            m = (getattr(v, "metodo_pago", None) or "efectivo").lower()
+            desglose[m] = desglose.get(m, 0.0) + float(v.total or 0)
+    return desglose
+
+def _fmt_fecha(f):
+    if f is None:
+        return ""
+    try:
+        if hasattr(f, 'strftime'):
+            return f.strftime("%Y-%m-%d %H:%M:%S")
+        return str(f).replace("T", " ")[:19]
+    except Exception:
+        return str(f)[:19]
+
 @router.get("/hoy")
 def reporte_hoy(desde: str = None, db: Session = Depends(get_db)):
     hoy = date.today()
     if desde:
-        try:
-            from datetime import datetime as _dt
-            dt_desde = _dt.fromisoformat(desde.replace("T", " "))
-            ventas = db.query(Venta).filter(
-                Venta.fecha >= dt_desde
-            ).order_by(Venta.fecha.desc()).all()
-            total = sum(float(v.total) for v in ventas if v.estado == "completada")
+        from datetime import datetime as _dt
+        dt_desde = _dt.fromisoformat(desde.replace("T", " "))
+        ventas = db.query(Venta).filter(
+            Venta.fecha >= dt_desde
+        ).order_by(Venta.fecha.desc()).all()
+    else:
+        ventas = db.query(Venta).filter(
+            func.date(Venta.fecha) == hoy
+        ).order_by(Venta.fecha.desc()).all()
 
-            def _fmt_fecha(f):
-                if f is None:
-                    return ""
-                try:
-                    if hasattr(f, 'strftime'):
-                        return f.strftime("%Y-%m-%d %H:%M:%S")
-                    s = str(f).replace("T", " ")
-                    return s[:19]
-                except Exception:
-                    return str(f)[:19]
-
-            datos = {
-                "cantidad_ventas": len([v for v in ventas if v.estado == "completada"]),
-                "total_vendido": total,
-                "fecha": str(hoy),
-                "ventas": [
-                    {
-                        "id": v.id, "numero": v.numero, "total": float(v.total),
-                        "estado": v.estado,
-                        "origen": (getattr(v, 'origen', None) or 'mostrador'),
-                        "metodo_pago": (v.pagos[0].metodo if v.pagos else (getattr(v, 'metodo_pago', None) or 'efectivo')).lower(),
-                        "metodo_secundario": v.pagos[1].metodo if v.pagos and len(v.pagos) > 1 else None,
-                        "monto_secundario": float(v.pagos[1].monto) if v.pagos and len(v.pagos) > 1 else 0.0,
-                        "fecha": _fmt_fecha(v.fecha)
-                    }
-                    for v in ventas
-                ]
+    total = sum(float(v.total) for v in ventas if v.estado == "completada")
+    datos = {
+        "cantidad_ventas": len([v for v in ventas if v.estado == "completada"]),
+        "total_vendido": total,
+        "fecha": str(hoy),
+        "ventas": [
+            {
+                "id": v.id, "numero": v.numero, "total": float(v.total),
+                "estado": v.estado,
+                "origen": (getattr(v, 'origen', None) or 'mostrador'),
+                "metodo_pago": (v.pagos[0].metodo.lower() if v.pagos else (getattr(v, 'metodo_pago', None) or 'efectivo')),
+                "metodo_secundario": v.pagos[1].metodo if v.pagos and len(v.pagos) > 1 else None,
+                "monto_secundario": float(v.pagos[1].monto) if v.pagos and len(v.pagos) > 1 else 0.0,
+                "fecha": _fmt_fecha(v.fecha)
             }
-            ids_ventas = [v.id for v in ventas if v.estado == "completada"]
-            pagos_turno = db.query(Pago).filter(Pago.venta_id.in_(ids_ventas)).all() if ids_ventas else []
-            desglose = {}
-            for p in pagos_turno:
-                desglose[p.metodo] = desglose.get(p.metodo, 0.0) + float(p.monto)
-            datos["desglose_metodos"] = desglose
-            return datos
-        except Exception:
-            pass
-    datos = reporte_por_fechas(db, hoy)
-    datos["fecha"] = str(hoy)
-    pagos_hoy = db.query(Pago).join(Venta).filter(
-        func.date(Venta.fecha) == hoy,
-        Venta.estado == "completada"
-    ).all()
-    desglose = {}
-    for p in pagos_hoy:
-        m = p.metodo
-        desglose[m] = desglose.get(m, 0.0) + float(p.monto)
-    datos["desglose_metodos"] = desglose
+            for v in ventas
+        ],
+        "desglose_metodos": _build_desglose(ventas),
+    }
     return datos
 
 @router.get("/semana")
