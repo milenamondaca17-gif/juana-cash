@@ -161,9 +161,24 @@ class CajaScreen(QWidget):
 
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
-        layout = QVBoxLayout(self)
+        _outer = QVBoxLayout(self)
+        _outer.setContentsMargins(0, 0, 0, 0)
+        _outer.setSpacing(0)
+        _scroll = QScrollArea()
+        _scroll.setWidgetResizable(True)
+        _scroll.setStyleSheet(f"""
+            QScrollArea {{ border: none; background: {BG_MAIN}; }}
+            QScrollBar:vertical {{ width: 6px; background: transparent; border-radius: 3px; }}
+            QScrollBar::handle:vertical {{ background: {BORDER}; border-radius: 3px; }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
+        """)
+        _cont = QWidget()
+        _cont.setStyleSheet(f"background: {BG_MAIN};")
+        layout = QVBoxLayout(_cont)
         layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(16)
+        layout.setSpacing(12)
+        _scroll.setWidget(_cont)
+        _outer.addWidget(_scroll)
 
         titulo = QLabel("🏧 Caja")
         titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
@@ -304,6 +319,8 @@ class CajaScreen(QWidget):
         self.tabla.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         self.tabla.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla.setMinimumHeight(200)
+        self.tabla.setMaximumHeight(400)
         layout.addWidget(self.tabla)
 
         # Historial de cierres
