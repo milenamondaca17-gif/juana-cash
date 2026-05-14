@@ -166,6 +166,7 @@ class CajaScreen(QWidget):
         _outer.setSpacing(0)
         _scroll = QScrollArea()
         _scroll.setWidgetResizable(True)
+        _scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         _scroll.setStyleSheet(f"""
             QScrollArea {{ border: none; background: {BG_MAIN}; }}
             QScrollBar:vertical {{ width: 6px; background: transparent; border-radius: 3px; }}
@@ -238,7 +239,14 @@ class CajaScreen(QWidget):
             c_layout.addWidget(lbl_v)
             desglose_layout.addWidget(card)
             self.cards_metodo[key] = lbl_v
-        layout.addWidget(desglose_frame)
+        dsg_scroll = QScrollArea()
+        dsg_scroll.setWidget(desglose_frame)
+        dsg_scroll.setWidgetResizable(True)
+        dsg_scroll.setFixedHeight(90)
+        dsg_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        dsg_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        dsg_scroll.setStyleSheet(f"QScrollArea {{ border: 1.5px solid {BORDER}; border-radius: 12px; background: {BG_CARD}; }} QScrollBar:horizontal {{ height: 4px; background: transparent; }} QScrollBar::handle:horizontal {{ background: {BORDER}; border-radius: 2px; }}")
+        layout.addWidget(dsg_scroll)
 
         # Botones de acción — 2 filas para no amontonar
         BTN_H = 38

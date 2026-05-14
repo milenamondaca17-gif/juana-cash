@@ -1,5 +1,5 @@
 {
-  "version": "3.9.2",
+  "version": "3.9.3",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.9.2 - Pantalla Caja con scroll vertical para ver ventas e historial"
+  "notas": "v3.9.3 - Fix layout caja + instalador cierra app automaticamente"
 }
