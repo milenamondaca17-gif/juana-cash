@@ -563,19 +563,6 @@ class ProductosScreen(QWidget):
                 QMessageBox.critical(self, "Error", f"No se pudo eliminar: {r.text}")
         except Exception:
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
-        try:
-            r = requests.get(f"{API_URL}/reportes/stock-bajo", timeout=5)
-            if r.status_code == 200:
-                productos = r.json()
-                if not productos:
-                    QMessageBox.information(self, "✅ Stock", "¡Todos los productos tienen stock suficiente!")
-                    return
-                msg = "Productos con stock bajo:\n\n"
-                for p in productos:
-                    msg += f"• {p['nombre']}: {p['stock_actual']} (mín: {p['stock_minimo']})\n"
-                QMessageBox.warning(self, f"⚠️ {len(productos)} productos con stock bajo", msg)
-        except Exception:
-            QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def ver_stock_bajo(self):
         try:

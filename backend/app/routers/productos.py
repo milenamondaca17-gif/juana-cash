@@ -84,11 +84,19 @@ def _resolver_categoria(datos: ProductoCrear, db: Session) -> dict:
 
 @router.post("/")
 def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
-    p = Producto(**_resolver_categoria(datos, db))
-    db.add(p)
-    db.commit()
-    db.refresh(p)
-    return p
+    if datos.codigo_barra:
+        existente = db.query(Producto).filter(Producto.codigo_barra == datos.codigo_barra).first()
+        if existente:
+            raise HTTPException(status_code=400, detail=f"El código '{datos.codigo_barra}' ya está en uso por '{existente.nombre}'")
+    try:
+        p = Producto(**_resolver_categoria(datos, db))
+        db.add(p)
+        db.commit()
+        db.refresh(p)
+        return p
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al crear producto: {str(e)}")
 
 @router.put("/{id}")
 def actualizar_producto(id: int, datos: ProductoCrear, db: Session = Depends(get_db)):
@@ -126,6 +134,9 @@ def eliminar_producto(id: int, db: Session = Depends(get_db)):
     if not p:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     p.activo = False
+    # Liberar código de barras para que pueda reutilizarse en otro producto
+    if p.codigo_barra:
+        p.codigo_barra = None
     db.commit()
     return {"mensaje": "Producto desactivado"}
 

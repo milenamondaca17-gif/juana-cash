@@ -1,5 +1,5 @@
 {
-  "version": "3.9.4",
+  "version": "3.9.5",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.9.4 - Turnos tarde/manana independientes (hora real de apertura)"
+  "notas": "v3.9.5 - Fix error al crear/eliminar productos con codigo de barras"
 }
