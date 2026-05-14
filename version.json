@@ -1,5 +1,5 @@
 {
-  "version": "3.9.0",
+  "version": "3.9.1",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.9.0 - Fix desglose de metodos de pago en caja (efectivo, debito, tarjeta, QR)"
+  "notas": "v3.9.1 - Fix critico: apertura de caja usa hora local (no UTC)"
 }

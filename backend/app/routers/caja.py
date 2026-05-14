@@ -39,7 +39,8 @@ def abrir_caja(datos: AbrirCajaSchema, db: Session = Depends(get_db)):
     turno = CajaTurno(
         usuario_id=datos.usuario_id,
         monto_apertura=datos.monto_apertura,
-        estado="abierto"
+        estado="abierto",
+        apertura=datetime.now()
     )
     db.add(turno)
     db.commit()
