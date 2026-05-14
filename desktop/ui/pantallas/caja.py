@@ -1416,13 +1416,12 @@ class CajaScreen(QWidget):
             QMessageBox.critical(self, "Error", str(e))
 
     def _apertura_iso(self):
-        """Retorna el inicio del día actual en ISO para filtrar ventas del turno.
-        Usa medianoche local en vez de la hora de apertura para evitar
-        problemas de UTC vs hora local de Argentina."""
-        if not self.turno_actual:
-            return None
-        from datetime import date
-        return f"{date.today()}T00:00:00"
+        """Retorna la hora de apertura del turno en ISO (hora local).
+        El backend ya guarda apertura en hora local con datetime.now()."""
+        ap = (self.turno_actual or {}).get("apertura", "")
+        if ap and len(ap) >= 16:
+            return ap[:16].replace(" ", "T") + ":00"
+        return None
 
     def actualizar_ventas(self):
         try:
