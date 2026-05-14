@@ -153,19 +153,67 @@ def turno_actual(usuario_id: int, db: Session = Depends(get_db)):
 
 @router.get("/historial")
 def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
+    from ..models.venta import Pago
+    from ..models.gasto import Gasto
+    from ..models.caja_aporte import CajaAporte
+    from ..models.usuario import Usuario
+
     turnos = db.query(CajaTurno).filter(
         CajaTurno.estado == "cerrado"
     ).order_by(CajaTurno.cierre.desc()).limit(limite).all()
-    return [{
-        "id":                     t.id,
-        "apertura":               str(t.apertura)[:16] if t.apertura else "",
-        "cierre":                 str(t.cierre)[:16] if t.cierre else "",
-        "monto_apertura":         float(t.monto_apertura or 0),
-        "monto_cierre_declarado": float(t.monto_cierre_declarado or 0),
-        "monto_cierre_calculado": float(t.monto_cierre_calculado or 0),
-        "diferencia":             float(t.diferencia or 0),
-        "usuario_id":             t.usuario_id,
-    } for t in turnos]
+
+    resultado = []
+    for t in turnos:
+        hasta = t.cierre or datetime.now()
+
+        # Ventas completadas del turno
+        ventas = db.query(Venta).filter(
+            Venta.fecha >= t.apertura,
+            Venta.fecha <= hasta,
+            Venta.estado == "completada"
+        ).all()
+        ids_ventas = [v.id for v in ventas]
+
+        # Desglose por método de pago
+        desglose = {"efectivo": 0.0, "debito": 0.0, "tarjeta": 0.0,
+                    "mercadopago_qr": 0.0, "transferencia": 0.0, "fiado": 0.0}
+        if ids_ventas:
+            pagos = db.query(Pago).filter(Pago.venta_id.in_(ids_ventas)).all()
+            for p in pagos:
+                m = p.metodo.lower()
+                if m in desglose:
+                    desglose[m] += float(p.monto or 0)
+
+        # Gastos y aportes del turno
+        total_gastos = sum(float(g.monto) for g in db.query(Gasto).filter(
+            Gasto.fecha >= t.apertura, Gasto.fecha <= hasta).all())
+        total_aportes = sum(float(a.monto) for a in db.query(CajaAporte).filter(
+            CajaAporte.turno_id == t.id).all())
+
+        # Nombre del cajero
+        usuario = db.query(Usuario).filter(Usuario.id == t.usuario_id).first()
+        nombre_cajero = usuario.nombre if usuario else f"Usuario {t.usuario_id}"
+
+        resultado.append({
+            "id":                     t.id,
+            "apertura":               str(t.apertura)[:16] if t.apertura else "",
+            "cierre":                 str(t.cierre)[:16] if t.cierre else "",
+            "cajero":                 nombre_cajero,
+            "monto_apertura":         float(t.monto_apertura or 0),
+            "total_aportes":          total_aportes,
+            "monto_cierre_declarado": float(t.monto_cierre_declarado or 0),
+            "monto_cierre_calculado": float(t.monto_cierre_calculado or 0),
+            "diferencia":             float(t.diferencia or 0),
+            "total_gastos":           total_gastos,
+            "efectivo":               desglose["efectivo"],
+            "debito":                 desglose["debito"],
+            "tarjeta":                desglose["tarjeta"],
+            "mercadopago_qr":         desglose["mercadopago_qr"],
+            "transferencia":          desglose["transferencia"],
+            "fiado":                  desglose["fiado"],
+            "cantidad_ventas":        len(ventas),
+        })
+    return resultado
 
 @router.get("/resumen-rapido")
 def resumen_rapido(usuario_id: int = 1, db: Session = Depends(get_db)):

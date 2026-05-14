@@ -141,7 +141,22 @@ class CajaScreen(QWidget):
         self._timer_refresh.timeout.connect(self.actualizar_ventas)
 
     def set_usuario(self, usuario):
-        self.usuario_id = usuario.get("id", 1)
+        nuevo_id = usuario.get("id", 1)
+        if nuevo_id != self.usuario_id:
+            # Cambió de empleado — resetear turno para que cargue el del nuevo usuario
+            self.turno_actual = None
+            self.lbl_estado.setText("⚪ Caja cerrada")
+            self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 16px; font-weight: bold;")
+            self.lbl_apertura.setText("")
+            self.lbl_total_caja.setText("Total acumulado: $0")
+            self.lbl_ef_caja.setText("💵 Efectivo en caja: —")
+            self.btn_abrir.setEnabled(True)
+            self.btn_cerrar.setEnabled(False)
+            self.btn_aporte.setEnabled(False)
+            for lbl in self.cards_metodo.values():
+                lbl.setText("$0")
+            self.tabla.setRowCount(0)
+        self.usuario_id = nuevo_id
         self.nombre_cajero = usuario.get("nombre", "")
 
     def setup_ui(self):
@@ -311,16 +326,26 @@ class CajaScreen(QWidget):
         layout.addLayout(hdr_hist)
 
         self.tabla_historial = QTableWidget()
-        self.tabla_historial.setColumnCount(6)
-        self.tabla_historial.setHorizontalHeaderLabels(["Apertura", "Cierre", "Apertura $", "Vendido $", "Declarado $", "Diferencia"])
-        self.tabla_historial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tabla_historial.setColumnCount(10)
+        self.tabla_historial.setHorizontalHeaderLabels([
+            "Cajero", "Apertura", "Cierre",
+            "💵 Efectivo", "🏧 Débito", "💳 Tarjeta", "📱 QR/MP", "💸 Fiado",
+            "💰 Total", "Ver"
+        ])
+        self.tabla_historial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.tabla_historial.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.tabla_historial.setColumnWidth(2, 100)
-        self.tabla_historial.setColumnWidth(3, 100)
-        self.tabla_historial.setColumnWidth(4, 110)
-        self.tabla_historial.setColumnWidth(5, 100)
-        self.tabla_historial.setMaximumHeight(220)
+        self.tabla_historial.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.tabla_historial.setColumnWidth(0, 110)
+        self.tabla_historial.setColumnWidth(3, 90)
+        self.tabla_historial.setColumnWidth(4, 80)
+        self.tabla_historial.setColumnWidth(5, 80)
+        self.tabla_historial.setColumnWidth(6, 80)
+        self.tabla_historial.setColumnWidth(7, 80)
+        self.tabla_historial.setColumnWidth(8, 90)
+        self.tabla_historial.setColumnWidth(9, 50)
+        self.tabla_historial.setMaximumHeight(260)
         self.tabla_historial.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla_historial.setAlternatingRowColors(True)
         layout.addWidget(self.tabla_historial)
 
 
@@ -704,31 +729,102 @@ class CajaScreen(QWidget):
         self._timer_refresh.stop()
 
     def cargar_historial(self):
+        from PyQt6.QtGui import QColor
         try:
             r = requests.get(f"{API_URL}/caja/historial", timeout=5)
             cierres = r.json() if r.status_code == 200 else []
         except Exception:
             cierres = []
         self.tabla_historial.setRowCount(0)
+        self._cierres_data = cierres
         for c in cierres:
             row = self.tabla_historial.rowCount()
             self.tabla_historial.insertRow(row)
-            diff = float(c.get("diferencia", 0))
-            color_diff = "#27ae60" if abs(diff) < 100 else "#e74c3c"
-            valores = [
-                c.get("apertura", ""),
-                c.get("cierre", ""),
-                _p(c.get('monto_apertura', 0)),
-                _p(c.get('monto_cierre_calculado', 0)),
-                _p(c.get('monto_cierre_declarado', 0)),
-                ("+" if diff >= 0 else "") + _p(diff),
+            total = float(c.get("monto_cierre_calculado", 0))
+            diff  = float(c.get("diferencia", 0))
+            col_diff = "#16a34a" if abs(diff) < 500 else "#dc2626"
+            datos_col = [
+                (c.get("cajero", ""),           "#e2e8f0"),
+                (c.get("apertura", "")[-5:] if c.get("apertura") else "",  "#94a3b8"),
+                (c.get("cierre", "")[-5:] if c.get("cierre") else "",      "#94a3b8"),
+                (_p(c.get("efectivo", 0)),      "#16a34a"),
+                (_p(c.get("debito", 0)),        "#10b981"),
+                (_p(c.get("tarjeta", 0)),       "#3b82f6"),
+                (_p(c.get("mercadopago_qr",0)), "#0284c7"),
+                (_p(c.get("fiado", 0)),         "#dc2626"),
+                (_p(total),                     "#f59e0b"),
             ]
-            for col, val in enumerate(valores):
+            for col, (val, color) in enumerate(datos_col):
                 item = QTableWidgetItem(str(val))
-                item.setForeground(__import__('PyQt6.QtGui', fromlist=['QColor']).QColor(
-                    color_diff if col == 5 else "white"
-                ))
+                item.setForeground(QColor(color))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_historial.setItem(row, col, item)
+            # Botón Ver detalle
+            btn_ver = QPushButton("📋")
+            btn_ver.setFixedSize(38, 26)
+            btn_ver.setToolTip("Ver resumen completo")
+            btn_ver.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; border: 1px solid {BORDER}; font-size: 13px; }}")
+            btn_ver.clicked.connect(lambda _, datos=c: self._ver_detalle_cierre(datos))
+            self.tabla_historial.setCellWidget(row, 9, btn_ver)
+
+    def _ver_detalle_cierre(self, c):
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Resumen cierre — {c.get('cajero','')} {c.get('apertura','')[:10]}")
+        dlg.setMinimumWidth(420)
+        dlg.setStyleSheet(f"background: {BG_CARD}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dlg)
+        lay.setSpacing(8)
+        lay.setContentsMargins(24, 20, 24, 20)
+
+        def titulo(txt):
+            l = QLabel(txt)
+            l.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+            l.setStyleSheet(f"color: {TEXT_MAIN}; background: transparent; margin-top: 6px;")
+            lay.addWidget(l)
+
+        def fila(lbl, val, color="#e2e8f0"):
+            r = QHBoxLayout()
+            l1 = QLabel(lbl); l1.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
+            l2 = QLabel(val); l2.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold; background: transparent;")
+            r.addWidget(l1); r.addStretch(); r.addWidget(l2)
+            lay.addLayout(r)
+
+        titulo(f"👤 {c.get('cajero','')}  |  {c.get('apertura','')} → {c.get('cierre','')}")
+
+        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background:{BORDER}; border:none;")
+        lay.addWidget(sep)
+
+        titulo("Cobros del turno")
+        fila("💵 Efectivo",          _p(c.get("efectivo", 0)),       "#16a34a")
+        fila("🏧 Débito",            _p(c.get("debito", 0)),         "#10b981")
+        fila("💳 Tarjeta",           _p(c.get("tarjeta", 0)),        "#3b82f6")
+        fila("📱 QR / Mercado Pago", _p(c.get("mercadopago_qr", 0)),"#0284c7")
+        fila("🏦 Transferencia",     _p(c.get("transferencia", 0)),  "#7c3aed")
+        fila("💸 Fiado",             _p(c.get("fiado", 0)),          "#dc2626")
+
+        total = float(c.get("monto_cierre_calculado", 0))
+        sep2 = QFrame(); sep2.setFixedHeight(1); sep2.setStyleSheet(f"background:{BORDER}; border:none;")
+        lay.addWidget(sep2)
+        fila("💰 Total vendido",     _p(total),                      "#f59e0b")
+
+        titulo("Caja")
+        fila("Monto inicial",        _p(c.get("monto_apertura", 0)), "#94a3b8")
+        if c.get("total_aportes", 0):
+            fila("Aportes",          _p(c.get("total_aportes", 0)),  "#b45309")
+        fila("Gastos del turno",     f"-{_p(c.get('total_gastos',0))}", "#e74c3c")
+        fila("Declarado por cajero", _p(c.get("monto_cierre_declarado", 0)), "#e2e8f0")
+        diff = float(c.get("diferencia", 0))
+        fila("Diferencia",
+             ("+" if diff >= 0 else "") + _p(diff),
+             "#16a34a" if abs(diff) < 500 else "#dc2626")
+
+        btn_c = QPushButton("Cerrar")
+        btn_c.setFixedHeight(40)
+        btn_c.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_c.clicked.connect(dlg.accept)
+        lay.addWidget(btn_c)
+        dlg.exec()
 
     def abrir_caja(self):
         try:
