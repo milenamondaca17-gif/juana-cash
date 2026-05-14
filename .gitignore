@@ -8,3 +8,4 @@ instalador_output/*.zip
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
 *.apk
+.claude/
