@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Any
 from ..database import get_db
-from ..models.producto import Producto, Categoria
+from ..models.producto import Producto, Categoria, CodigoBarra
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
 
@@ -18,6 +18,7 @@ class ProductoCrear(BaseModel):
     categoria_id: Optional[int] = None
     categoria: Optional[str] = None  # nombre de categoría (frontend legacy)
     tasa_iva: float = 21.0
+    codigos_extra: Optional[List[Any]] = []
 
 class ActualizacionMasiva(BaseModel):
     porcentaje: float          # ej: 15.0 = +15%
@@ -69,18 +70,32 @@ def obtener_producto(id: int, db: Session = Depends(get_db)):
     return p
 
 def _resolver_categoria(datos: ProductoCrear, db: Session) -> dict:
-    d = {k: v for k, v in datos.model_dump().items() if k != "categoria"}
+    d = {k: v for k, v in datos.model_dump().items() if k not in ("categoria", "codigos_extra")}
     if datos.categoria and not datos.categoria_id:
+        nombre_cat = datos.categoria.strip()
         cat = db.query(Categoria).filter(
-            func.lower(Categoria.nombre) == datos.categoria.lower(),
+            func.lower(Categoria.nombre) == nombre_cat.lower(),
             Categoria.activo == True
         ).first()
         if not cat:
-            cat = Categoria(nombre=datos.categoria)
+            cat = Categoria(nombre=nombre_cat)
             db.add(cat)
             db.flush()
         d["categoria_id"] = cat.id
     return d
+
+def _guardar_codigos_extra(producto_id: int, codigos_extra: list, db: Session):
+    db.query(CodigoBarra).filter(CodigoBarra.producto_id == producto_id).delete()
+    for item in (codigos_extra or []):
+        codigo = (item.get("codigo", "") if isinstance(item, dict) else str(item)).strip()
+        if not codigo:
+            continue
+        try:
+            db.add(CodigoBarra(codigo=codigo, producto_id=producto_id))
+            db.flush()
+        except Exception:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=f"El código '{codigo}' ya está en uso por otro producto")
 
 @router.post("/")
 def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
@@ -91,9 +106,14 @@ def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
     try:
         p = Producto(**_resolver_categoria(datos, db))
         db.add(p)
+        db.flush()
+        _guardar_codigos_extra(p.id, datos.codigos_extra, db)
         db.commit()
         db.refresh(p)
         return p
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error al crear producto: {str(e)}")
@@ -124,6 +144,7 @@ def actualizar_producto(id: int, datos: ProductoCrear, db: Session = Depends(get
     d = _resolver_categoria(datos, db)
     for key, value in d.items():
         setattr(p, key, value)
+    _guardar_codigos_extra(p.id, datos.codigos_extra, db)
     db.commit()
     db.refresh(p)
     return p

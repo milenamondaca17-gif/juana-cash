@@ -199,6 +199,9 @@ class ProductoDialog(QDialog):
         if not self.input_nombre.text().strip():
             QMessageBox.warning(self, "Error", "El nombre es obligatorio")
             return
+        if self.input_precio_venta.value() <= 0:
+            QMessageBox.warning(self, "Error", "El precio de venta debe ser mayor a $0")
+            return
         self.accept()
 
     def get_datos(self):
@@ -320,7 +323,7 @@ class ProductosScreen(QWidget):
                 self.card_total[1].setText(str(d.get("total", "—")))
                 self.card_stock_bajo[1].setText(str(d.get("stock_bajo", "—")))
                 self.card_sin_stock[1].setText(str(d.get("sin_stock", "—")))
-                self.card_valor[1].setText(f"${d.get('valor_inventario', 0):,.0f}")
+                self.card_valor[1].setText(f"${d.get('valor_inventario', 0):,.0f}".replace(",", "."))
         except Exception:
             pass
 
@@ -347,7 +350,7 @@ class ProductosScreen(QWidget):
         self.card_total[1].setText(str(total))
         self.card_stock_bajo[1].setText(str(stock_bajo))
         self.card_sin_stock[1].setText(str(sin_stock))
-        self.card_valor[1].setText(f"${valor:.0f}")
+        self.card_valor[1].setText(f"${valor:,.0f}".replace(",", "."))
 
     def filtrar(self, texto):
         if len(texto) < 2:
@@ -403,7 +406,9 @@ class ProductosScreen(QWidget):
             # Stock
             stock = float(p.get("stock_actual") or 0)
             stock_min = float(p.get("stock_minimo") or 0)
-            item_stock = QTableWidgetItem(str(stock))
+            stock_str = str(int(stock)) if stock == int(stock) else str(stock)
+            stock_min_str = str(int(stock_min)) if stock_min == int(stock_min) else str(stock_min)
+            item_stock = QTableWidgetItem(stock_str)
             if stock <= 0:
                 item_stock.setForeground(Qt.GlobalColor.red)
             elif stock_min > 0 and stock <= stock_min:
@@ -411,7 +416,7 @@ class ProductosScreen(QWidget):
             else:
                 item_stock.setForeground(Qt.GlobalColor.green)
             self.tabla.setItem(i, 6, item_stock)
-            self.tabla.setItem(i, 7, QTableWidgetItem(str(stock_min)))
+            self.tabla.setItem(i, 7, QTableWidgetItem(stock_min_str))
 
             # Botones
             btn_w = QWidget()
