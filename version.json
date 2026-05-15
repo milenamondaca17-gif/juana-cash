@@ -1,5 +1,5 @@
 {
-  "version": "4.0.0",
+  "version": "4.0.1",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v4.0.0 - Cierre de caja: efectivo obligatorio + resumen por WhatsApp"
+  "notas": "v4.0.1 - Fix verificar precio muestra valor siempre"
 }
