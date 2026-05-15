@@ -1,5 +1,5 @@
 {
-  "version": "3.9.6",
+  "version": "3.9.7",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.9.6 - Fix diferencia de 30.000 en cierre de caja con empleados"
+  "notas": "v3.9.7 - Fix formato de numeros en caja (gastos, apertura, cierre, empleados)"
 }

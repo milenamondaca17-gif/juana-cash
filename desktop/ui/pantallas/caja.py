@@ -853,7 +853,7 @@ class CajaScreen(QWidget):
 
     def abrir_caja(self):
         try:
-            monto = float(self.input_monto.text() or 0)
+            monto = float(self.input_monto.text().strip().replace(".", "").replace(",", ".") or 0)
         except ValueError:
             QMessageBox.warning(self, "Error", "Ingresá un monto válido")
             return
@@ -1124,7 +1124,7 @@ class CajaScreen(QWidget):
                 if not nombre:
                     continue
                 try:
-                    monto = float(in_m.text())
+                    monto = float(in_m.text().strip().replace(".", "").replace(",", ".") or 0)
                     if monto > 0:
                         pagos.append({"nombre": nombre, "monto": monto})
                 except ValueError:
@@ -1180,7 +1180,7 @@ class CajaScreen(QWidget):
             total_emp_dialog = sum(p["monto"] for p in pagos_dialog)
             net_esperado = efectivo_esperado - total_emp_dialog
             try:
-                monto_declarado = float(input_declarado.text() or net_esperado)
+                monto_declarado = float(input_declarado.text().strip().replace(".", "").replace(",", ".") or net_esperado)
             except ValueError:
                 monto_declarado = net_esperado
             diferencia = monto_declarado - net_esperado
@@ -1349,7 +1349,7 @@ class CajaScreen(QWidget):
                 QMessageBox.warning(dialog, "Error", "Ingresá una descripción")
                 return
             try:
-                monto = float(input_monto.text())
+                monto = float(input_monto.text().strip().replace(".", "").replace(",", "."))
             except ValueError:
                 QMessageBox.warning(dialog, "Error", "Ingresá un monto válido")
                 return
@@ -1360,7 +1360,8 @@ class CajaScreen(QWidget):
                 r = requests.post(f"{API_URL}/gastos/", json={"descripcion": desc, "monto": monto, "categoria": combo.currentText(), "usuario_id": self.usuario_id}, timeout=5)
                 if r.status_code == 200:
                     dialog.accept()
-                    QMessageBox.information(self, "✅", f"Gasto registrado: ${monto:.2f}")
+                    QMessageBox.information(self, "✅", f"Gasto registrado: ${monto:,.0f}".replace(",", "."))
+                    self.actualizar_ventas()
             except Exception:
                 QMessageBox.critical(dialog, "Error", "No se puede conectar")
         btn_ok.clicked.connect(confirmar)
