@@ -1022,6 +1022,15 @@ class VentasScreen(QWidget):
                 lbl_codigo.setText("")
                 resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid #e74c3c; }}")
 
+        timer_scan = QTimer()
+        timer_scan.setSingleShot(True)
+        timer_scan.timeout.connect(buscar)
+
+        def on_text_changed():
+            if input_b.text().strip():
+                timer_scan.start(300)
+
+        input_b.textChanged.connect(on_text_changed)
         input_b.returnPressed.connect(buscar)
 
         btn_cerrar = QPushButton("Cerrar")
