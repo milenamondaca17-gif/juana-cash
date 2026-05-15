@@ -1009,7 +1009,7 @@ class VentasScreen(QWidget):
             if p:
                 stock = float(p.get("stock_actual", 0))
                 lbl_nombre.setText(p["nombre"])
-                lbl_precio.setText(f"${float(p['precio_venta']):,.2f}")
+                lbl_precio.setText(_p(p['precio_venta']))
                 color_stock = "#27ae60" if stock > 5 else ("#f39c12" if stock > 0 else "#e74c3c")
                 lbl_stock.setText(f"Stock: {stock:g} unidades")
                 lbl_stock.setStyleSheet(f"color: {color_stock}; font-size: 13px;")

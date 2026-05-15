@@ -1,5 +1,5 @@
 {
-  "version": "3.9.8",
+  "version": "3.9.9",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v3.9.8 - Fix bugs en pestaña Productos"
+  "notas": "v3.9.9 - Fix verificar precio formato argentino"
 }
