@@ -930,8 +930,7 @@ class CajaScreen(QWidget):
         except Exception:
             pass
 
-        total_emp_previo = sum(p["monto"] for p in getattr(self, '_pagos_empleados_guardados', []))
-        efectivo_esperado = monto_apertura + total_aportes + totales["efectivo"] - total_gastos - total_emp_previo
+        efectivo_esperado = monto_apertura + total_aportes + totales["efectivo"] - total_gastos
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Cierre de caja")
@@ -1001,7 +1000,7 @@ class CajaScreen(QWidget):
             fl.addWidget(lbl_m)
             lay.addWidget(f)
 
-        detalle_ef = f"inicio {_p(monto_apertura)}" + (f" + aporte {_p(total_aportes)}" if total_aportes else "") + f" + ef.{_p(totales['efectivo'])} - gastos {_p(total_gastos)}" + (f" - emp. {_p(total_emp_previo)}" if total_emp_previo else "")
+        detalle_ef = f"inicio {_p(monto_apertura)}" + (f" + aporte {_p(total_aportes)}" if total_aportes else "") + f" + ef.{_p(totales['efectivo'])} - gastos {_p(total_gastos)}"
         fila_metodo("💵", "Efectivo",          efectivo_esperado,         "#27ae60", detalle_ef)
         fila_metodo("🏧", "Débito",            totales["debito"],         "#10b981")
         fila_metodo("💳", "Tarjeta",           totales["tarjeta"],        "#3498db")
@@ -1097,6 +1096,12 @@ class CajaScreen(QWidget):
         row_decl.addWidget(input_declarado)
         lay.addLayout(row_decl)
 
+        # Pre-cargar empleados guardados en los campos del diálogo
+        for i, pago in enumerate((self._pagos_empleados_guardados or [])[:5]):
+            filas_emp[i][0].setText(pago["nombre"])
+            filas_emp[i][1].setText(str(int(pago["monto"])))
+        actualizar_total_emp()
+
         btns = QHBoxLayout()
         btns.setContentsMargins(24, 8, 24, 16)
         btn_c = QPushButton("Cancelar"); btn_c.setFixedHeight(42)
@@ -1129,8 +1134,7 @@ class CajaScreen(QWidget):
         def _txt_cierre(decl=None, diff=None):
             from datetime import datetime
             ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-            # Usar pagos del dialog de empleados si los hay
-            pagos_emp = list(getattr(self, '_pagos_empleados_guardados', []))
+            pagos_emp = _obtener_pagos_empleados()
             total_emp = sum(p["monto"] for p in pagos_emp)
             ls = ["="*40, "   JUANA CASH - CIERRE DE CAJA", "="*40,
                   f"Fecha:       {ts}", f"Cajero:      {getattr(self,'nombre_cajero','?')}",
@@ -1172,15 +1176,18 @@ class CajaScreen(QWidget):
         btn_exp.clicked.connect(exportar)
 
         def confirmar_cierre():
+            pagos_dialog = _obtener_pagos_empleados()
+            total_emp_dialog = sum(p["monto"] for p in pagos_dialog)
+            net_esperado = efectivo_esperado - total_emp_dialog
             try:
-                monto_declarado = float(input_declarado.text() or efectivo_esperado)
+                monto_declarado = float(input_declarado.text() or net_esperado)
             except ValueError:
-                monto_declarado = efectivo_esperado
-            diferencia = monto_declarado - efectivo_esperado
+                monto_declarado = net_esperado
+            diferencia = monto_declarado - net_esperado
             try:
                 r = requests.post(f"{API_URL}/caja/cerrar/{self.turno_actual['id']}",
                                    json={"monto_cierre": monto_declarado,
-                                         "pagos_empleados": self._pagos_empleados_guardados}, timeout=5)
+                                         "pagos_empleados": pagos_dialog}, timeout=5)
                 if r.status_code == 200:
                     try:
                         requests.post(f"{API_URL}/sesiones/registrar", json={
