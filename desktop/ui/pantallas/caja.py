@@ -1179,10 +1179,17 @@ class CajaScreen(QWidget):
             pagos_dialog = _obtener_pagos_empleados()
             total_emp_dialog = sum(p["monto"] for p in pagos_dialog)
             net_esperado = efectivo_esperado - total_emp_dialog
+            texto_declarado = input_declarado.text().strip()
+            if not texto_declarado:
+                QMessageBox.warning(dialog, "Campo obligatorio",
+                    "Debés ingresar el efectivo contado en caja para poder cerrar.")
+                input_declarado.setFocus()
+                return
             try:
-                monto_declarado = float(input_declarado.text().strip().replace(".", "").replace(",", ".") or net_esperado)
+                monto_declarado = float(texto_declarado.replace(".", "").replace(",", "."))
             except ValueError:
-                monto_declarado = net_esperado
+                QMessageBox.warning(dialog, "Valor inválido", "El efectivo contado ingresado no es válido.")
+                return
             diferencia = monto_declarado - net_esperado
             try:
                 r = requests.post(f"{API_URL}/caja/cerrar/{self.turno_actual['id']}",
@@ -1202,6 +1209,62 @@ class CajaScreen(QWidget):
                                             f"cierre_{datetime.now().strftime('%Y%m%d_%H%M')}.txt")
                         os.makedirs(os.path.dirname(ruta), exist_ok=True)
                         with open(ruta, "w", encoding="utf-8") as fh: fh.write(_txt_cierre(monto_declarado, diferencia))
+                    except Exception: pass
+                    try:
+                        from datetime import datetime as _dt
+                        ts = _dt.now().strftime("%d/%m/%Y %H:%M")
+                        lineas_metodos = (
+                            f"\n💵 Efectivo:    {_p(totales['efectivo'])}"
+                            f"\n🏧 Débito:      {_p(totales['debito'])}"
+                            f"\n💳 Tarjeta:     {_p(totales['tarjeta'])}"
+                            f"\n📱 QR/MP:       {_p(totales['mercadopago_qr'])}"
+                            f"\n🏦 Transfer.:   {_p(totales['transferencia'])}"
+                            f"\n💸 Fiado:       {_p(totales['fiado'])}"
+                        )
+                        lista_gastos = datos_gastos.get("gastos", [])
+                        if lista_gastos:
+                            lineas_gastos = "\n\n🧾 *Gastos del turno:*"
+                            for g in lista_gastos:
+                                lineas_gastos += f"\n  • {g['descripcion']}: {_p(g['monto'])}"
+                            lineas_gastos += f"\n  Total: {_p(total_gastos)}"
+                        else:
+                            lineas_gastos = f"\n\n🧾 Gastos: {_p(0)}"
+                        if pagos_dialog:
+                            lineas_emp = "\n\n👥 *Empleados:*"
+                            for p in pagos_dialog:
+                                lineas_emp += f"\n  • {p['nombre']}: {_p(p['monto'])}"
+                            lineas_emp += f"\n  Total: {_p(total_emp_dialog)}"
+                        else:
+                            lineas_emp = ""
+                        if abs(diferencia) < 100:
+                            faltante_txt = "✅ Sin faltante"
+                        elif diferencia < 0:
+                            faltante_txt = f"⚠️ Faltante: {_p(abs(diferencia))}"
+                        else:
+                            faltante_txt = f"ℹ️ Sobra: {_p(diferencia)}"
+                        msg_wa = (
+                            f"🏪 *CIERRE DE CAJA — JUANA CASH*\n"
+                            f"📅 {ts}  |  👤 {getattr(self, 'nombre_cajero', '?')}\n"
+                            f"\n🎫 Tickets: {cant_tickets}  |  Prom: {_p(ticket_prom)}"
+                            f"\n{'─'*24}"
+                            + lineas_metodos +
+                            f"\n{'─'*24}"
+                            f"\n📊 Total vendido: {_p(total_vendido)}"
+                            f"\n📉 Gastos:        -{_p(total_gastos)}"
+                            f"\n📈 Neto:           {_p(total_vendido - total_gastos)}"
+                            + lineas_gastos
+                            + lineas_emp +
+                            f"\n{'─'*24}"
+                            f"\n💵 Ef. esperado:  {_p(net_esperado)}"
+                            f"\n💵 Ef. contado:   {_p(monto_declarado)}"
+                            f"\n{faltante_txt}"
+                        )
+                        for num in ["2634670678", "2634633099", "2634633067"]:
+                            try:
+                                requests.post("http://127.0.0.1:3001/send",
+                                             json={"phone": num, "message": msg_wa}, timeout=5)
+                            except Exception:
+                                pass
                     except Exception: pass
                     dialog.accept()
                     self.turno_actual = None
