@@ -1007,14 +1007,21 @@ class VentasScreen(QWidget):
                 except Exception:
                     pass
             if p:
-                stock = float(p.get("stock_actual", 0))
-                lbl_nombre.setText(p["nombre"])
-                lbl_precio.setText(_p(p['precio_venta']))
-                color_stock = "#27ae60" if stock > 5 else ("#f39c12" if stock > 0 else "#e74c3c")
-                lbl_stock.setText(f"Stock: {stock:g} unidades")
-                lbl_stock.setStyleSheet(f"color: {color_stock}; font-size: 13px;")
-                lbl_codigo.setText(f"Código: {p.get('codigo_barra') or 'sin código'}")
-                resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid #1abc9c; }}")
+                try:
+                    stock = float(p.get("stock_actual") or 0)
+                    precio = float(p.get("precio_venta") or 0)
+                    lbl_nombre.setText(p.get("nombre", "Sin nombre"))
+                    lbl_precio.setText(_p(precio))
+                    color_stock = "#27ae60" if stock > 5 else ("#f39c12" if stock > 0 else "#e74c3c")
+                    lbl_stock.setText(f"Stock: {stock:g} unidades")
+                    lbl_stock.setStyleSheet(f"color: {color_stock}; font-size: 13px;")
+                    lbl_codigo.setText(f"Código: {p.get('codigo_barra') or 'sin código'}")
+                    resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid #1abc9c; }}")
+                except Exception:
+                    lbl_nombre.setText("Error al mostrar")
+                    lbl_precio.setText("")
+                    lbl_stock.setText("")
+                    lbl_codigo.setText("")
             else:
                 lbl_nombre.setText("No encontrado")
                 lbl_precio.setText("")
