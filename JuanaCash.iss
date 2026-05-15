@@ -44,8 +44,8 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
 begin
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM JuanaCash.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Sleep(1500);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM JuanaCash.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(3000);
   Result := '';
 end;
 
