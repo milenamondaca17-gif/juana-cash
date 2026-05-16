@@ -1,5 +1,5 @@
 {
-  "version": "4.0.2",
+  "version": "4.0.3",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash_Setup.exe",
-  "notas": "v4.0.2 - Fix formato argentino en departamentos y ventas pausadas"
+  "notas": "v4.0.3 - Fix formula efectivo esperado en cierre de caja"
 }

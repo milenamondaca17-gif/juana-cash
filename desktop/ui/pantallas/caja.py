@@ -930,7 +930,15 @@ class CajaScreen(QWidget):
         except Exception:
             pass
 
-        efectivo_esperado = monto_apertura + total_aportes + totales["efectivo"] - total_gastos
+        efectivo_esperado = (total_vendido
+            + monto_apertura
+            + total_aportes
+            - totales["debito"]
+            - totales["tarjeta"]
+            - totales["mercadopago_qr"]
+            - totales["transferencia"]
+            - totales["fiado"]
+            - total_gastos)
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Cierre de caja")
@@ -1000,7 +1008,10 @@ class CajaScreen(QWidget):
             fl.addWidget(lbl_m)
             lay.addWidget(f)
 
-        detalle_ef = f"inicio {_p(monto_apertura)}" + (f" + aporte {_p(total_aportes)}" if total_aportes else "") + f" + ef.{_p(totales['efectivo'])} - gastos {_p(total_gastos)}"
+        detalle_ef = (f"total {_p(total_vendido)} + inicio {_p(monto_apertura)}"
+            + (f" + aporte {_p(total_aportes)}" if total_aportes else "")
+            + f" - no efectivo {_p(totales['debito'] + totales['tarjeta'] + totales['mercadopago_qr'] + totales['transferencia'] + totales['fiado'])}"
+            + f" - gastos {_p(total_gastos)}")
         fila_metodo("💵", "Efectivo",          efectivo_esperado,         "#27ae60", detalle_ef)
         fila_metodo("🏧", "Débito",            totales["debito"],         "#10b981")
         fila_metodo("💳", "Tarjeta",           totales["tarjeta"],        "#3498db")
