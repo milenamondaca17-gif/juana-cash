@@ -1,5 +1,5 @@
 {
-  "version": "4.0.6",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.0.6/JuanaCash_Setup.exe",
-  "notas": "v4.0.6 - Fix definitivo actualizacion: instalador proceso independiente"
+  "version": "4.0.7",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.0.7/JuanaCash_Setup.exe",
+  "notas": "v4.0.7 - Fix actualizacion: taskkill sin /T para no matar instalador"
 }
