@@ -1081,7 +1081,7 @@ class VentasScreen(QWidget):
             lbl_n.setStyleSheet(f"color: {data['color']}; font-size: 12px; font-weight: bold;")
             card_layout.addWidget(lbl_n)
             card_layout.addStretch()
-            lbl_t = QLabel(f"${data['total']:.2f}")
+            lbl_t = QLabel(_p(data['total']))
             lbl_t.setFont(QFont("Arial", 13, QFont.Weight.Bold))
             lbl_t.setStyleSheet(f"color: {data['color']};")
             card_layout.addWidget(lbl_t)
@@ -1269,12 +1269,12 @@ class VentasScreen(QWidget):
             if not montos_temp:
                 lbl_montos.setText("- Sin ítems aún -")
                 lbl_montos.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
-                lbl_total_depto.setText("Total: $0.00")
+                lbl_total_depto.setText("Total: $0")
                 return
-            texto = "  +  ".join([f"${m:.2f}" for m in montos_temp])
+            texto = "  +  ".join([_p(m) for m in montos_temp])
             lbl_montos.setText(texto)
             lbl_montos.setStyleSheet("color: white; font-size: 13px;")
-            lbl_total_depto.setText(f"Total: ${sum(montos_temp):.2f}")
+            lbl_total_depto.setText(f"Total: {_p(sum(montos_temp))}")
 
         def confirmar():
             if not montos_temp:
@@ -2203,7 +2203,7 @@ class VentasScreen(QWidget):
         
         for i, t in enumerate(self.tickets_en_espera):
             total = sum(item["subtotal"] for item in t["items"])
-            item = QListWidgetItem(f"🛒 {t['nombre']} - {len(t['items'])} prod. - ${total:.2f}")
+            item = QListWidgetItem(f"🛒 {t['nombre']} - {len(t['items'])} prod. - {_p(total)}")
             item.setData(Qt.ItemDataRole.UserRole, i)
             lista.addItem(item)
             
