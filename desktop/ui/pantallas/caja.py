@@ -262,6 +262,7 @@ class CajaScreen(QWidget):
         self.btn_abrir  = _btn("🔓 Abrir caja",    SUCCESS,   self.abrir_caja)
         self.btn_cerrar = _btn("🔒 Cerrar caja",    DANGER,    self.cerrar_caja, enabled=False)
         btn_gasto       = _btn("💸 Gasto",          "#7c3aed", self.registrar_gasto)
+        btn_retiro      = _btn("💰 Retiro",         "#dc2626", self.registrar_retiro)
         btn_empleados   = _btn("👥 Empleados",      "#ea580c", self.ver_historial_empleados)
         btn_histef      = _btn("💵 Efectivo",       SUCCESS,   self.ver_historial_efectivo)
         btn_email_cfg   = _btn("📧 Email",          "#2563eb", self.ver_config_email)
@@ -292,6 +293,7 @@ class CajaScreen(QWidget):
         fila1.addWidget(self.btn_abrir)
         fila1.addWidget(self.btn_cerrar)
         fila1.addWidget(btn_gasto)
+        fila1.addWidget(btn_retiro)
         fila1.addWidget(self.btn_aporte)
         fila1.addWidget(btn_empleados)
         fila1.addStretch()
@@ -1441,6 +1443,141 @@ class CajaScreen(QWidget):
         btn_ok.clicked.connect(confirmar)
         input_monto.returnPressed.connect(confirmar)
         dialog.exec()
+
+    def registrar_retiro(self):
+        # ── Paso 1: PIN ───────────────────────────────────────────────────────
+        dlg_pin = QDialog(self)
+        dlg_pin.setWindowTitle("🔐 Retiro — PIN requerido")
+        dlg_pin.setMinimumWidth(300)
+        dlg_pin.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay_pin = QVBoxLayout(dlg_pin)
+        lay_pin.setSpacing(12)
+        lay_pin.setContentsMargins(24, 20, 24, 20)
+
+        lbl_pin_t = QLabel("Ingresá el PIN de dueño:")
+        lbl_pin_t.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lay_pin.addWidget(lbl_pin_t)
+
+        inp_pin = QLineEdit()
+        inp_pin.setEchoMode(QLineEdit.EchoMode.Password)
+        inp_pin.setFixedHeight(48)
+        inp_pin.setStyleSheet("QLineEdit { background: #0f3460; border: 2px solid #dc2626; border-radius: 8px; padding: 10px; color: white; font-size: 20px; font-weight: bold; }")
+        lay_pin.addWidget(inp_pin)
+
+        btns_pin = QHBoxLayout()
+        btn_pin_c = QPushButton("Cancelar")
+        btn_pin_c.setFixedHeight(40)
+        btn_pin_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_pin_c.clicked.connect(dlg_pin.reject)
+        btns_pin.addWidget(btn_pin_c)
+        btn_pin_ok = QPushButton("✅ Ingresar")
+        btn_pin_ok.setFixedHeight(40)
+        btn_pin_ok.setStyleSheet("QPushButton { background: #dc2626; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btns_pin.addWidget(btn_pin_ok)
+        lay_pin.addLayout(btns_pin)
+
+        def verificar_pin():
+            if inp_pin.text().strip() != "1961":
+                QMessageBox.warning(dlg_pin, "PIN incorrecto", "El PIN ingresado no es válido.")
+                inp_pin.clear()
+                inp_pin.setFocus()
+                return
+            dlg_pin.accept()
+
+        btn_pin_ok.clicked.connect(verificar_pin)
+        inp_pin.returnPressed.connect(verificar_pin)
+        inp_pin.setFocus()
+
+        if dlg_pin.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        # ── Paso 2: Monto y descripción ───────────────────────────────────────
+        dlg = QDialog(self)
+        dlg.setWindowTitle("💰 Retiro de dinero")
+        dlg.setMinimumWidth(360)
+        dlg.setStyleSheet("background-color: #1a1a2e; color: white;")
+        lay = QVBoxLayout(dlg)
+        lay.setSpacing(12)
+        lay.setContentsMargins(24, 20, 24, 20)
+
+        lbl_t = QLabel("💰 Retiro de dinero")
+        lbl_t.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        lbl_t.setStyleSheet("color: #dc2626;")
+        lay.addWidget(lbl_t)
+
+        lay.addWidget(QLabel("Descripción:"))
+        lay.itemAt(lay.count()-1).widget().setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        input_desc = QLineEdit()
+        input_desc.setPlaceholderText("Ej: Retiro Lucas, pago proveedor...")
+        input_desc.setFixedHeight(44)
+        input_desc.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #dc2626; border-radius: 8px; padding: 10px; color: white; font-size: 14px; }")
+        lay.addWidget(input_desc)
+
+        lbl_m = QLabel("Monto ($):")
+        lbl_m.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lay.addWidget(lbl_m)
+        input_monto = QLineEdit()
+        input_monto.setFixedHeight(48)
+        input_monto.setStyleSheet("QLineEdit { background: #0f3460; border: 2px solid #dc2626; border-radius: 8px; padding: 10px; color: white; font-size: 22px; font-weight: bold; }")
+        lay.addWidget(input_monto)
+
+        btns = QHBoxLayout()
+        btn_c = QPushButton("Cancelar")
+        btn_c.setFixedHeight(40)
+        btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_c.clicked.connect(dlg.reject)
+        btns.addWidget(btn_c)
+        btn_ok = QPushButton("✅ Confirmar retiro")
+        btn_ok.setFixedHeight(40)
+        btn_ok.setStyleSheet("QPushButton { background: #dc2626; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btns.addWidget(btn_ok)
+        lay.addLayout(btns)
+
+        def confirmar():
+            desc = input_desc.text().strip() or "Retiro de caja"
+            try:
+                monto = float(input_monto.text().strip().replace(".", "").replace(",", "."))
+            except ValueError:
+                QMessageBox.warning(dlg, "Error", "Ingresá un monto válido")
+                return
+            if monto <= 0:
+                QMessageBox.warning(dlg, "Error", "El monto debe ser mayor a cero")
+                return
+            try:
+                requests.post(f"{API_URL}/gastos/",
+                              json={"descripcion": desc, "monto": monto,
+                                    "categoria": "Retiro", "usuario_id": self.usuario_id},
+                              timeout=5)
+            except Exception:
+                pass
+            # Enviar WhatsApp a los 3 números
+            try:
+                from datetime import datetime as _dt
+                ts = _dt.now().strftime("%d/%m/%Y %H:%M")
+                cajero = getattr(self, "nombre_cajero", "?")
+                msg_wa = (
+                    f"💰 *RETIRO DE CAJA — JUANA CASH*\n"
+                    f"📅 {ts}\n"
+                    f"👤 Cajero: {cajero}\n"
+                    f"📝 {desc}\n"
+                    f"💵 Monto: {_p(monto)}"
+                )
+                for num in ["2634670678", "2634633099", "2634633067"]:
+                    try:
+                        requests.post("http://127.0.0.1:3001/send",
+                                      json={"phone": num, "message": msg_wa}, timeout=5)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            dlg.accept()
+            QMessageBox.information(self, "✅ Retiro registrado", f"Retiro de {_p(monto)} registrado.")
+            self.actualizar_ventas()
+
+        btn_ok.clicked.connect(confirmar)
+        input_monto.returnPressed.connect(confirmar)
+        input_desc.setFocus()
+        dlg.exec()
 
     def anular_venta(self, venta_id, numero):
         dialog = AnularDialog(self, numero)
