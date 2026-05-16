@@ -130,8 +130,13 @@ def descargar_e_instalar(installer_url, version_nueva,
         _guardar_cache(version_nueva)
 
         _log(f"Ejecutando instalador: {tmp}")
-        subprocess.Popen([tmp, "/VERYSILENT", "/NORESTART", "/CLOSEAPPLICATIONS"])
-        _log("Instalador lanzado correctamente")
+        DETACHED_PROCESS     = 0x00000008
+        CREATE_NEW_PROCESS_GROUP = 0x00000200
+        subprocess.Popen(
+            [tmp, "/VERYSILENT", "/NORESTART", "/CLOSEAPPLICATIONS"],
+            creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        )
+        _log("Instalador lanzado correctamente (proceso independiente)")
 
         if callback_ok:
             callback_ok(version_nueva)
