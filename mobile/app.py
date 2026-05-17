@@ -1242,14 +1242,15 @@ def _main(page: ft.Page):
 
     # ── FilePicker para subir foto desde galería (Flet 0.84) ──────────────────
     lbl_foto_preview = ft.Text("", size=12, color="#94A3B8")
-    foto_picker = ft.FilePicker()  # Service: se auto-registra, NO va en overlay
+    # FilePicker se crea lazy dentro del handler para que context.page esté disponible
 
     async def _pick_y_subir():
+        picker = ft.FilePicker()  # creado aqui: context.page ya está seteado
         lbl_oferta_status.value = "📂 Abriendo galería..."
         lbl_oferta_status.color = "#94A3B8"
         page.update()
         try:
-            archivos = await foto_picker.pick_files(
+            archivos = await picker.pick_files(
                 file_type=ft.FilePickerFileType.IMAGE,
                 allow_multiple=False,
                 with_data=True,
@@ -1353,12 +1354,14 @@ def _main(page: ft.Page):
             ]),
             ft.Divider(color="#334155"),
             ft.Text("📷 Subir foto", weight="bold", size=14, color="#E91E63"),
-            ft.ElevatedButton(
-                "📷  ELEGIR FOTO DE LA GALERÍA",
-                bgcolor="#E91E63", color="white", height=52, expand=True,
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=12)),
-                on_click=_abrir_y_subir_foto,
-            ),
+            ft.Row([
+                ft.ElevatedButton(
+                    "📷  ELEGIR FOTO DE LA GALERÍA",
+                    bgcolor="#E91E63", color="white", height=52, expand=True,
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=12)),
+                    on_click=_abrir_y_subir_foto,
+                ),
+            ]),
             lbl_foto_preview,
             ft.Text("— o pegá una URL —", color="#475569", size=11, text_align=ft.TextAlign.CENTER),
             ft.Row([
