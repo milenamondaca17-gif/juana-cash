@@ -3,6 +3,7 @@ import requests
 import threading
 import json
 import os
+import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -456,17 +457,27 @@ def _main(page: ft.Page):
             lbl_offline_badge.value = ""
         page.update()
 
-    lista_movs        = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=200)
+    lista_movs        = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=260)
     lbl_dashboard_err = ft.Text("", color="#EF4444", size=12)
+    lbl_gastos_hoy    = ft.Text("Gastos: $0", size=12, color="#F59E0B")
+    lbl_neto_hoy      = ft.Text("Neto: $0", size=13, weight="bold", color="#10B981")
+
+    NOMBRES_M = {
+        "efectivo": "💵 Efectivo", "debito": "🏧 Débito", "tarjeta": "💳 Tarjeta",
+        "mercadopago_qr": "📱 QR/MP", "transferencia": "🏦 Transf.", "fiado": "💸 Fiado"
+    }
 
     @en_hilo
     def cargar_dashboard(e=None):
         _ip_activa["ip"] = detectar_mejor_ip()
         lbl_ip_status.value = f"📡 {_ip_activa['ip']}"
-        data     = api_get("/reportes/hoy")
-        data_mes = api_get("/reportes/mes")
+        data      = api_get("/reportes/hoy")
+        data_mes  = api_get("/reportes/mes")
+        data_gast = api_get("/gastos/hoy")
+        total_ventas = 0
         if data:
-            lbl_total.value   = _p(data.get('total_vendido', 0))
+            total_ventas = data.get('total_vendido', 0)
+            lbl_total.value   = _p(total_ventas)
             lbl_total.color   = "#10B981"
             cant = data.get("cantidad_ventas", 0)
             lbl_tickets.value = f"{cant} ticket{'s' if cant != 1 else ''} hoy"
@@ -478,31 +489,51 @@ def _main(page: ft.Page):
                 metodos[m] = metodos.get(m, 0) + 1
             if metodos:
                 top_m = max(metodos, key=metodos.get)
-                nombres_m = {
-                    "efectivo": "💵 Efectivo", "debito": "🏧 Débito", "tarjeta": "💳 Tarjeta",
-                    "mercadopago_qr": "📱 QR/MP", "transferencia": "🏦 Transf.",
-                    "fiado": "💸 Fiado"
-                }
-                lbl_metodo.value = f"Más usado: {nombres_m.get(top_m, top_m)}"
+                lbl_metodo.value = f"Más usado: {NOMBRES_M.get(top_m, top_m)}"
             top_prods = data.get("top_productos", [])
             if top_prods:
                 lbl_top_prod.value = f"🏆 {top_prods[0].get('nombre', '?')}"
             lista_movs.controls.clear()
-            for v in ventas[:10]:
-                metodo = v.get("metodo_pago", "efectivo").upper()
+            for v in ventas[:20]:
+                metodo = v.get("metodo_pago", "efectivo")
                 total  = float(v.get("total", 0))
                 estado = v.get("estado", "")
+                hora   = v.get("fecha", "")[-5:] if v.get("fecha") else ""
                 color  = "#EF4444" if estado == "anulada" else "#38BDF8"
+                icon   = "❌" if estado == "anulada" else NOMBRES_M.get(metodo, "🛍️")[:2]
                 lista_movs.controls.append(
                     ft.Container(
                         content=ft.Row([
-                            ft.Text("🛍️", size=16),
-                            ft.Text(metodo, weight="bold", expand=True, size=12),
-                            ft.Text(_p(total), weight="bold", color=color, size=14),
+                            ft.Text(hora, size=11, color="#94A3B8", width=36),
+                            ft.Text(icon, size=14),
+                            ft.Text(NOMBRES_M.get(metodo, metodo).split(" ", 1)[-1],
+                                    expand=True, size=11, color="#94A3B8"),
+                            ft.Text(_p(total), weight="bold", color=color, size=13),
                         ]),
-                        bgcolor="#1E293B", padding=10, border_radius=10
+                        bgcolor="#1E293B", padding=8, border_radius=8
                     )
                 )
+            # gastos
+            total_gastos = 0
+            if data_gast:
+                total_gastos = float(data_gast.get("total", 0))
+                gastos = data_gast.get("gastos", [])
+                for g in gastos[:5]:
+                    lista_movs.controls.append(
+                        ft.Container(
+                            content=ft.Row([
+                                ft.Text(g.get("hora",""), size=11, color="#94A3B8", width=36),
+                                ft.Text("💸", size=14),
+                                ft.Text(g.get("descripcion","")[:22], expand=True, size=11, color="#94A3B8"),
+                                ft.Text(f"-{_p(g.get('monto',0))}", weight="bold", color="#F59E0B", size=13),
+                            ]),
+                            bgcolor="#1E1005", padding=8, border_radius=8
+                        )
+                    )
+            lbl_gastos_hoy.value = f"Gastos del día: {_p(total_gastos)}"
+            neto = total_ventas - total_gastos
+            lbl_neto_hoy.value = f"Neto: {_p(neto)}"
+            lbl_neto_hoy.color = "#10B981" if neto >= 0 else "#EF4444"
         else:
             lbl_total.value   = "Sin conexión"
             lbl_total.color   = "#EF4444"
@@ -511,6 +542,16 @@ def _main(page: ft.Page):
             lbl_mes.value = f"Este mes: {_p(data_mes.get('total_vendido', 0))}"
         page.update()
 
+    def _auto_refresh_loop():
+        while True:
+            time.sleep(30)
+            try:
+                cargar_dashboard()
+            except Exception:
+                pass
+
+    threading.Thread(target=_auto_refresh_loop, daemon=True).start()
+
     view_dashboard = ft.Container(
         content=ft.Column([
             ft.Container(
@@ -518,6 +559,7 @@ def _main(page: ft.Page):
                     ft.Text("CAJA DEL DÍA", weight="bold", color="#94A3B8", size=12),
                     lbl_total, lbl_tickets,
                     ft.Row([lbl_mes, lbl_metodo], alignment="spaceBetween"),
+                    ft.Row([lbl_gastos_hoy, lbl_neto_hoy], alignment="spaceBetween"),
                     lbl_top_prod,
                     lbl_dashboard_err,
                 ], horizontal_alignment="center"),
@@ -531,11 +573,14 @@ def _main(page: ft.Page):
                 ),
                 on_tap=sincronizar_manual,
             ),
-            ft.Text("Últimos movimientos", weight="w600", size=15),
+            ft.Row([
+                ft.Text("Movimientos en vivo", weight="w600", size=15, expand=True),
+                ft.Text("🔄 auto 30s", size=10, color="#475569"),
+            ]),
             lista_movs,
             ft.ElevatedButton(
-                "🔄 ACTUALIZAR", on_click=cargar_dashboard,
-                expand=True, height=48,
+                "🔄 ACTUALIZAR AHORA", on_click=cargar_dashboard,
+                expand=True, height=44,
                 bgcolor="#3B82F6", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             )
@@ -845,6 +890,122 @@ def _main(page: ft.Page):
 
     in_scan.on_submit = buscar_prod
 
+    SECCIONES = [
+        ("🧀 Fiambrería", "#f39c12"),
+        ("🥩 Carnicería", "#e74c3c"),
+        ("🛒 Kiosco",     "#8e44ad"),
+    ]
+
+    def _abrir_calculadora_depto(nombre_sec, color_sec):
+        """
+        Calculadora de montos para departamentos sin código de barras.
+        Igual al EXE: ingresás montos con Enter, doble Enter (campo vacío) baja al ticket.
+        """
+        montos = []
+
+        lbl_items   = ft.Text("— Sin ítems aún —", color="#94A3B8", size=13, text_align=ft.TextAlign.CENTER)
+        lbl_total_d = ft.Text("Total: $0", size=22, weight="w900", color=color_sec, text_align=ft.TextAlign.RIGHT)
+        in_monto    = ft.TextField(
+            hint_text="Monto y Enter   (doble Enter = confirmar)",
+            keyboard_type=ft.KeyboardType.NUMBER,
+            filled=True, border_color=color_sec, border_radius=10,
+            content_padding=14, bgcolor="#0F172A",
+            text_style=ft.TextStyle(size=20, weight=ft.FontWeight.BOLD, color="white"),
+            text_align=ft.TextAlign.RIGHT,
+            autofocus=True,
+        )
+
+        def actualizar_lista():
+            if not montos:
+                lbl_items.value = "— Sin ítems aún —"
+                lbl_items.color = "#94A3B8"
+                lbl_total_d.value = "Total: $0"
+            else:
+                lbl_items.value = "  +  ".join([_p(m) for m in montos])
+                lbl_items.color = "white"
+                lbl_total_d.value = f"Total: {_p(sum(montos))}"
+            page.update()
+
+        def confirmar_depto(dlg):
+            if not montos:
+                return
+            total = sum(montos)
+            dat = {"n": nombre_sec, "p": total, "producto_id": 0}
+            carrito.append(dat)
+            agregar_ui(dat)
+            recalc()
+            cerrar_dlg(dlg)
+
+        def agregar_monto(dlg, e=None):
+            txt = in_monto.value.strip().replace(",", ".")
+            if not txt:
+                # campo vacío + ya hay montos = doble Enter → confirmar
+                if montos:
+                    confirmar_depto(dlg)
+                return
+            try:
+                monto = float(txt)
+            except ValueError:
+                return
+            if monto <= 0:
+                return
+            montos.append(monto)
+            in_monto.value = ""
+            actualizar_lista()
+            page.update()
+
+        def borrar_ultimo(e=None):
+            if montos:
+                montos.pop()
+                actualizar_lista()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text(nombre_sec, size=18, weight="w900", color=color_sec),
+            content=ft.Column([
+                ft.Container(
+                    content=ft.Column([lbl_items, lbl_total_d], spacing=4),
+                    bgcolor="#1E293B", padding=12, border_radius=10,
+                    border=ft.border.all(1, color_sec),
+                ),
+                in_monto,
+                ft.Row([
+                    ft.ElevatedButton(
+                        "⌫ Borrar último", on_click=borrar_ultimo,
+                        bgcolor="#334155", color="white", expand=True, height=44,
+                        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))
+                    ),
+                    ft.ElevatedButton(
+                        "+ Sumar", height=44, expand=True,
+                        bgcolor=color_sec, color="white",
+                        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                        on_click=lambda e: agregar_monto(dlg),
+                    ),
+                ], spacing=8),
+            ], spacing=10, tight=True, width=320),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda e: cerrar_dlg(dlg)),
+                ft.ElevatedButton(
+                    "✅ BAJAR AL TICKET",
+                    bgcolor=color_sec, color="white",
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+                    on_click=lambda e: confirmar_depto(dlg),
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        )
+        in_monto.on_submit = lambda e: agregar_monto(dlg, e)
+        abrir_dlg(dlg)
+
+    fila_secciones = ft.Row([
+        ft.ElevatedButton(
+            s[0], height=40, expand=True,
+            bgcolor=s[1], color="white",
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+            on_click=lambda e, nm=s[0], co=s[1]: _abrir_calculadora_depto(nm, co)
+        )
+        for s in SECCIONES
+    ], spacing=6)
+
     btn_cobrar = ft.ElevatedButton(
         "🧾 COBRAR", expand=True, height=46,
         bgcolor="#F43F5E", color="white",
@@ -868,6 +1029,7 @@ def _main(page: ft.Page):
                         btn_recuperar]),
                 ft.Row([in_scan,
                         ft.ElevatedButton("➕", on_click=buscar_prod, bgcolor="#10B981", color="white", height=48)]),
+                fila_secciones,
                 panel_resultados,
                 ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween", expand=False),
                 btn_vincular_fiado,
