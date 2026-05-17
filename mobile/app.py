@@ -1282,7 +1282,8 @@ def _main(page: ft.Page):
 
         threading.Thread(target=_upload, daemon=True).start()
 
-    foto_picker = ft.FilePicker(on_result=_on_foto_picked)
+    foto_picker = ft.FilePicker()
+    foto_picker.on_result = _on_foto_picked
     page.overlay.append(foto_picker)
 
     # URL como opción secundaria (fallback)
