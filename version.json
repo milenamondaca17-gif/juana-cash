@@ -1,8 +1,8 @@
 {
-  "version": "4.2.0",
-  "desktop_version": "4.2.0",
+  "version": "4.2.1",
+  "desktop_version": "4.2.1",
   "apk_version": "4.1.4",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.0/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.1/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.4/JuanaCash.apk",
-  "notas": "v4.2.0 - Fix codigos extra productos / v4.1.4 - Separar versiones desktop y APK"
+  "notas": "v4.2.1 - Fix backend no iniciaba en EXE / v4.1.4 - Separar versiones desktop y APK"
 }
