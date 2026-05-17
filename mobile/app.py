@@ -1240,26 +1240,31 @@ def _main(page: ft.Page):
             )
         page.update()
 
-    # ── FilePicker para subir foto desde galería ──────────────────────────────
+    # ── FilePicker para subir foto desde galería (Flet 0.84: pick_files síncrono) ──
     lbl_foto_preview = ft.Text("", size=12, color="#94A3B8")
+    foto_picker = ft.FilePicker()
+    page.overlay.append(foto_picker)
 
-    def _on_foto_picked(e):
-        if not e.files:
-            return
-        archivo = e.files[0]
-        ruta = archivo.path
-        if not ruta or not os.path.exists(ruta):
-            lbl_oferta_status.value = "❌ No se pudo acceder al archivo"
-            lbl_oferta_status.color = "#EF4444"
-            page.update()
-            return
-        lbl_oferta_status.value = f"⏳ Subiendo {archivo.name}..."
-        lbl_oferta_status.color = "#94A3B8"
-        lbl_foto_preview.value = f"📎 {archivo.name}"
-        page.update()
-
-        def _upload():
+    def _abrir_y_subir_foto(e):
+        def _pick_and_upload():
             try:
+                archivos = foto_picker.pick_files(
+                    allow_multiple=False,
+                    allowed_extensions=["jpg", "jpeg", "png", "webp"]
+                )
+                if not archivos:
+                    return
+                archivo = archivos[0]
+                ruta = archivo.path
+                if not ruta or not os.path.exists(ruta):
+                    lbl_oferta_status.value = "❌ No se pudo acceder al archivo"
+                    lbl_oferta_status.color = "#EF4444"
+                    page.update()
+                    return
+                lbl_oferta_status.value = f"⏳ Subiendo {archivo.name}..."
+                lbl_oferta_status.color = "#94A3B8"
+                lbl_foto_preview.value = f"📎 {archivo.name}"
+                page.update()
                 with open(ruta, "rb") as f:
                     r = requests.post(
                         f"{get_api_url()}/ofertas/imagen",
@@ -1280,11 +1285,7 @@ def _main(page: ft.Page):
                 lbl_oferta_status.color = "#EF4444"
             page.update()
 
-        threading.Thread(target=_upload, daemon=True).start()
-
-    foto_picker = ft.FilePicker()
-    foto_picker.on_result = _on_foto_picked
-    page.overlay.append(foto_picker)
+        threading.Thread(target=_pick_and_upload, daemon=True).start()
 
     # URL como opción secundaria (fallback)
     in_url_imagen = ft.TextField(
@@ -1335,10 +1336,7 @@ def _main(page: ft.Page):
                 "📷  ELEGIR FOTO DE LA GALERÍA",
                 bgcolor="#E91E63", color="white", height=52, expand=True,
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=12)),
-                on_click=lambda _: foto_picker.pick_files(
-                    allow_multiple=False,
-                    allowed_extensions=["jpg", "jpeg", "png", "webp"]
-                )
+                on_click=_abrir_y_subir_foto,
             ),
             lbl_foto_preview,
             ft.Text("— o pegá una URL —", color="#475569", size=11, text_align=ft.TextAlign.CENTER),
