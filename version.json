@@ -1,6 +1,8 @@
 {
-  "version": "3.8.7",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v3.8.7/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.3/JuanaCash.apk",
-  "notas": "v3.8.7 - Fix codigos extra de productos"
+  "version": "4.2.0",
+  "desktop_version": "4.2.0",
+  "apk_version": "4.1.4",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.0/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.4/JuanaCash.apk",
+  "notas": "v4.2.0 - Fix codigos extra productos / v4.1.4 - Separar versiones desktop y APK"
 }

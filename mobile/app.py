@@ -11,7 +11,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "4.1.3"
+APP_VERSION = "4.1.4"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -2591,7 +2591,7 @@ def _main(page: ft.Page):
         try:
             r = requests.get(VERSION_URL, timeout=8, verify=False)
             data = r.json()
-            nueva = data.get("version", "")
+            nueva = data.get("apk_version", data.get("version", ""))
             apk_url = data.get("apk_url", APK_URL)
             if nueva and _version_mayor(nueva, APP_VERSION):
                 _apk_url_descarga["url"] = apk_url

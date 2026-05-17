@@ -93,7 +93,7 @@ def obtener_version_github():
     try:
         req = urllib.request.urlopen(url, timeout=TIMEOUT_RED, context=_ssl_context())
         data = json.loads(req.read().decode())
-        version       = data.get("version")
+        version       = data.get("desktop_version", data.get("version"))
         installer_url = data.get("installer_url", "")
         _log(f"GitHub responde: version={version}, url={installer_url}")
         return version, installer_url
