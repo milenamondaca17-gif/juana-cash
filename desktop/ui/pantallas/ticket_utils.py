@@ -7,6 +7,8 @@ import webbrowser
 from urllib.parse import quote
 from datetime import datetime
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
 
 # ─── Configuración del negocio (editable) ───────────────────────────────────
 # Estas variables se pueden guardar en un archivo config más adelante
@@ -48,8 +50,8 @@ def formatear_ticket_texto(ticket_num, items, total, metodo_pago,
 
         # Línea del producto
         lines.append(f"  {nombre}")
-        linea_cant = f"  {cant} x ${precio:,.2f}"
-        linea_sub  = f"${sub:,.2f}"
+        linea_cant = f"  {cant} x {_p(precio)}"
+        linea_sub  = _p(sub)
         # Alinear subtotal a la derecha
         espacios = max(1, 34 - len(linea_cant) - len(linea_sub))
         lines.append(linea_cant + " " * espacios + linea_sub)
@@ -57,13 +59,13 @@ def formatear_ticket_texto(ticket_num, items, total, metodo_pago,
     lines.append(linea)
 
     if descuento > 0:
-        lines.append(f"  Descuento:        -${descuento:,.2f}")
+        lines.append(f"  Descuento:        -{_p(descuento)}")
 
-    lines.append(f"  TOTAL:          ${total:,.2f}")
+    lines.append(f"  TOTAL:          {_p(total)}")
     lines.append(f"  Pago: {metodo_pago}")
 
     if vuelto > 0:
-        lines.append(f"  Vuelto:         ${vuelto:,.2f}")
+        lines.append(f"  Vuelto:         {_p(vuelto)}")
 
     lines.append(linea_doble)
     lines.append(f"  {NEGOCIO_FOOTER}")
@@ -112,12 +114,12 @@ def ticket_para_whatsapp(ticket_num, items, total, metodo_pago,
         nombre = item.get("nombre", "")[:25]
         cant   = item.get("cantidad", 1)
         sub    = float(item.get("subtotal", 0))
-        lines.append(f"• {nombre} x{cant}: ${sub:,.0f}")
+        lines.append(f"• {nombre} x{cant}: {_p(sub)}")
 
     lines.append("─────────────────")
     if descuento > 0:
-        lines.append(f"Descuento: -${descuento:,.0f}")
-    lines.append(f"*TOTAL: ${total:,.0f}*")
+        lines.append(f"Descuento: -{_p(descuento)}")
+    lines.append(f"*TOTAL: {_p(total)}*")
     lines.append(f"Pago: {metodo_pago}")
     if NEGOCIO_FOOTER:
         lines.append(f"\n_{NEGOCIO_FOOTER}_")

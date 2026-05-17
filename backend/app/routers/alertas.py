@@ -37,6 +37,6 @@ def marcar_visto(id: int, db: Session = Depends(get_db)):
 
 @router.post("/marcar-todas-vistas")
 def marcar_todas_vistas(db: Session = Depends(get_db)):
-    db.query(AlertaPrecio).filter(AlertaPrecio.visto == False).update({"visto": True})
+    db.query(AlertaPrecio).filter(AlertaPrecio.visto == False).update({"visto": True}, synchronize_session=False)
     db.commit()
     return {"ok": True}

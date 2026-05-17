@@ -1,5 +1,5 @@
 {
-  "version": "4.0.8",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.0.8/JuanaCash_Setup.exe",
-  "notas": "v4.0.8 - Pantalla actualizando visible para no reabrir la app"
+  "version": "4.0.9",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.0.9/JuanaCash_Setup.exe",
+  "notas": "v4.0.9 - Fix formato monedas, empleados cierre, clientes alfabetico, card caja mejorada"
 }

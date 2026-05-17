@@ -15,6 +15,8 @@ from PyQt6.QtGui import QFont
 
 API_URL = "http://localhost:8000"
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
 
 class AlertasPrecioScreen(QWidget):
     # Señal para actualizar UI desde thread
@@ -202,11 +204,11 @@ class AlertasPrecioScreen(QWidget):
         col_precios = QVBoxLayout()
         col_precios.setSpacing(2)
         col_precios.setAlignment(Qt.AlignmentFlag.AlignRight)
-        lbl_nvo = QLabel(f"${nvo:,.2f}")
+        lbl_nvo = QLabel(_p(nvo))
         lbl_nvo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         lbl_nvo.setStyleSheet(f"color: {color_diff}; background: transparent; border: none;")
         lbl_nvo.setAlignment(Qt.AlignmentFlag.AlignRight)
-        lbl_ant = QLabel(f"antes: ${ant:,.2f}  ({signo}{diff:,.2f})")
+        lbl_ant = QLabel(f"antes: {_p(ant)}  ({signo}{_p(abs(diff))[1:]})")
         lbl_ant.setStyleSheet("color: #606880; font-size: 11px; background: transparent; border: none;")
         lbl_ant.setAlignment(Qt.AlignmentFlag.AlignRight)
         col_precios.addWidget(lbl_nvo)

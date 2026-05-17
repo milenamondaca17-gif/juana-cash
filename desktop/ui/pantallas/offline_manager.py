@@ -69,7 +69,7 @@ def sincronizar_cola():
                  if not k.startswith("_")}
         try:
             r = requests.post(f"{API_URL}/ventas/", json=datos, timeout=5)
-            if r.status_code == 200:
+            if 200 <= r.status_code < 300:
                 enviadas += 1
             else:
                 fallidas += 1

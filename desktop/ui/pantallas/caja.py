@@ -146,7 +146,8 @@ class CajaScreen(QWidget):
             # Cambió de empleado — resetear turno para que cargue el del nuevo usuario
             self.turno_actual = None
             self.lbl_estado.setText("⚪ Caja cerrada")
-            self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 16px; font-weight: bold;")
+            self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 15px; font-weight: bold;")
+            self._card_barra.setStyleSheet(f"background: {DANGER}; border-radius: 4px;")
             self.lbl_apertura.setText("")
             self.lbl_total_caja.setText("Total acumulado: $0")
             self.lbl_ef_caja.setText("💵 Efectivo en caja: —")
@@ -187,27 +188,47 @@ class CajaScreen(QWidget):
         layout.addWidget(titulo)
 
         # Card estado
-        CARD_SS = f"QFrame {{ background: {BG_CARD}; border-radius: 14px; border: 1.5px solid {BORDER}; border-left: 5px solid {DANGER}; }}"
+        from PyQt6.QtWidgets import QGridLayout
         self.card_estado = QFrame()
-        self.card_estado.setStyleSheet(CARD_SS)
-        self.card_estado.setMinimumHeight(110)
-        card_layout = QVBoxLayout(self.card_estado)
-        card_layout.setContentsMargins(24, 16, 24, 16)
+        self.card_estado.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 14px; border: 1.5px solid {BORDER}; }}")
+        self.card_estado.setMinimumHeight(100)
+        outer_card = QHBoxLayout(self.card_estado)
+        outer_card.setContentsMargins(0, 0, 0, 0)
+        outer_card.setSpacing(0)
+
+        # Barra de color izquierda (widget real, no CSS)
+        self._card_barra = QFrame()
+        self._card_barra.setFixedWidth(6)
+        self._card_barra.setStyleSheet(f"background: {DANGER}; border-radius: 4px;")
+        outer_card.addWidget(self._card_barra)
+
+        card_layout = QGridLayout()
+        card_layout.setContentsMargins(20, 14, 20, 14)
+        card_layout.setHorizontalSpacing(24)
+        card_layout.setVerticalSpacing(4)
+        outer_card.addLayout(card_layout)
+
         self.lbl_estado = QLabel("⚪ Caja cerrada")
-        self.lbl_estado.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
-        card_layout.addWidget(self.lbl_estado)
+        self.lbl_estado.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED};")
+        card_layout.addWidget(self.lbl_estado, 0, 0)
+
+        self.lbl_total_caja = QLabel("Total acumulado: $0")
+        self.lbl_total_caja.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        self.lbl_total_caja.setStyleSheet(f"color: {DANGER};")
+        card_layout.addWidget(self.lbl_total_caja, 0, 1)
+
         self.lbl_apertura = QLabel("")
-        self.lbl_apertura.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
-        card_layout.addWidget(self.lbl_apertura)
-        self.lbl_total_caja = QLabel("Total acumulado: $0.00")
-        self.lbl_total_caja.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        self.lbl_total_caja.setStyleSheet(f"color: {DANGER}; background: transparent;")
-        card_layout.addWidget(self.lbl_total_caja)
+        self.lbl_apertura.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
+        card_layout.addWidget(self.lbl_apertura, 1, 0)
+
         self.lbl_ef_caja = QLabel("💵 Efectivo en caja: —")
-        self.lbl_ef_caja.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
-        self.lbl_ef_caja.setStyleSheet(f"color: #16a34a; background: transparent;")
-        card_layout.addWidget(self.lbl_ef_caja)
+        self.lbl_ef_caja.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.lbl_ef_caja.setStyleSheet("color: #16a34a;")
+        card_layout.addWidget(self.lbl_ef_caja, 1, 1)
+
+        card_layout.setColumnStretch(0, 1)
+        card_layout.setColumnStretch(1, 1)
         layout.addWidget(self.card_estado)
 
         # Desglose por método
@@ -598,14 +619,14 @@ class CajaScreen(QWidget):
                 if not nombre:
                     continue
                 try:
-                    monto = float(in_m.text() or 0)
+                    monto = float(in_m.text().strip().replace(".", "").replace(",", ".") or 0)
                     if monto > 0:
                         self._pagos_empleados_guardados.append({"nombre": nombre, "monto": monto})
                 except ValueError:
                     pass
             total = sum(p["monto"] for p in self._pagos_empleados_guardados)
             if self._pagos_empleados_guardados:
-                QMessageBox.information(self, "✅", f"Pagos guardados: ${total:,.0f}\nSe descontarán al cerrar caja.")
+                QMessageBox.information(self, "✅", f"Pagos guardados: {_p(total)}\nSe descontarán al cerrar caja.")
 
     def ver_config_email(self):
         """Dialog de configuración de email."""
@@ -731,11 +752,12 @@ class CajaScreen(QWidget):
                 if data.get("abierto"):
                     self.turno_actual = data
                     self.lbl_estado.setText("🟢 Caja abierta")
-                    self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 16px; font-weight: bold;")
+                    self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 15px; font-weight: bold;")
+                    self._card_barra.setStyleSheet("background: #27ae60; border-radius: 4px;")
                     apertura = data.get("apertura", "")
                     monto_ap = float(data.get("monto_apertura", 0))
                     self.lbl_apertura.setText(
-                        f"Turno #{data['id']} — Monto inicial: ${monto_ap:,.0f}"
+                        f"Turno #{data['id']} — Monto inicial: {_p(monto_ap)}"
                         + (f" — Desde: {apertura[:16]}" if apertura else "")
                     )
                     self.btn_abrir.setEnabled(False)
@@ -866,7 +888,8 @@ class CajaScreen(QWidget):
                 self.turno_actual = None
                 self._cargar_turno_activo()
                 self.lbl_estado.setText("🟢 Caja abierta")
-                self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 16px; font-weight: bold;")
+                self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 15px; font-weight: bold;")
+                self._card_barra.setStyleSheet("background: #27ae60; border-radius: 4px;")
                 self.btn_abrir.setEnabled(False)
                 self.btn_cerrar.setEnabled(True)
                 self.btn_aporte.setEnabled(True)
@@ -1281,8 +1304,9 @@ class CajaScreen(QWidget):
                     except Exception: pass
                     dialog.accept()
                     self.turno_actual = None
-                    self.lbl_estado.setText("Caja cerrada")
-                    self.lbl_estado.setStyleSheet("color: #a0a0b0; font-size: 16px; font-weight: bold;")
+                    self.lbl_estado.setText("⚪ Caja cerrada")
+                    self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 15px; font-weight: bold;")
+                    self._card_barra.setStyleSheet(f"background: {DANGER}; border-radius: 4px;")
                     self.lbl_apertura.setText("")
                     self.lbl_total_caja.setText("Total acumulado: $0")
                     self._pagos_empleados_guardados = []

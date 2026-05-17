@@ -14,6 +14,9 @@ _BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
 _MUT = _T["text_muted"]; _PRI = _T["primary"]; _DGR = _T["danger"]
 _BOR = _T["border"]; _OK = _T["success"]
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 class ClienteDialog(QDialog):
     def __init__(self, parent=None, cliente=None):
         super().__init__(parent)
@@ -195,9 +198,9 @@ class HistorialDialog(QDialog):
             if r.status_code == 200:
                 data = r.json()
                 c = data.get("cliente", {})
-                self.lbl_puntos.setText(f"⭐ {float(c.get('puntos', 0)):.0f} puntos")
-                self.lbl_deuda.setText(f"💸 Deuda: ${float(c.get('deuda_actual', 0)):,.2f}")
-                self.lbl_total_f.setText(f"📊 Total fiado: ${data.get('total_fiado', 0):,.2f}")
+                self.lbl_puntos.setText(f"⭐ {int(float(c.get('puntos', 0)))} puntos")
+                self.lbl_deuda.setText(f"💸 Deuda: {_p(float(c.get('deuda_actual', 0)))}")
+                self.lbl_total_f.setText(f"📊 Total fiado: {_p(data.get('total_fiado', 0))}")
 
                 historial = data.get("historial", [])
                 if not historial:
@@ -211,7 +214,7 @@ class HistorialDialog(QDialog):
                     self.tabla.setItem(i, 0, QTableWidgetItem(fecha))
                     self.tabla.setItem(i, 1, QTableWidgetItem(f.get("descripcion", "")))
 
-                    item_monto = QTableWidgetItem(f"${float(f.get('monto', 0)):,.2f}")
+                    item_monto = QTableWidgetItem(_p(float(f.get('monto', 0))))
                     item_monto.setForeground(Qt.GlobalColor.red)
                     self.tabla.setItem(i, 2, item_monto)
 
@@ -225,7 +228,7 @@ class HistorialDialog(QDialog):
 
                     pagos = f.get("pagos", [])
                     total_pagado = sum(float(p.get("monto", 0)) for p in pagos)
-                    lbl_pagos = QTableWidgetItem(f"${total_pagado:,.2f} ({len(pagos)} pago{'s' if len(pagos) != 1 else ''})")
+                    lbl_pagos = QTableWidgetItem(f"{_p(total_pagado)} ({len(pagos)} pago{'s' if len(pagos) != 1 else ''})")
                     lbl_pagos.setForeground(Qt.GlobalColor.green)
                     self.tabla.setItem(i, 4, lbl_pagos)
         except Exception as e:
@@ -330,7 +333,7 @@ class ClientesScreen(QWidget):
         try:
             r = requests.get(f"{API_URL}/clientes/", timeout=5)
             if r.status_code == 200:
-                self.clientes = r.json()
+                self.clientes = sorted(r.json(), key=lambda c: c.get("nombre", "").lower())
                 self.mostrar_clientes(self.clientes)
                 self.actualizar_resumen()
         except Exception:
@@ -366,13 +369,13 @@ class ClientesScreen(QWidget):
             self.tabla.setItem(i, 2, item_pts)
 
             deuda = float(c.get("deuda_actual", 0))
-            item_deuda = QTableWidgetItem(f"${deuda:,.2f}")
+            item_deuda = QTableWidgetItem(_p(deuda))
             if deuda > 0:
                 item_deuda.setForeground(Qt.GlobalColor.red)
             self.tabla.setItem(i, 3, item_deuda)
 
             limite = float(c.get("limite_credito", 0))
-            self.tabla.setItem(i, 4, QTableWidgetItem(f"${limite:,.2f}" if limite > 0 else "Sin límite"))
+            self.tabla.setItem(i, 4, QTableWidgetItem(_p(limite) if limite > 0 else "Sin límite"))
             self.tabla.setItem(i, 5, QTableWidgetItem(c.get("fecha_nacimiento") or "-"))
 
             # ── Botones de acciones ──────────────────────────────────────────
@@ -631,13 +634,13 @@ class ClientesScreen(QWidget):
 
         def confirmar():
             try:
-                monto = float(input_monto.text())
+                monto = float(input_monto.text().strip().replace(".", "").replace(",", "."))
             except ValueError:
                 QMessageBox.warning(dialog, "Error", "Ingresá un monto válido")
                 return
             if limite > 0 and (deuda + monto) > limite:
                 QMessageBox.warning(dialog, "⚠️ Límite",
-                    f"Este fiado supera el límite de crédito de ${limite:,.2f}")
+                    f"Este fiado supera el límite de crédito de {_p(limite)}")
                 return
             try:
                 r = requests.post(f"{API_URL}/fiados/", json={
@@ -648,7 +651,7 @@ class ClientesScreen(QWidget):
                 if r.status_code == 200:
                     self.cargar_clientes()
                     dialog.accept()
-                    QMessageBox.information(self, "✅", f"Fiado registrado: ${monto:,.2f}")
+                    QMessageBox.information(self, "✅", f"Fiado registrado: {_p(monto)}")
             except Exception:
                 QMessageBox.critical(dialog, "Error", "No se puede conectar")
 
@@ -671,7 +674,7 @@ class ClientesScreen(QWidget):
         lay.setSpacing(10)
         lay.setContentsMargins(20, 18, 20, 18)
 
-        lbl = QLabel(f"Deuda total: ${deuda:,.2f}")
+        lbl = QLabel(f"Deuda total: {_p(deuda)}")
         lbl.setStyleSheet("color: #e94560; font-size: 14px; font-weight: bold;")
         lay.addWidget(lbl)
 

@@ -147,7 +147,7 @@ class CobrarDialog(QDialog):
             puntos_frame = QFrame()
             puntos_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; border: 1px solid {ACCENT_OFERTAS}; }}")
             puntos_layout = QHBoxLayout(puntos_frame)
-            lbl_pts = QLabel(f"⭐ {puntos:.0f} pts → ${descuento_max:,.0f} off")
+            lbl_pts = QLabel(f"⭐ {puntos:.0f} pts → {_p(descuento_max)} off")
             lbl_pts.setStyleSheet(f"color: {ACCENT_OFERTAS};")
             puntos_layout.addWidget(lbl_pts)
             self.btn_canjear_pts = QPushButton("Canjear")
@@ -514,8 +514,8 @@ class EditarItemDialog(QDialog):
 
     def guardar(self):
         try:
-            self.nuevo_precio = float(self.input_precio.text())
-            self.nueva_cantidad = float(self.input_cant.text())
+            self.nuevo_precio = float(self.input_precio.text().strip().replace(".", "").replace(",", "."))
+            self.nueva_cantidad = float(self.input_cant.text().strip().replace(",", ".") or 1)
             self.accept()
         except:
             QMessageBox.warning(self, "Error", "Valores inválidos")
@@ -1360,8 +1360,8 @@ class VentasScreen(QWidget):
     def agregar_manual(self):
         nombre = self.input_manual_nombre.text().strip()
         try:
-            precio = float(self.input_manual_precio.text())
-            cantidad = float(self.input_manual_cant.text() or 1)
+            precio = float(self.input_manual_precio.text().strip().replace(".", "").replace(",", "."))
+            cantidad = float(self.input_manual_cant.text().strip().replace(",", ".") or 1)
         except ValueError:
             QMessageBox.warning(self, "Error", "Precio y cantidad deben ser numeros")
             return
@@ -1666,9 +1666,9 @@ class VentasScreen(QWidget):
                     except Exception:
                         pass
                 self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
-                msg = f"✅ Ticket #{ticket} — ${total_final:,.0f} ({metodo_str})"
+                msg = f"✅ Ticket #{ticket} — {_p(total_final)} ({metodo_str})"
                 if metodo_pago == "efectivo" and vuelto > 0:
-                    msg += f" — Vuelto: ${vuelto:,.0f}"
+                    msg += f" — Vuelto: {_p(vuelto)}"
                 self.lbl_total.setText(msg)
                 self.lbl_total.setStyleSheet(f"color: #27ae60; font-size: 28px; font-weight: bold;")
                 self.cancelar_venta()
@@ -1762,10 +1762,10 @@ class VentasScreen(QWidget):
                     try: requests.post(f"{API_URL}/clientes/{cid}/sumar-puntos", params={"monto": total_final}, timeout=3)
                     except Exception: pass
                 self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
-                msg = f"Ticket: {ticket}\nTotal: ${total_final:,.0f}\nPago: {metodo_str}"
-                if recargo_monto > 0: msg += f"\nRecargo crédito: ${recargo_monto:,.0f}"
+                msg = f"Ticket: {ticket}\nTotal: {_p(total_final)}\nPago: {metodo_str}"
+                if recargo_monto > 0: msg += f"\nRecargo crédito: {_p(recargo_monto)}"
                 if descuento_pct > 0: msg += f"\nDescuento: {descuento_pct:.1f}%"
-                if metodo_pago == "efectivo" and vuelto > 0: msg += f"\nVuelto: ${vuelto:,.0f}"
+                if metodo_pago == "efectivo" and vuelto > 0: msg += f"\nVuelto: {_p(vuelto)}"
                 cliente_nombre = self.cliente_actual.get("nombre") if self.cliente_actual else None
                 # Intentar imprimir
                 msg_impresora = ""

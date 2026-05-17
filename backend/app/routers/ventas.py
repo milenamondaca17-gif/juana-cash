@@ -96,7 +96,7 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
                 if limite > 0 and deuda_actual + float(pago.monto) > limite:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Límite de crédito superado. Límite: ${limite:,.0f} | Deuda actual: ${deuda_actual:,.0f}"
+                        detail=f"Límite de crédito superado. Límite: ${limite:,.0f} | Deuda actual: ${deuda_actual:,.0f}".replace(",", ".")
                     )
                 # Actualizar deuda_actual (campo correcto del modelo)
                 cliente.deuda_actual = deuda_actual + float(pago.monto)

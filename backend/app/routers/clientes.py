@@ -172,7 +172,7 @@ def obtener_cliente(id: int, db: Session = Depends(get_db)):
 @router.post("/")
 def crear_cliente(datos: ClienteCrear, db: Session = Depends(get_db)):
     campos_modelo = {"nombre", "telefono", "email", "direccion", "fecha_nacimiento", "limite_credito", "notas"}
-    data = {k: v for k, v in datos.dict().items() if k in campos_modelo and v is not None or k == "limite_credito"}
+    data = {k: v for k, v in datos.dict().items() if k in campos_modelo and (v is not None or k == "limite_credito")}
     c = Cliente(**data)
     db.add(c)
     db.commit()

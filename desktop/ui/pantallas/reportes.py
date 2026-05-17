@@ -14,6 +14,9 @@ _BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
 _MUT = _T["text_muted"]; _PRI = _T["primary"]; _DGR = _T["danger"]
 _BOR = _T["border"]; _OK = _T["success"]
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 class ReportesScreen(QWidget):
     def __init__(self):
         super().__init__()
@@ -233,13 +236,13 @@ class ReportesScreen(QWidget):
                     else:
                         total_pc += monto
                 
-                self.card_total[1].setText(f"${total_periodo:,.2f}")
-                self.card_pc[1].setText(f"${total_pc:,.2f}")
-                self.card_celular[1].setText(f"${total_celular:,.2f}")
-                
+                self.card_total[1].setText(_p(total_periodo))
+                self.card_pc[1].setText(_p(total_pc))
+                self.card_celular[1].setText(_p(total_celular))
+
                 self.card_tickets[1].setText(str(len(ventas)))
                 promedio = total_periodo / len(ventas) if ventas else 0
-                self.card_promedio[1].setText(f"${promedio:,.0f}")
+                self.card_promedio[1].setText(_p(promedio))
 
                 # Limpieza de métodos
                 totales_metodo = {k: 0.0 for k in self.cards_metodo.keys()}
@@ -248,7 +251,7 @@ class ReportesScreen(QWidget):
                 self.tabla_ventas.setRowCount(len(ventas))
                 for i, v in enumerate(ventas):
                     self.tabla_ventas.setItem(i, 0, QTableWidgetItem(str(v["numero"])))
-                    self.tabla_ventas.setItem(i, 1, QTableWidgetItem(f"${float(v['total']):.2f}"))
+                    self.tabla_ventas.setItem(i, 1, QTableWidgetItem(_p(float(v['total']))))
                     
                     # Inteligencia de métodos (Soporta Mixto)
                     m1 = v.get("metodo_pago", "efectivo")
@@ -282,7 +285,7 @@ class ReportesScreen(QWidget):
 
                 # Actualizar cards de métodos
                 for k, lbl in self.cards_metodo.items():
-                    lbl.setText(f"${totales_metodo[k]:,.0f}")
+                    lbl.setText(_p(totales_metodo[k]))
 
                 # Top Productos — sincronizar fechas con el período seleccionado
                 if self.periodo_actual == "hoy":
@@ -325,11 +328,11 @@ class ReportesScreen(QWidget):
                     item_tick = QTableWidgetItem(str(p["tickets"]))
                     item_tick.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.tabla_top.setItem(i, 2, item_tick)
-                    self.tabla_top.setItem(i, 3, QTableWidgetItem(f"${float(p['facturado']):,.0f}"))
+                    self.tabla_top.setItem(i, 3, QTableWidgetItem(_p(float(p['facturado']))))
                     total_cant  += float(p["cantidad"])
                     total_monto += float(p["facturado"])
                 self.lbl_prod_total.setText(
-                    f"{len(productos)} productos · {total_cant:,.0f} unid. · ${total_monto:,.0f} total")
+                    f"{len(productos)} productos · {total_cant:,.0f} unid. · {_p(total_monto)} total")
             else:
                 self.tabla_top.setRowCount(0)
                 self.lbl_prod_total.setText("Sin datos")

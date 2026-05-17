@@ -15,6 +15,9 @@ _BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
 _MUT = _T["text_muted"]; _PRI = _T["primary"]; _DGR = _T["danger"]
 _BOR = _T["border"]; _OK = _T["success"]
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 CATEGORIAS = ["General", "Carnicería", "Verdulería", "Panadería", "Fiambrería",
               "Lácteos", "Limpieza", "Bebidas", "Cigarrería", "Confitería"]
 
@@ -190,7 +193,7 @@ class ProductoDialog(QDialog):
             margen = ((venta - compra) / compra) * 100
             ganancia = venta - compra
             color = "#27ae60" if margen >= 20 else "#e67e22" if margen >= 10 else "#e94560"
-            self.lbl_margen.setText(f"Margen: {margen:.1f}% — Ganancia: ${ganancia:.2f}")
+            self.lbl_margen.setText(f"Margen: {margen:.1f}% — Ganancia: {_p(ganancia)}")
             self.lbl_margen.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: bold;")
         else:
             self.lbl_margen.setText("Margen: —")
@@ -323,7 +326,7 @@ class ProductosScreen(QWidget):
                 self.card_total[1].setText(str(d.get("total", "—")))
                 self.card_stock_bajo[1].setText(str(d.get("stock_bajo", "—")))
                 self.card_sin_stock[1].setText(str(d.get("sin_stock", "—")))
-                self.card_valor[1].setText(f"${d.get('valor_inventario', 0):,.0f}".replace(",", "."))
+                self.card_valor[1].setText(_p(d.get('valor_inventario', 0)))
         except Exception:
             pass
 
@@ -350,7 +353,7 @@ class ProductosScreen(QWidget):
         self.card_total[1].setText(str(total))
         self.card_stock_bajo[1].setText(str(stock_bajo))
         self.card_sin_stock[1].setText(str(sin_stock))
-        self.card_valor[1].setText(f"${valor:,.0f}".replace(",", "."))
+        self.card_valor[1].setText(_p(valor))
 
     def filtrar(self, texto):
         if len(texto) < 2:
@@ -386,8 +389,8 @@ class ProductosScreen(QWidget):
 
             costo = float(p.get("precio_costo") or 0)
             venta = float(p.get("precio_venta") or 0)
-            self.tabla.setItem(i, 3, QTableWidgetItem(f"${costo:.2f}"))
-            self.tabla.setItem(i, 4, QTableWidgetItem(f"${venta:.2f}"))
+            self.tabla.setItem(i, 3, QTableWidgetItem(_p(costo)))
+            self.tabla.setItem(i, 4, QTableWidgetItem(_p(venta)))
 
             # Margen
             if costo > 0 and venta > 0:

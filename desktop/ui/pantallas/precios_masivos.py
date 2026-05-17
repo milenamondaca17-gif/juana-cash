@@ -9,6 +9,9 @@ from PyQt6.QtGui import QFont, QColor
 
 API_URL = "http://127.0.0.1:8000"
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 # Agregamos la misma lista que usamos en la caja para que no dependa de la base de datos
 DEPARTAMENTOS = {
     "900": {"nombre": "Carnicería",  "icono": "🥩"},
@@ -95,8 +98,8 @@ class PreviewDialog(QDialog):
                 self.tabla.setRowCount(len(datos))
                 for i, p in enumerate(datos):
                     self.tabla.setItem(i, 0, QTableWidgetItem(p["nombre"]))
-                    self.tabla.setItem(i, 1, QTableWidgetItem(f"${p['precio_actual']:,.2f}"))
-                    item_nuevo = QTableWidgetItem(f"${p['precio_nuevo']:,.2f}")
+                    self.tabla.setItem(i, 1, QTableWidgetItem(_p(p['precio_actual'])))
+                    item_nuevo = QTableWidgetItem(_p(p['precio_nuevo']))
                     item_nuevo.setForeground(QColor("#f39c12"))
                     self.tabla.setItem(i, 2, item_nuevo)
         except Exception:

@@ -8,6 +8,9 @@ from PyQt6.QtGui import QFont, QColor
 
 API_URL = "http://127.0.0.1:8000"
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 DIAS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
 
@@ -118,8 +121,8 @@ class ComparativoWidget(QFrame):
 
                 # Ventas
                 txt_var, color_var = variacion_label(d["variacion_total"])
-                self.card_ventas[1].setText(f"${act['total']:,.0f}")
-                self.card_ventas[2].setText(f"sem ant: ${pas['total']:,.0f}  {txt_var}")
+                self.card_ventas[1].setText(_p(act['total']))
+                self.card_ventas[2].setText(f"sem ant: {_p(pas['total'])}  {txt_var}")
                 self.card_ventas[2].setStyleSheet(f"color: {color_var}; font-size: 10px;")
 
                 # Tickets
@@ -130,26 +133,26 @@ class ComparativoWidget(QFrame):
 
                 # Promedio
                 txt_var3, color_var3 = variacion_label(d["variacion_promedio"])
-                self.card_promedio[1].setText(f"${act['promedio_ticket']:,.0f}")
-                self.card_promedio[2].setText(f"sem ant: ${pas['promedio_ticket']:,.0f}  {txt_var3}")
+                self.card_promedio[1].setText(_p(act['promedio_ticket']))
+                self.card_promedio[2].setText(f"sem ant: {_p(pas['promedio_ticket'])}  {txt_var3}")
                 self.card_promedio[2].setStyleSheet(f"color: {color_var3}; font-size: 10px;")
 
                 # Proyección
-                self.card_proyecc[1].setText(f"${d['proyeccion_semanal']:,.0f}")
+                self.card_proyecc[1].setText(_p(d['proyeccion_semanal']))
                 self.card_proyecc[2].setText(f"{d['dias_transcurridos']} días transcurridos")
 
                 # Top productos
                 tp = act.get("top_producto")
                 if tp:
-                    self.lbl_top_actual.setText(f"Esta semana: {tp['nombre']} (${tp['facturado']:,.0f})")
+                    self.lbl_top_actual.setText(f"Esta semana: {tp['nombre']} ({_p(tp['facturado'])})")
                 tp2 = pas.get("top_producto")
                 if tp2:
-                    self.lbl_top_pasada.setText(f"Sem. pasada: {tp2['nombre']} (${tp2['facturado']:,.0f})")
+                    self.lbl_top_pasada.setText(f"Sem. pasada: {tp2['nombre']} ({_p(tp2['facturado'])})")
 
                 # Métodos
                 metodos = act.get("metodos", {})
                 nombres = {"efectivo": "Efectivo", "tarjeta": "Tarjeta", "mercadopago_qr": "QR/MP", "transferencia": "Transf."}
-                txt_met = "  ".join([f"{nombres.get(k, k)}: ${v:,.0f}" for k, v in metodos.items()])
+                txt_met = "  ".join([f"{nombres.get(k, k)}: {_p(v)}" for k, v in metodos.items()])
                 self.lbl_metodos.setText(txt_met or "Sin datos")
         except Exception:
             pass

@@ -13,6 +13,9 @@ _T = get_tema()
 
 API_URL = "http://127.0.0.1:8000"
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 NOMBRES_METODO = {
     "efectivo": "💵 Efectivo",
     "tarjeta": "💳 Tarjeta",
@@ -323,7 +326,7 @@ class DashboardScreen(QWidget):
         signo = "▲" if var >= 0 else "▼"
         color_var = "#27ae60" if var >= 0 else "#e94560"
         
-        self.card_total.actualizar(f"${total:,.0f}", f"{signo} {abs(var):.1f}% vs ayer")
+        self.card_total.actualizar(_p(total), f"{signo} {abs(var):.1f}% vs ayer")
         # Protección extra antes de pintar el color
         if self.card_total.lbl_sub:
             self.card_total.lbl_sub.setStyleSheet(f"color: {color_var}; font-size: 11px; background: transparent; border: none;")
@@ -332,7 +335,7 @@ class DashboardScreen(QWidget):
         self.card_tickets.actualizar(str(tickets))
         
         promedio = to_float(d.get("ticket_promedio"))
-        self.card_promedio.actualizar(f"${promedio:,.0f}")
+        self.card_promedio.actualizar(_p(promedio))
 
         metodo_principal = str(d.get("metodo_mas_usado") or "efectivo")
         nombre_mp = NOMBRES_METODO.get(metodo_principal, metodo_principal)
@@ -368,7 +371,7 @@ class DashboardScreen(QWidget):
             lbl_n.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: bold;")
             top_row.addWidget(lbl_n)
             top_row.addStretch()
-            lbl_v = QLabel(f"${monto_f:,.0f}  ({pct:.0f}%)")
+            lbl_v = QLabel(f"{_p(monto_f)}  ({pct:.0f}%)")
             lbl_v.setStyleSheet("color: white; font-size: 12px;")
             top_row.addWidget(lbl_v)
             fila_layout.addLayout(top_row)
@@ -420,7 +423,7 @@ class DashboardScreen(QWidget):
             fila.addStretch()
 
             total_prod = to_float(prod.get("total", 0))
-            lbl_total = QLabel(f"${total_prod:,.0f}")
+            lbl_total = QLabel(_p(total_prod))
             lbl_total.setFixedHeight(22)
             lbl_total.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: bold; background: transparent; border: none;")
             fila.addWidget(lbl_total)
@@ -465,7 +468,7 @@ class DashboardScreen(QWidget):
                     fecha = str(fila.get("fecha", "-"))
                     prod = str(fila.get("producto", "Desconocido"))
                     cant = str(fila.get("cantidad", 0))
-                    total = f"$ {float(fila.get('total', 0)):,.2f}"
+                    total = _p(float(fila.get('total', 0)))
 
                     self.tabla_detallada.setItem(i, 0, QTableWidgetItem(fecha))
                     self.tabla_detallada.setItem(i, 1, QTableWidgetItem(prod))

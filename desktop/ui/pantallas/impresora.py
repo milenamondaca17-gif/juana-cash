@@ -2,6 +2,9 @@ import os
 import json
 from datetime import datetime
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 _TICKET_CFG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "ticket_config.json")
 
 _DEFAULTS = {
@@ -85,18 +88,18 @@ def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, client
         cant     = float(item.get("cantidad", 1))
         nombre   = str(item.get("nombre", ""))[:16]
         subtotal = float(item.get("subtotal", 0))
-        lineas.append(izq_der(f"{cant:g}x {nombre}", f"${subtotal:,.0f}"))
+        lineas.append(izq_der(f"{cant:g}x {nombre}", _p(subtotal)))
 
     lineas.append("-" * ANCHO)
 
     if descuento and float(descuento) > 0:
-        lineas.append(izq_der("Descuento:", f"-${float(descuento):,.0f}"))
+        lineas.append(izq_der("Descuento:", f"-{_p(descuento)}"))
 
     if recargo and float(recargo) > 0:
-        lineas.append(izq_der(f"Recargo credito {float(recargo_pct):.0f}%:", f"+${float(recargo):,.0f}"))
+        lineas.append(izq_der(f"Recargo credito {float(recargo_pct):.0f}%:", f"+{_p(recargo)}"))
 
     total = float(venta.get("total", 0))
-    lineas.append(izq_der("TOTAL A PAGAR:", f"${total:,.0f}"))
+    lineas.append(izq_der("TOTAL A PAGAR:", _p(total)))
 
     if metodo_pago:
         nombres_m = {
@@ -109,7 +112,7 @@ def formatear_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, client
         lineas.append(izq_der("Pago:", nombres_m.get(metodo_pago, metodo_pago)))
 
     if vuelto and float(vuelto) > 0:
-        lineas.append(izq_der("Vuelto:", f"${float(vuelto):,.0f}"))
+        lineas.append(izq_der("Vuelto:", _p(vuelto)))
 
     lineas.append("=" * ANCHO)
 

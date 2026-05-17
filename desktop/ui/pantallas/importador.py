@@ -15,6 +15,9 @@ from PyQt6.QtGui import QFont, QColor
 
 API_URL = "http://127.0.0.1:8000"
 
+def _p(v):
+    return f"${float(v):,.0f}".replace(",", ".")
+
 # Colores de tu sistema
 BG_MAIN = "#1a1a2e"
 BG_PANEL = "#16213e"
@@ -316,8 +319,8 @@ class ImportadorScreen(QWidget):
                 item_cod.setForeground(QColor("#888888"))
             self.tabla.setItem(i, 0, item_cod)
             self.tabla.setItem(i, 1, QTableWidgetItem(item["nombre"]))
-            self.tabla.setItem(i, 2, QTableWidgetItem(f"${item['costo']:,.0f}" if item["costo"] else "-"))
-            self.tabla.setItem(i, 3, QTableWidgetItem(f"${item['precio']:,.0f}"))
+            self.tabla.setItem(i, 2, QTableWidgetItem(_p(item['costo']) if item["costo"] else "-"))
+            self.tabla.setItem(i, 3, QTableWidgetItem(_p(item['precio'])))
             self.tabla.setItem(i, 4, QTableWidgetItem(f"{int(item['stock'])}" if item["stock"] else "0"))
             self.tabla.setItem(i, 5, QTableWidgetItem(item["depto"] if item["depto"] else "-"))
 

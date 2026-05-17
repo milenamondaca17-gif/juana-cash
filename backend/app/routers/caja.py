@@ -58,6 +58,7 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
 
     ventas_turno = db.query(Venta).filter(
         Venta.fecha >= turno.apertura,
+        Venta.usuario_id == turno.usuario_id,
         Venta.estado == "completada"
     ).all()
 
@@ -76,7 +77,8 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
 
     # Gastos del turno (desde apertura)
     gastos_hoy = db.query(Gasto).filter(
-        Gasto.fecha >= turno.apertura
+        Gasto.fecha >= turno.apertura,
+        Gasto.usuario_id == turno.usuario_id
     ).all()
     total_gastos = sum(float(g.monto) for g in gastos_hoy)
 
