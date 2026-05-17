@@ -1240,11 +1240,11 @@ def _main(page: ft.Page):
             )
         page.update()
 
-    # ── FilePicker para subir foto desde galería (Flet 0.84: async Service) ──
+    # ── FilePicker para subir foto desde galería (Flet 0.84) ──────────────────
     lbl_foto_preview = ft.Text("", size=12, color="#94A3B8")
     foto_picker = ft.FilePicker()  # Service: se auto-registra, NO va en overlay
 
-    async def _abrir_y_subir_foto(e):
+    async def _pick_y_subir():
         lbl_oferta_status.value = "📂 Abriendo galería..."
         lbl_oferta_status.color = "#94A3B8"
         page.update()
@@ -1273,7 +1273,6 @@ def _main(page: ft.Page):
 
         def _upload():
             try:
-                # with_data=True garantiza bytes en Android donde path puede ser None
                 if archivo.bytes:
                     data_bytes = archivo.bytes
                 elif archivo.path and os.path.exists(archivo.path):
@@ -1304,6 +1303,10 @@ def _main(page: ft.Page):
             page.update()
 
         threading.Thread(target=_upload, daemon=True).start()
+
+    # on_click debe ser sync — lanza la coroutine con page.run_task
+    def _abrir_y_subir_foto(e):
+        page.run_task(_pick_y_subir)
 
     # URL como opción secundaria (fallback)
     in_url_imagen = ft.TextField(
