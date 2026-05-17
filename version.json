@@ -1,8 +1,8 @@
 {
-  "version": "4.2.2",
-  "desktop_version": "4.2.2",
+  "version": "4.2.3",
+  "desktop_version": "4.2.3",
   "apk_version": "4.1.4",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.2/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.3/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.4/JuanaCash.apk",
-  "notas": "v4.2.2 - Fix modulo requests faltante / v4.1.4 - Separar versiones desktop y APK"
+  "notas": "v4.2.3 - Fix todos los modulos UI incluidos en bundle / v4.1.4 - Separar versiones desktop y APK"
 }

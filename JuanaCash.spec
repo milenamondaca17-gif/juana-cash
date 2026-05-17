@@ -1,34 +1,31 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 datas = [('backend', 'backend'), ('desktop', 'desktop'), ('juana_cash.db', '.')]
 binaries = []
-hiddenimports = ['uvicorn.lifespan.on', 'uvicorn.loops.auto', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets.auto', 'passlib.handlers.bcrypt', 'sqlalchemy.dialects.sqlite', 'requests', 'urllib3', 'charset_normalizer', 'certifi', 'idna']
-tmp_ret = collect_all('uvicorn')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('fastapi')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('sqlalchemy')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('passlib')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('jose')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('starlette')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('pydantic')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('anyio')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('h11')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('requests')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+hiddenimports = [
+    'uvicorn.lifespan.on', 'uvicorn.loops.auto',
+    'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets.auto',
+    'passlib.handlers.bcrypt', 'sqlalchemy.dialects.sqlite',
+    'requests', 'urllib3', 'charset_normalizer', 'certifi', 'idna',
+    'email', 'email.mime', 'email.mime.text', 'email.mime.multipart',
+    'email.mime.base', 'email.mime.application', 'email.encoders', 'smtplib',
+    'PyQt6', 'PyQt6.QtWidgets', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtPrintSupport',
+]
+
+for pkg in ['uvicorn', 'fastapi', 'sqlalchemy', 'passlib', 'jose',
+            'starlette', 'pydantic', 'anyio', 'h11', 'requests']:
+    tmp = collect_all(pkg)
+    datas += tmp[0]; binaries += tmp[1]; hiddenimports += tmp[2]
+
+# Incluir todos los submodulos del UI de desktop
+hiddenimports += collect_submodules('ui')
+hiddenimports += collect_submodules('PyQt6')
 
 
 a = Analysis(
     ['JuanaCash_main.py'],
-    pathex=[],
+    pathex=['desktop', 'backend'],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
