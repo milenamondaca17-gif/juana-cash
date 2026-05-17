@@ -1,6 +1,6 @@
 {
-  "version": "4.1.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.1/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.1/JuanaCash.apk",
-  "notas": "v4.1.1 - Calculadora departamentos, monitor tiempo real, scroll pestanas"
+  "version": "4.1.2",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.2/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.2/JuanaCash.apk",
+  "notas": "v4.1.2 - Calculadora departamentos inline sin dialog"
 }

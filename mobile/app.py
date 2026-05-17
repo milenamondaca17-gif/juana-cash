@@ -11,7 +11,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "4.1.1"
+APP_VERSION = "4.1.2"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -896,96 +896,111 @@ def _main(page: ft.Page):
         ("🛒 Kiosco",     "#8e44ad"),
     ]
 
+    # ── Panel calculadora inline (sin AlertDialog) ───────────────────────────
+    _calc = {"montos": [], "nombre": "", "color": "#f39c12"}
+    lbl_calc_titulo = ft.Text("", size=17, weight="w900", color="#f39c12")
+    lbl_calc_items  = ft.Text("— Sin ítems aún —", color="#94A3B8", size=13)
+    lbl_calc_total  = ft.Text("Total: $0", size=22, weight="w900", color="#f39c12")
+    in_calc = ft.TextField(
+        hint_text="Monto → + Sumar (campo vacío → confirma)",
+        keyboard_type=ft.KeyboardType.NUMBER,
+        filled=True, border_radius=10, content_padding=14, bgcolor="#0F172A",
+    )
+
+    def _calc_render():
+        if not _calc["montos"]:
+            lbl_calc_items.value = "— Sin ítems aún —"
+            lbl_calc_items.color = "#94A3B8"
+            lbl_calc_total.value = "Total: $0"
+        else:
+            lbl_calc_items.value = "  +  ".join([_p(m) for m in _calc["montos"]])
+            lbl_calc_items.color = "white"
+            lbl_calc_total.value = f"Total: {_p(sum(_calc['montos']))}"
+        page.update()
+
+    def _calc_sumar(e=None):
+        txt = (in_calc.value or "").strip().replace(",", ".")
+        if not txt:
+            if _calc["montos"]:
+                _calc_confirmar()
+            return
+        try:
+            m = float(txt)
+        except ValueError:
+            return
+        if m <= 0:
+            return
+        _calc["montos"].append(m)
+        in_calc.value = ""
+        _calc_render()
+
+    def _calc_borrar(e=None):
+        if _calc["montos"]:
+            _calc["montos"].pop()
+            _calc_render()
+
+    def _calc_confirmar(e=None):
+        if not _calc["montos"]:
+            return
+        total = sum(_calc["montos"])
+        dat = {"n": _calc["nombre"], "p": total, "producto_id": 0}
+        carrito.append(dat)
+        agregar_ui(dat)
+        recalc()
+        _calc_cerrar()
+
+    def _calc_cerrar(e=None):
+        panel_calc.visible = False
+        _calc["montos"] = []
+        in_calc.value = ""
+        lbl_calc_items.value = "— Sin ítems aún —"
+        lbl_calc_items.color = "#94A3B8"
+        lbl_calc_total.value = "Total: $0"
+        page.update()
+
+    in_calc.on_submit = _calc_sumar
+
+    panel_calc = ft.Container(
+        content=ft.Column([
+            ft.Row([
+                lbl_calc_titulo,
+                ft.TextButton("✕ Cerrar", on_click=_calc_cerrar),
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            ft.Container(
+                content=ft.Column([lbl_calc_items, lbl_calc_total], spacing=4),
+                bgcolor="#0F172A", padding=10, border_radius=10,
+            ),
+            in_calc,
+            ft.Row([
+                ft.ElevatedButton("⌫ Borrar", on_click=_calc_borrar,
+                    bgcolor="#334155", color="white", expand=True, height=46,
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))),
+                ft.ElevatedButton("+ Sumar", on_click=_calc_sumar,
+                    bgcolor="#10B981", color="white", expand=True, height=46,
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))),
+            ], spacing=8),
+            ft.ElevatedButton("✅ BAJAR AL TICKET", on_click=_calc_confirmar,
+                bgcolor="#F43F5E", color="white", expand=True, height=52,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))),
+        ], spacing=10),
+        bgcolor="#1E293B", padding=14, border_radius=14,
+        visible=False,
+    )
+
     def _abrir_calculadora_depto(nombre_sec, color_sec):
-        """Calculadora de montos: Enter suma, doble Enter (campo vacío) baja al ticket."""
-        montos = []
-        lbl_items   = ft.Text("— Sin ítems aún —", color="#94A3B8", size=13)
-        lbl_total_d = ft.Text("Total: $0", size=20, weight="w900", color=color_sec)
-        in_monto    = ft.TextField(
-            hint_text="Ingresá el monto y presioná +",
-            keyboard_type=ft.KeyboardType.NUMBER,
-            filled=True, border_radius=10,
-            content_padding=14, bgcolor="#1E293B",
-            autofocus=True,
-        )
-
-        def _actualizar():
-            if not montos:
-                lbl_items.value = "— Sin ítems aún —"
-                lbl_items.color = "#94A3B8"
-                lbl_total_d.value = "Total: $0"
-            else:
-                lbl_items.value = "  +  ".join([_p(m) for m in montos])
-                lbl_items.color = "white"
-                lbl_total_d.value = f"Total: {_p(sum(montos))}"
-            page.update()
-
-        def _confirmar(dlg):
-            if not montos:
-                return
-            total = sum(montos)
-            dat = {"n": nombre_sec, "p": total, "producto_id": 0}
-            carrito.append(dat)
-            agregar_ui(dat)
-            recalc()
-            cerrar_dlg(dlg)
-
-        def _agregar(dlg, e=None):
-            txt = (in_monto.value or "").strip().replace(",", ".")
-            if not txt:
-                if montos:
-                    _confirmar(dlg)
-                return
-            try:
-                monto = float(txt)
-            except ValueError:
-                return
-            if monto <= 0:
-                return
-            montos.append(monto)
-            in_monto.value = ""
-            _actualizar()
-
-        def _borrar(e=None):
-            if montos:
-                montos.pop()
-                _actualizar()
-
-        dlg = ft.AlertDialog(
-            title=ft.Text(nombre_sec, size=18, weight="w900", color=color_sec),
-            content=ft.Column([
-                ft.Container(
-                    content=ft.Column([lbl_items, lbl_total_d], spacing=6),
-                    bgcolor="#0F172A", padding=12, border_radius=10,
-                ),
-                in_monto,
-                ft.Row([
-                    ft.ElevatedButton(
-                        "⌫ Borrar", on_click=_borrar,
-                        bgcolor="#334155", color="white", expand=True, height=44,
-                        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))
-                    ),
-                    ft.ElevatedButton(
-                        "+ Sumar", height=44, expand=True,
-                        bgcolor=color_sec, color="white",
-                        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                        on_click=lambda e: _agregar(dlg),
-                    ),
-                ], spacing=8),
-            ], spacing=10, tight=True),
-            actions=[
-                ft.TextButton("Cancelar", on_click=lambda e: cerrar_dlg(dlg)),
-                ft.ElevatedButton(
-                    "✅ BAJAR AL TICKET",
-                    bgcolor=color_sec, color="white",
-                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                    on_click=lambda e: _confirmar(dlg),
-                ),
-            ],
-            actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-        )
-        in_monto.on_submit = lambda e: _agregar(dlg, e)
-        abrir_dlg(dlg)
+        _calc["montos"] = []
+        _calc["nombre"] = nombre_sec
+        _calc["color"]  = color_sec
+        lbl_calc_titulo.value = nombre_sec
+        lbl_calc_titulo.color = color_sec
+        lbl_calc_total.color  = color_sec
+        in_calc.value = ""
+        lbl_calc_items.value = "— Sin ítems aún —"
+        lbl_calc_items.color = "#94A3B8"
+        lbl_calc_total.value = "Total: $0"
+        panel_calc.visible = True
+        ocultar_resultados()
+        page.update()
 
     fila_secciones = ft.Row([
         ft.ElevatedButton(
@@ -1021,6 +1036,7 @@ def _main(page: ft.Page):
                 ft.Row([in_scan,
                         ft.ElevatedButton("➕", on_click=buscar_prod, bgcolor="#10B981", color="white", height=48)]),
                 fila_secciones,
+                panel_calc,
                 panel_resultados,
                 ft.Row([lbl_total_c, drop_metodo], alignment="spaceBetween", expand=False),
                 btn_vincular_fiado,
