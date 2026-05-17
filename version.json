@@ -1,6 +1,6 @@
 {
-  "version": "4.1.3",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.3/JuanaCash_Setup.exe",
+  "version": "3.8.7",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v3.8.7/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.3/JuanaCash.apk",
-  "notas": "v4.1.3 - Fix botones calculadora departamentos"
+  "notas": "v3.8.7 - Fix codigos extra de productos"
 }
