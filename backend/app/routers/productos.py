@@ -36,9 +36,28 @@ class CambioPrecio(BaseModel):
     precio_nuevo: float
     usuario: str = "mobile"
 
+def _serializar_producto(p: Producto) -> dict:
+    return {
+        "id": p.id,
+        "codigo_barra": p.codigo_barra,
+        "nombre": p.nombre,
+        "descripcion": p.descripcion,
+        "categoria": p.categoria.nombre if p.categoria else "General",
+        "categoria_id": p.categoria_id,
+        "precio_venta": float(p.precio_venta or 0),
+        "precio_costo": float(p.precio_costo or 0) if p.precio_costo is not None else None,
+        "tasa_iva": float(p.tasa_iva or 21),
+        "stock_actual": float(p.stock_actual or 0),
+        "stock_minimo": float(p.stock_minimo or 0),
+        "pesable": p.pesable,
+        "activo": p.activo,
+        "codigos_extra": [{"id": c.id, "codigo": c.codigo} for c in p.codigos_extra],
+    }
+
 @router.get("/")
 def listar_productos(db: Session = Depends(get_db)):
-    return db.query(Producto).filter(Producto.activo == True).all()
+    productos = db.query(Producto).filter(Producto.activo == True).all()
+    return [_serializar_producto(p) for p in productos]
 
 @router.get("/resumen")
 def resumen_productos(db: Session = Depends(get_db)):
@@ -57,17 +76,22 @@ def resumen_productos(db: Session = Depends(get_db)):
 
 @router.get("/buscar")
 def buscar_producto(q: str, db: Session = Depends(get_db)):
-    return db.query(Producto).filter(
-        (Producto.nombre.contains(q)) | (Producto.codigo_barra == q),
+    productos = db.query(Producto).filter(
+        (Producto.nombre.contains(q)) |
+        (Producto.codigo_barra == q) |
+        (Producto.id.in_(
+            db.query(CodigoBarra.producto_id).filter(CodigoBarra.codigo == q)
+        )),
         Producto.activo == True
     ).limit(50).all()
+    return [_serializar_producto(p) for p in productos]
 
 @router.get("/{id}")
 def obtener_producto(id: int, db: Session = Depends(get_db)):
     p = db.query(Producto).filter(Producto.id == id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    return p
+    return _serializar_producto(p)
 
 def _resolver_categoria(datos: ProductoCrear, db: Session) -> dict:
     d = {k: v for k, v in datos.model_dump().items() if k not in ("categoria", "codigos_extra")}
@@ -110,7 +134,7 @@ def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
         _guardar_codigos_extra(p.id, datos.codigos_extra, db)
         db.commit()
         db.refresh(p)
-        return p
+        return _serializar_producto(p)
     except HTTPException:
         db.rollback()
         raise
@@ -147,7 +171,7 @@ def actualizar_producto(id: int, datos: ProductoCrear, db: Session = Depends(get
     _guardar_codigos_extra(p.id, datos.codigos_extra, db)
     db.commit()
     db.refresh(p)
-    return p
+    return _serializar_producto(p)
 
 @router.delete("/{id}")
 def eliminar_producto(id: int, db: Session = Depends(get_db)):
