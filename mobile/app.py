@@ -1240,37 +1240,55 @@ def _main(page: ft.Page):
             )
         page.update()
 
-    # ── FilePicker para subir foto desde galería (Flet 0.84: pick_files síncrono) ──
+    # ── FilePicker para subir foto desde galería (Flet 0.84: async Service) ──
     lbl_foto_preview = ft.Text("", size=12, color="#94A3B8")
-    foto_picker = ft.FilePicker()
-    page.overlay.append(foto_picker)
+    foto_picker = ft.FilePicker()  # Service: se auto-registra, NO va en overlay
 
-    def _abrir_y_subir_foto(e):
-        def _pick_and_upload():
+    async def _abrir_y_subir_foto(e):
+        lbl_oferta_status.value = "📂 Abriendo galería..."
+        lbl_oferta_status.color = "#94A3B8"
+        page.update()
+        try:
+            archivos = await foto_picker.pick_files(
+                file_type=ft.FilePickerFileType.IMAGE,
+                allow_multiple=False,
+                with_data=True,
+            )
+        except Exception as ex:
+            lbl_oferta_status.value = f"❌ {str(ex)[:80]}"
+            lbl_oferta_status.color = "#EF4444"
+            page.update()
+            return
+
+        if not archivos:
+            lbl_oferta_status.value = ""
+            page.update()
+            return
+
+        archivo = archivos[0]
+        lbl_oferta_status.value = f"⏳ Subiendo {archivo.name}..."
+        lbl_oferta_status.color = "#94A3B8"
+        lbl_foto_preview.value = f"📎 {archivo.name}"
+        page.update()
+
+        def _upload():
             try:
-                archivos = foto_picker.pick_files(
-                    allow_multiple=False,
-                    allowed_extensions=["jpg", "jpeg", "png", "webp"]
-                )
-                if not archivos:
-                    return
-                archivo = archivos[0]
-                ruta = archivo.path
-                if not ruta or not os.path.exists(ruta):
-                    lbl_oferta_status.value = "❌ No se pudo acceder al archivo"
+                # with_data=True garantiza bytes en Android donde path puede ser None
+                if archivo.bytes:
+                    data_bytes = archivo.bytes
+                elif archivo.path and os.path.exists(archivo.path):
+                    with open(archivo.path, "rb") as f:
+                        data_bytes = f.read()
+                else:
+                    lbl_oferta_status.value = "❌ No se pudo leer el archivo"
                     lbl_oferta_status.color = "#EF4444"
                     page.update()
                     return
-                lbl_oferta_status.value = f"⏳ Subiendo {archivo.name}..."
-                lbl_oferta_status.color = "#94A3B8"
-                lbl_foto_preview.value = f"📎 {archivo.name}"
-                page.update()
-                with open(ruta, "rb") as f:
-                    r = requests.post(
-                        f"{get_api_url()}/ofertas/imagen",
-                        files={"archivo": (archivo.name, f, "image/jpeg")},
-                        timeout=20
-                    )
+                r = requests.post(
+                    f"{get_api_url()}/ofertas/imagen",
+                    files={"archivo": (archivo.name, data_bytes, "image/jpeg")},
+                    timeout=30
+                )
                 if r.status_code == 200:
                     data = r.json()
                     lbl_oferta_status.value = f"✅ Foto subida a la PC ({data.get('total', 0)} ofertas)"
@@ -1285,7 +1303,7 @@ def _main(page: ft.Page):
                 lbl_oferta_status.color = "#EF4444"
             page.update()
 
-        threading.Thread(target=_pick_and_upload, daemon=True).start()
+        threading.Thread(target=_upload, daemon=True).start()
 
     # URL como opción secundaria (fallback)
     in_url_imagen = ft.TextField(
