@@ -1,5 +1,6 @@
 {
   "version": "4.0.9",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.0.9/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.0.9/JuanaCash.apk",
   "notas": "v4.0.9 - Fix formato monedas, empleados cierre, clientes alfabetico, card caja mejorada"
 }

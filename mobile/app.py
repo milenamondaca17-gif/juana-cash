@@ -10,7 +10,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "3.7.8"
+APP_VERSION = "4.0.9"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -2347,16 +2347,28 @@ def _main(page: ft.Page):
 
     # ── Banner de actualización disponible ───────────────────────────────────
     lbl_update_version = ft.Text("", size=13, color="white", expand=True)
+    _apk_url_descarga = {"url": APK_URL}
 
     def _descargar_apk(e):
+        url = _apk_url_descarga["url"]
         try:
-            page.launch_url(APK_URL)
+            page.launch_url(url)
+            sb = ft.SnackBar(
+                ft.Text("Abriendo navegador para descargar la APK...", color="white"),
+                bgcolor="#10B981", duration=4000
+            )
+            page.open(sb)
         except Exception:
-            try:
-                import webbrowser
-                webbrowser.open(APK_URL)
-            except Exception:
-                pass
+            dlg = ft.AlertDialog(
+                title=ft.Text("Descargá la APK"),
+                content=ft.Column([
+                    ft.Text("Copiá este link en tu navegador:", size=13),
+                    ft.Text(url, selectable=True, size=11, color="#94A3B8"),
+                ], tight=True, spacing=8),
+                actions=[ft.TextButton("Cerrar", on_click=lambda _: cerrar_dlg(dlg))],
+            )
+            abrir_dlg(dlg)
+        page.update()
 
     banner_update = ft.Container(
         content=ft.Row([
@@ -2379,7 +2391,9 @@ def _main(page: ft.Page):
             r = requests.get(VERSION_URL, timeout=8, verify=False)
             data = r.json()
             nueva = data.get("version", "")
+            apk_url = data.get("apk_url", APK_URL)
             if nueva and _version_mayor(nueva, APP_VERSION):
+                _apk_url_descarga["url"] = apk_url
                 lbl_update_version.value = f"Nueva versión {nueva} disponible"
                 banner_update.visible = True
                 page.update()
