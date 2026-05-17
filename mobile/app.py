@@ -1240,8 +1240,54 @@ def _main(page: ft.Page):
             )
         page.update()
 
+    # ── FilePicker para subir foto desde galería ──────────────────────────────
+    lbl_foto_preview = ft.Text("", size=12, color="#94A3B8")
+
+    def _on_foto_picked(e: ft.FilePickerResultEvent):
+        if not e.files:
+            return
+        archivo = e.files[0]
+        ruta = archivo.path
+        if not ruta or not os.path.exists(ruta):
+            lbl_oferta_status.value = "❌ No se pudo acceder al archivo"
+            lbl_oferta_status.color = "#EF4444"
+            page.update()
+            return
+        lbl_oferta_status.value = f"⏳ Subiendo {archivo.name}..."
+        lbl_oferta_status.color = "#94A3B8"
+        lbl_foto_preview.value = f"📎 {archivo.name}"
+        page.update()
+
+        def _upload():
+            try:
+                with open(ruta, "rb") as f:
+                    r = requests.post(
+                        f"{get_api_url()}/ofertas/imagen",
+                        files={"archivo": (archivo.name, f, "image/jpeg")},
+                        timeout=20
+                    )
+                if r.status_code == 200:
+                    data = r.json()
+                    lbl_oferta_status.value = f"✅ Foto subida a la PC ({data.get('total', 0)} ofertas)"
+                    lbl_oferta_status.color = "#10B981"
+                    lbl_foto_preview.value = ""
+                    cargar_lista_ofertas()
+                else:
+                    lbl_oferta_status.value = f"❌ Error {r.status_code}: {r.text[:60]}"
+                    lbl_oferta_status.color = "#EF4444"
+            except Exception as ex:
+                lbl_oferta_status.value = f"❌ {str(ex)[:60]}"
+                lbl_oferta_status.color = "#EF4444"
+            page.update()
+
+        threading.Thread(target=_upload, daemon=True).start()
+
+    foto_picker = ft.FilePicker(on_result=_on_foto_picked)
+    page.overlay.append(foto_picker)
+
+    # URL como opción secundaria (fallback)
     in_url_imagen = ft.TextField(
-        label="URL de imagen (pegá el link)",
+        label="O pegá una URL de imagen",
         hint_text="https://...",
         filled=True, border_color="transparent", border_radius=12,
         content_padding=14, bgcolor="#1E293B", expand=True,
@@ -1283,15 +1329,22 @@ def _main(page: ft.Page):
                     on_click=agregar_oferta_texto, expand=True, height=44)
             ]),
             ft.Divider(color="#334155"),
-            ft.Text("📷 Subir imagen por URL", weight="bold", size=13, color="#E91E63"),
-            ft.Text(
-                "Abrí la imagen en el cel → compartir → copiar link → pegalo acá",
-                color="#94A3B8", size=11
+            ft.Text("📷 Subir foto", weight="bold", size=14, color="#E91E63"),
+            ft.ElevatedButton(
+                "📷  ELEGIR FOTO DE LA GALERÍA",
+                bgcolor="#E91E63", color="white", height=52, expand=True,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=12)),
+                on_click=lambda _: foto_picker.pick_files(
+                    allow_multiple=False,
+                    allowed_extensions=["jpg", "jpeg", "png", "webp"]
+                )
             ),
+            lbl_foto_preview,
+            ft.Text("— o pegá una URL —", color="#475569", size=11, text_align=ft.TextAlign.CENTER),
             ft.Row([
                 in_url_imagen,
                 ft.ElevatedButton("📤", on_click=subir_imagen_por_url,
-                    bgcolor="#E91E63", color="white", height=48, width=50),
+                    bgcolor="#475569", color="white", height=48, width=50),
             ], spacing=8),
             lbl_oferta_status,
             ft.Divider(color="#334155"),
