@@ -539,7 +539,7 @@ def _main(page: ft.Page):
                 bgcolor="#3B82F6", color="white",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             )
-        ], spacing=12),
+        ], spacing=12, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=True, expand=True
     )
 
@@ -875,7 +875,7 @@ def _main(page: ft.Page):
                 lista_compra,
             ], spacing=8, scroll=ft.ScrollMode.AUTO, expand=True),
             ft.Row([btn_ir_fiados, btn_cobrar], spacing=8),
-        ], spacing=8),
+        ], spacing=8, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
@@ -1107,7 +1107,7 @@ def _main(page: ft.Page):
                 ft.ElevatedButton("✅ COBRAR", expand=True, height=52, bgcolor="#10B981", color="white",
                     on_click=cobrar_final),
             ], spacing=10)
-        ], spacing=10),
+        ], spacing=10, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
@@ -1377,7 +1377,7 @@ def _main(page: ft.Page):
                     bgcolor="#1E293B", color="white", width=44, height=36)
             ]),
             lista_ofertas_ui,
-        ], spacing=10),
+        ], spacing=10, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
@@ -1616,7 +1616,7 @@ def _main(page: ft.Page):
                 bgcolor="#0F172A", padding=14, border_radius=14),
             lbl_ventas_err,
             lista_ventas_ui,
-        ], spacing=10),
+        ], spacing=10, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
@@ -1697,7 +1697,7 @@ def _main(page: ft.Page):
                 expand=True, height=40, bgcolor="#1E293B", color="white"),
             lbl_fiados_status,
             lista_fiados_ui,
-        ], spacing=10),
+        ], spacing=10, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
@@ -1819,7 +1819,7 @@ def _main(page: ft.Page):
             ], spacing=8),
             lbl_precio_status,
             lista_precios_ui,
-        ], spacing=10),
+        ], spacing=10, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
@@ -2200,7 +2200,7 @@ def _main(page: ft.Page):
             ft.Row([_btns_caja[k] for k, _ in _TABS_CAJA], spacing=6),
             lbl_caja_status,
             lista_caja_ui,
-        ], spacing=10),
+        ], spacing=10, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
@@ -2306,7 +2306,7 @@ def _main(page: ft.Page):
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             ),
             lbl_config_status,
-        ], spacing=12),
+        ], spacing=12, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=False, expand=True
     )
 
