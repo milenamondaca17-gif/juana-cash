@@ -1243,7 +1243,7 @@ def _main(page: ft.Page):
     # ── FilePicker para subir foto desde galería ──────────────────────────────
     lbl_foto_preview = ft.Text("", size=12, color="#94A3B8")
 
-    def _on_foto_picked(e: ft.FilePickerResultEvent):
+    def _on_foto_picked(e):
         if not e.files:
             return
         archivo = e.files[0]
