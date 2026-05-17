@@ -11,7 +11,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "4.1.0"
+APP_VERSION = "4.1.1"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -897,25 +897,19 @@ def _main(page: ft.Page):
     ]
 
     def _abrir_calculadora_depto(nombre_sec, color_sec):
-        """
-        Calculadora de montos para departamentos sin código de barras.
-        Igual al EXE: ingresás montos con Enter, doble Enter (campo vacío) baja al ticket.
-        """
+        """Calculadora de montos: Enter suma, doble Enter (campo vacío) baja al ticket."""
         montos = []
-
-        lbl_items   = ft.Text("— Sin ítems aún —", color="#94A3B8", size=13, text_align=ft.TextAlign.CENTER)
-        lbl_total_d = ft.Text("Total: $0", size=22, weight="w900", color=color_sec, text_align=ft.TextAlign.RIGHT)
+        lbl_items   = ft.Text("— Sin ítems aún —", color="#94A3B8", size=13)
+        lbl_total_d = ft.Text("Total: $0", size=20, weight="w900", color=color_sec)
         in_monto    = ft.TextField(
-            hint_text="Monto y Enter   (doble Enter = confirmar)",
+            hint_text="Ingresá el monto y presioná +",
             keyboard_type=ft.KeyboardType.NUMBER,
-            filled=True, border_color=color_sec, border_radius=10,
-            content_padding=14, bgcolor="#0F172A",
-            text_style=ft.TextStyle(size=20, weight=ft.FontWeight.BOLD, color="white"),
-            text_align=ft.TextAlign.RIGHT,
+            filled=True, border_radius=10,
+            content_padding=14, bgcolor="#1E293B",
             autofocus=True,
         )
 
-        def actualizar_lista():
+        def _actualizar():
             if not montos:
                 lbl_items.value = "— Sin ítems aún —"
                 lbl_items.color = "#94A3B8"
@@ -926,7 +920,7 @@ def _main(page: ft.Page):
                 lbl_total_d.value = f"Total: {_p(sum(montos))}"
             page.update()
 
-        def confirmar_depto(dlg):
+        def _confirmar(dlg):
             if not montos:
                 return
             total = sum(montos)
@@ -936,12 +930,11 @@ def _main(page: ft.Page):
             recalc()
             cerrar_dlg(dlg)
 
-        def agregar_monto(dlg, e=None):
-            txt = in_monto.value.strip().replace(",", ".")
+        def _agregar(dlg, e=None):
+            txt = (in_monto.value or "").strip().replace(",", ".")
             if not txt:
-                # campo vacío + ya hay montos = doble Enter → confirmar
                 if montos:
-                    confirmar_depto(dlg)
+                    _confirmar(dlg)
                 return
             try:
                 monto = float(txt)
@@ -951,26 +944,24 @@ def _main(page: ft.Page):
                 return
             montos.append(monto)
             in_monto.value = ""
-            actualizar_lista()
-            page.update()
+            _actualizar()
 
-        def borrar_ultimo(e=None):
+        def _borrar(e=None):
             if montos:
                 montos.pop()
-                actualizar_lista()
+                _actualizar()
 
         dlg = ft.AlertDialog(
             title=ft.Text(nombre_sec, size=18, weight="w900", color=color_sec),
             content=ft.Column([
                 ft.Container(
-                    content=ft.Column([lbl_items, lbl_total_d], spacing=4),
-                    bgcolor="#1E293B", padding=12, border_radius=10,
-                    border=ft.border.all(1, color_sec),
+                    content=ft.Column([lbl_items, lbl_total_d], spacing=6),
+                    bgcolor="#0F172A", padding=12, border_radius=10,
                 ),
                 in_monto,
                 ft.Row([
                     ft.ElevatedButton(
-                        "⌫ Borrar último", on_click=borrar_ultimo,
+                        "⌫ Borrar", on_click=_borrar,
                         bgcolor="#334155", color="white", expand=True, height=44,
                         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))
                     ),
@@ -978,22 +969,22 @@ def _main(page: ft.Page):
                         "+ Sumar", height=44, expand=True,
                         bgcolor=color_sec, color="white",
                         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                        on_click=lambda e: agregar_monto(dlg),
+                        on_click=lambda e: _agregar(dlg),
                     ),
                 ], spacing=8),
-            ], spacing=10, tight=True, width=320),
+            ], spacing=10, tight=True),
             actions=[
                 ft.TextButton("Cancelar", on_click=lambda e: cerrar_dlg(dlg)),
                 ft.ElevatedButton(
                     "✅ BAJAR AL TICKET",
                     bgcolor=color_sec, color="white",
                     style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-                    on_click=lambda e: confirmar_depto(dlg),
+                    on_click=lambda e: _confirmar(dlg),
                 ),
             ],
             actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         )
-        in_monto.on_submit = lambda e: agregar_monto(dlg, e)
+        in_monto.on_submit = lambda e: _agregar(dlg, e)
         abrir_dlg(dlg)
 
     fila_secciones = ft.Row([
