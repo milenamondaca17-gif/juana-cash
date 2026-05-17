@@ -11,7 +11,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "4.1.2"
+APP_VERSION = "4.1.3"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -1002,14 +1002,23 @@ def _main(page: ft.Page):
         ocultar_resultados()
         page.update()
 
+    def _click_fiambreria(e):
+        _abrir_calculadora_depto("🧀 Fiambrería", "#f39c12")
+    def _click_carniceria(e):
+        _abrir_calculadora_depto("🥩 Carnicería", "#e74c3c")
+    def _click_kiosco(e):
+        _abrir_calculadora_depto("🛒 Kiosco", "#8e44ad")
+
     fila_secciones = ft.Row([
-        ft.ElevatedButton(
-            s[0], height=40, expand=True,
-            bgcolor=s[1], color="white",
+        ft.ElevatedButton("🧀 Fiambrería", height=40, expand=True, bgcolor="#f39c12", color="white",
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-            on_click=lambda e, nm=s[0], co=s[1]: _abrir_calculadora_depto(nm, co)
-        )
-        for s in SECCIONES
+            on_click=_click_fiambreria),
+        ft.ElevatedButton("🥩 Carnicería", height=40, expand=True, bgcolor="#e74c3c", color="white",
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+            on_click=_click_carniceria),
+        ft.ElevatedButton("🛒 Kiosco", height=40, expand=True, bgcolor="#8e44ad", color="white",
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
+            on_click=_click_kiosco),
     ], spacing=6)
 
     btn_cobrar = ft.ElevatedButton(
