@@ -201,10 +201,38 @@ class SplashScreen(QWidget):
             u = Updater()
 
             def _cerrar_app_qt():
-                from PyQt6.QtWidgets import QApplication
+                def _show_overlay():
+                    from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
+                    from PyQt6.QtCore import QTimer, Qt
+                    from PyQt6.QtGui import QFont
+                    app_inst = QApplication.instance()
+                    if not app_inst:
+                        return
+                    ov = QWidget()
+                    ov.setWindowFlags(
+                        Qt.WindowType.FramelessWindowHint |
+                        Qt.WindowType.WindowStaysOnTopHint
+                    )
+                    ov.setStyleSheet("background-color: #0d1117;")
+                    ov.showFullScreen()
+                    lay = QVBoxLayout(ov)
+                    lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    for txt, size, color in [
+                        ("⚙️", 52, "white"),
+                        ("ACTUALIZANDO JUANA CASH", 26, "#F59E0B"),
+                        ("Por favor esperá unos momentos", 15, "white"),
+                        ("NO abrir la aplicación hasta que reaparezca sola", 13, "#9ca3af"),
+                    ]:
+                        lbl = QLabel(txt)
+                        lbl.setFont(QFont("Arial", size,
+                                         QFont.Weight.Bold if size > 20 else QFont.Weight.Normal))
+                        lbl.setStyleSheet(f"color: {color}; background: transparent;")
+                        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                        lay.addWidget(lbl)
+                        lay.addSpacing(8)
+                    QTimer.singleShot(50000, app_inst.quit)
                 from PyQt6.QtCore import QTimer
-                self._set_update_msg("🔄 Instalando actualización... cerrando")
-                QTimer.singleShot(2500, QApplication.instance().quit)
+                QTimer.singleShot(0, _show_overlay)
 
             u.verificar(
                 on_preguntar=lambda v: True,
