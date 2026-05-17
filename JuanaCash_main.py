@@ -43,7 +43,7 @@ def run_backend():
         uvicorn.run(fastapi_app, host="0.0.0.0", port=8000, log_level="error", access_log=False)
     except Exception as e:
         try:
-            with open(os.path.join(DATA_DIR, "debug.log"), "a") as f:
+            with open(os.path.join(DATA_DIR, "debug.log"), "a", encoding="utf-8") as f:
                 import traceback
                 f.write(f"ERROR BACKEND: {e}\n")
                 f.write(traceback.format_exc())
@@ -98,13 +98,13 @@ def _auto_backup():
                     except Exception:
                         pass
                 try:
-                    with open(os.path.join(DATA_DIR, "debug.log"), "a") as f:
+                    with open(os.path.join(DATA_DIR, "debug.log"), "a", encoding="utf-8") as f:
                         f.write(f"[{ahora}] Backup automático: {nombre}\n")
                 except Exception:
                     pass
             except Exception as e:
                 try:
-                    with open(os.path.join(DATA_DIR, "debug.log"), "a") as f:
+                    with open(os.path.join(DATA_DIR, "debug.log"), "a", encoding="utf-8") as f:
                         f.write(f"[{ahora}] ERROR backup: {e}\n")
                 except Exception:
                     pass
