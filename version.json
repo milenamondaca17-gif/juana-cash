@@ -1,8 +1,8 @@
 {
-  "version": "4.2.7",
-  "desktop_version": "4.2.7",
+  "version": "4.2.8",
+  "desktop_version": "4.2.8",
   "apk_version": "4.1.4",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.7/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.8/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.1.4/JuanaCash.apk",
-  "notas": "v4.2.7 - Ticket cierre incluye caja inicial, gastos detallados y ventas por departamento / v4.1.4 - Separar versiones desktop y APK"
+  "notas": "v4.2.8 - Reporte automatico 22:20 con gastos y desglose por departamento / v4.1.4 - Separar versiones desktop y APK"
 }
