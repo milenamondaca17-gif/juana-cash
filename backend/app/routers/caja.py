@@ -60,10 +60,11 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     # Esto evita que ventas del turno siguiente se cuenten en este cierre
     momento_cierre = datetime.now()
 
+    # Ventas del turno: solo por rango de tiempo (igual que el historial)
+    # No se filtra por usuario para que mañana y tarde usen la misma fórmula
     ventas_turno = db.query(Venta).filter(
         Venta.fecha >= turno.apertura,
         Venta.fecha <= momento_cierre,
-        Venta.usuario_id == turno.usuario_id,
         Venta.estado == "completada"
     ).all()
 
@@ -80,11 +81,10 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
         elif getattr(v, "metodo_pago", None) == "efectivo":
             efectivo_ventas += float(v.total or 0)
 
-    # Gastos del turno (desde apertura hasta cierre)
+    # Gastos del turno: solo por rango de tiempo (igual que el historial)
     gastos_hoy = db.query(Gasto).filter(
         Gasto.fecha >= turno.apertura,
-        Gasto.fecha <= momento_cierre,
-        Gasto.usuario_id == turno.usuario_id
+        Gasto.fecha <= momento_cierre
     ).all()
     total_gastos = sum(float(g.monto) for g in gastos_hoy)
 
@@ -193,10 +193,9 @@ def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
                 if m in desglose:
                     desglose[m] += float(p.monto or 0)
 
-        # Gastos y aportes del turno (filtrados por cajero igual que el cierre)
+        # Gastos del turno: solo por rango de tiempo (igual que el cierre)
         total_gastos = sum(float(g.monto) for g in db.query(Gasto).filter(
-            Gasto.fecha >= t.apertura, Gasto.fecha <= hasta,
-            Gasto.usuario_id == t.usuario_id).all())
+            Gasto.fecha >= t.apertura, Gasto.fecha <= hasta).all())
         total_aportes = sum(float(a.monto) for a in db.query(CajaAporte).filter(
             CajaAporte.turno_id == t.id).all())
 
