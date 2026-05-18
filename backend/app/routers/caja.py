@@ -56,8 +56,13 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     if not turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
 
+    # Fijar hora de cierre ANTES de las queries para usarla como límite superior
+    # Esto evita que ventas del turno siguiente se cuenten en este cierre
+    momento_cierre = datetime.now()
+
     ventas_turno = db.query(Venta).filter(
         Venta.fecha >= turno.apertura,
+        Venta.fecha <= momento_cierre,
         Venta.usuario_id == turno.usuario_id,
         Venta.estado == "completada"
     ).all()
@@ -75,9 +80,10 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
         elif getattr(v, "metodo_pago", None) == "efectivo":
             efectivo_ventas += float(v.total or 0)
 
-    # Gastos del turno (desde apertura)
+    # Gastos del turno (desde apertura hasta cierre)
     gastos_hoy = db.query(Gasto).filter(
         Gasto.fecha >= turno.apertura,
+        Gasto.fecha <= momento_cierre,
         Gasto.usuario_id == turno.usuario_id
     ).all()
     total_gastos = sum(float(g.monto) for g in gastos_hoy)
@@ -99,7 +105,7 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     # Diferencia: lo que declaró el cajero vs lo que debería haber
     diferencia = datos.monto_cierre - efectivo_esperado
 
-    turno.cierre                 = datetime.now()
+    turno.cierre                 = momento_cierre
     turno.monto_cierre_declarado = datos.monto_cierre
     turno.monto_cierre_calculado = total_vendido
     turno.diferencia             = diferencia
@@ -187,9 +193,10 @@ def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
                 if m in desglose:
                     desglose[m] += float(p.monto or 0)
 
-        # Gastos y aportes del turno
+        # Gastos y aportes del turno (filtrados por cajero igual que el cierre)
         total_gastos = sum(float(g.monto) for g in db.query(Gasto).filter(
-            Gasto.fecha >= t.apertura, Gasto.fecha <= hasta).all())
+            Gasto.fecha >= t.apertura, Gasto.fecha <= hasta,
+            Gasto.usuario_id == t.usuario_id).all())
         total_aportes = sum(float(a.monto) for a in db.query(CajaAporte).filter(
             CajaAporte.turno_id == t.id).all())
 
