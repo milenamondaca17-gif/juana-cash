@@ -284,6 +284,42 @@ def dashboard_tiempo_real(db: Session = Depends(get_db)):
         "top_productos": [{"nombre": r.nombre, "cantidad": float(r.qty), "total": float(r.total)} for r in top_productos]
     }
 
+@router.get("/por-categoria")
+def ventas_por_categoria(desde: str = None, hasta: str = None, db: Session = Depends(get_db)):
+    """
+    Devuelve el total vendido agrupado por categoría en un rango de datetime.
+    Usado para incluir Carnicería / Fiambrería en el reporte de cierre de caja.
+    """
+    from datetime import datetime as _dt
+
+    query = db.query(
+        func.coalesce(Categoria.nombre, "Sin categoría").label("categoria"),
+        func.sum(ItemVenta.subtotal).label("total"),
+        func.count(func.distinct(Venta.id)).label("tickets"),
+    ).join(ItemVenta, Venta.id == ItemVenta.venta_id)\
+     .join(Producto, ItemVenta.producto_id == Producto.id)\
+     .outerjoin(Categoria, Producto.categoria_id == Categoria.id)\
+     .filter(Venta.estado == "completada")
+
+    if desde:
+        try:
+            dt_desde = _dt.fromisoformat(desde.replace("T", " "))
+            query = query.filter(Venta.fecha >= dt_desde)
+        except Exception:
+            pass
+    if hasta:
+        try:
+            dt_hasta = _dt.fromisoformat(hasta.replace("T", " "))
+            query = query.filter(Venta.fecha <= dt_hasta)
+        except Exception:
+            pass
+
+    rows = query.group_by(Categoria.id).order_by(func.sum(ItemVenta.subtotal).desc()).all()
+    return [
+        {"categoria": r.categoria, "total": round(float(r.total or 0), 2), "tickets": int(r.tickets)}
+        for r in rows
+    ]
+
 @router.get("/ventas-periodo")
 def ventas_por_periodo(periodo: str = "dia", db: Session = Depends(get_db)):
     if periodo == "mes":

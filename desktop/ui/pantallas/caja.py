@@ -1249,6 +1249,23 @@ class CajaScreen(QWidget):
                     try:
                         from datetime import datetime as _dt
                         ts = _dt.now().strftime("%d/%m/%Y %H:%M")
+
+                        # Ventas por categoría (Carnicería / Fiambrería) del turno
+                        _apertura = self._apertura_iso()
+                        _hasta = _dt.now().strftime("%Y-%m-%dT%H:%M:%S")
+                        _cat_params = {}
+                        if _apertura:
+                            _cat_params["desde"] = _apertura
+                        _cat_params["hasta"] = _hasta
+                        try:
+                            r_cat = requests.get(f"{API_URL}/reportes/por-categoria",
+                                                  params=_cat_params, timeout=5)
+                            categorias_turno = r_cat.json() if r_cat.status_code == 200 else []
+                        except Exception:
+                            categorias_turno = []
+                        _carne = next((c["total"] for c in categorias_turno if "carn" in c["categoria"].lower()), 0)
+                        _fiamb = next((c["total"] for c in categorias_turno if "fiamb" in c["categoria"].lower()), 0)
+
                         lineas_metodos = (
                             f"\n💵 Efectivo:    {_p(totales['efectivo'])}"
                             f"\n🏧 Débito:      {_p(totales['debito'])}"
@@ -1278,6 +1295,11 @@ class CajaScreen(QWidget):
                             faltante_txt = f"⚠️ Faltante: {_p(abs(diferencia))}"
                         else:
                             faltante_txt = f"ℹ️ Sobra: {_p(diferencia)}"
+                        lineas_deptos = (
+                            f"\n\n🥩 *Por departamento:*"
+                            f"\n  Carnicería:   {_p(_carne)}"
+                            f"\n  Fiambrería:   {_p(_fiamb)}"
+                        )
                         msg_wa = (
                             f"🏪 *CIERRE DE CAJA — JUANA CASH*\n"
                             f"📅 {ts}  |  👤 {getattr(self, 'nombre_cajero', '?')}\n"
@@ -1288,6 +1310,7 @@ class CajaScreen(QWidget):
                             f"\n📊 Total vendido: {_p(total_vendido)}"
                             f"\n📉 Gastos:        -{_p(total_gastos)}"
                             f"\n📈 Neto:           {_p(total_vendido - total_gastos)}"
+                            + lineas_deptos
                             + lineas_gastos
                             + lineas_emp +
                             f"\n{'─'*24}"
