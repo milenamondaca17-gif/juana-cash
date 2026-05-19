@@ -55,6 +55,8 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     turno = db.query(CajaTurno).filter(CajaTurno.id == turno_id).first()
     if not turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
+    if turno.estado == "cerrado":
+        raise HTTPException(status_code=400, detail="El turno ya fue cerrado")
 
     # Fijar hora de cierre ANTES de las queries para usarla como límite superior
     # Esto evita que ventas del turno siguiente se cuenten en este cierre

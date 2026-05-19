@@ -1046,12 +1046,13 @@ class CajaScreen(QWidget):
             lbl_m.setStyleSheet(f"color: {color};")
             fl.addWidget(lbl_m)
             lay.addWidget(f)
+            return lbl_m
 
         detalle_ef = (f"total {_p(total_vendido)} + inicio {_p(monto_apertura)}"
             + (f" + aporte {_p(total_aportes)}" if total_aportes else "")
             + f" - no efectivo {_p(totales['debito'] + totales['tarjeta'] + totales['mercadopago_qr'] + totales['transferencia'] + totales['fiado'])}"
             + f" - gastos {_p(total_gastos)}")
-        fila_metodo("💵", "Efectivo",          efectivo_esperado,         "#27ae60", detalle_ef)
+        lbl_ef_card = fila_metodo("💵", "Efectivo",          efectivo_esperado,         "#27ae60", detalle_ef)
         fila_metodo("🏧", "Débito",            totales["debito"],         "#10b981")
         fila_metodo("💳", "Tarjeta",           totales["tarjeta"],        "#3498db")
         fila_metodo("📱", "Mercado Pago/QR",   totales["mercadopago_qr"], "#009ee3")
@@ -1129,9 +1130,9 @@ class CajaScreen(QWidget):
                 except ValueError:
                     pass
             lbl_total_emp.setText(f"Total empleados: {_p(total)}")
-            # Actualizar efectivo esperado con descuento de empleados
             ef_neto = efectivo_esperado - total
             input_declarado.setPlaceholderText(_p(ef_neto).lstrip("$"))
+            lbl_ef_card.setText(_p(ef_neto))
 
         for in_n, in_m in filas_emp:
             in_m.textChanged.connect(lambda _: actualizar_total_emp())
@@ -1415,12 +1416,14 @@ class CajaScreen(QWidget):
         lay.addLayout(btns)
 
         def confirmar():
+            btn_ok.setEnabled(False)
             txt = inp_monto.text().strip().replace(".", "").replace(",", ".")
             try:
                 monto = float(txt)
                 if monto <= 0:
                     raise ValueError
             except ValueError:
+                btn_ok.setEnabled(True)
                 QMessageBox.warning(dialog, "Error", "Ingresá un monto válido mayor a cero")
                 return
             desc = inp_desc.text().strip() or "Aporte de caja"
@@ -1433,8 +1436,10 @@ class CajaScreen(QWidget):
                     QMessageBox.information(self, "✅ Aporte registrado", f"Se agregaron {_p(monto)} a la caja.")
                     self.actualizar_ventas()
                 else:
+                    btn_ok.setEnabled(True)
                     QMessageBox.warning(dialog, "Error", r.json().get("detail", "No se pudo registrar"))
             except Exception:
+                btn_ok.setEnabled(True)
                 QMessageBox.critical(dialog, "Error", "Sin conexión al servidor")
 
         btn_ok.clicked.connect(confirmar)

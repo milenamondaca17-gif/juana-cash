@@ -1,8 +1,8 @@
 {
-  "version": "4.3.5",
-  "desktop_version": "4.3.5",
+  "version": "4.3.6",
+  "desktop_version": "4.3.6",
   "apk_version": "4.2.0",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.5/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.6/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.0/JuanaCash.apk",
-  "notas": "v4.3.5 - Fix carniceria y fiambreria en reportes y cierre de caja"
+  "notas": "v4.3.6 - Fix caja: doble cierre, doble aporte, efectivo se actualiza con empleados"
 }
