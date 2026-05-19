@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import threading
 from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QPushButton, QTableWidget,
@@ -571,14 +572,23 @@ class VentasScreen(QWidget):
         self.productos_codigo = {}       # codigo_barra → producto (lookup O(1))
         self.setup_ui()
 
+        # Timer: refresca el caché cada 5 minutos automáticamente
+        from PyQt6.QtCore import QTimer
+        self._timer_cache = QTimer()
+        self._timer_cache.timeout.connect(lambda: threading.Thread(target=self._cargar_cache_productos, daemon=True).start())
+        self._timer_cache.start(5 * 60 * 1000)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        threading.Thread(target=self._cargar_cache_productos, daemon=True).start()
+
     def set_usuario(self, usuario):
         self.usuario = usuario
         # Cargar cache de productos en hilo separado al iniciar
-        import threading
         threading.Thread(target=self._cargar_cache_productos, daemon=True).start()
 
     def _cargar_cache_productos(self):
-        """Carga todos los productos una sola vez. Búsquedas sin red."""
+        """Carga todos los productos. Se refresca al mostrar la pantalla y cada 5 minutos."""
         try:
             r = requests.get(f"{API_URL}/productos/", timeout=10)
             if r.status_code == 200:
