@@ -1,4 +1,4 @@
-import os
+import os, math, random
 import requests
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QStackedWidget, QWidget, QHBoxLayout,
@@ -6,8 +6,106 @@ from PyQt6.QtWidgets import (QMainWindow, QStackedWidget, QWidget, QHBoxLayout,
                              QDialog, QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
                              QApplication)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont, QIcon, QPainter, QColor, QBrush, QPen
 from ui.theme import get_tema, TEMAS, guardar_tema
+
+
+class FuegosArtificiales(QWidget):
+    """Overlay de fuegos artificiales que se muestra sobre toda la ventana."""
+    _COLORES = ["#FFD700","#FF6B6B","#4ECDC4","#45B7D1","#FF69B4",
+                "#98FB98","#FFA500","#DDA0DD","#00FA9A","#FF4500"]
+
+    def __init__(self, parent, turno_label=""):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setGeometry(parent.rect())
+        self._particles = []
+        self._elapsed   = 0
+        self._duration  = 4500
+        self._turno     = turno_label
+
+        self._lanzar_rafaga()
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._tick)
+        self._timer.start(16)
+        self.raise_()
+        self.show()
+
+    def _lanzar_rafaga(self):
+        W, H = self.width(), self.height()
+        for _ in range(7):
+            cx = random.randint(W // 8, W * 7 // 8)
+            cy = random.randint(H // 8, H // 2)
+            col = random.choice(self._COLORES)
+            for _ in range(30):
+                ang   = random.uniform(0, math.tau)
+                spd   = random.uniform(2, 9)
+                self._particles.append({
+                    "x": cx, "y": cy,
+                    "vx": spd * math.cos(ang),
+                    "vy": spd * math.sin(ang),
+                    "col": col,
+                    "life": random.uniform(0.7, 1.0),
+                    "size": random.uniform(3, 7),
+                })
+
+    def _tick(self):
+        self._elapsed += 16
+        if self._elapsed > self._duration:
+            self._timer.stop()
+            self.hide()
+            self.deleteLater()
+            return
+        if self._elapsed % 700 < 16:
+            self._lanzar_rafaga()
+        for p in self._particles:
+            p["x"]  += p["vx"]
+            p["y"]  += p["vy"]
+            p["vy"] += 0.18
+            p["life"] -= 0.018
+        self._particles = [p for p in self._particles if p["life"] > 0]
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Partículas
+        for p in self._particles:
+            alpha = max(0, min(255, int(p["life"] * 255)))
+            c = QColor(p["col"]); c.setAlpha(alpha)
+            painter.setBrush(QBrush(c))
+            painter.setPen(Qt.PenStyle.NoPen)
+            sz = p["size"]
+            painter.drawEllipse(int(p["x"] - sz/2), int(p["y"] - sz/2), int(sz), int(sz))
+
+        # Texto de festejo (primeros 2.5 s)
+        if self._elapsed < 2500:
+            alpha = min(255, int(255 * (1 - self._elapsed / 2500))) if self._elapsed > 1800 else 255
+            cx, cy = self.width() // 2, self.height() // 2
+
+            # Sombra
+            shadow = QColor(0, 0, 0, int(alpha * 0.6))
+            painter.setPen(QPen(shadow))
+            font = QFont("Segoe UI", 42, QFont.Weight.Black)
+            painter.setFont(font)
+            painter.drawText(cx - 299, cy - 59, "¡META LOGRADA! 🎉")
+
+            # Texto dorado
+            gold = QColor("#FFD700"); gold.setAlpha(alpha)
+            painter.setPen(QPen(gold))
+            painter.drawText(cx - 300, cy - 60, "¡META LOGRADA! 🎉")
+
+            # Subtítulo turno
+            if self._turno:
+                font2 = QFont("Segoe UI", 20, QFont.Weight.Bold)
+                painter.setFont(font2)
+                sub_col = QColor("#ffffff"); sub_col.setAlpha(alpha)
+                painter.setPen(QPen(sub_col))
+                painter.drawText(cx - 149, cy + 10, self._turno)
+
+        painter.end()
 
 _T = get_tema()
 
@@ -486,6 +584,8 @@ class MainWindow(QMainWindow):
         
         self.navbar.show()
         self._meta_bar.show()
+        self._meta_man_celebrado = False
+        self._meta_tar_celebrado = False
         if not hasattr(self, '_timer_meta'):
             self._timer_meta = QTimer()
             self._timer_meta.timeout.connect(self._actualizar_meta)
@@ -772,6 +872,13 @@ class MainWindow(QMainWindow):
                     _col_pct = "#64748b"
                     self._lbl_man_pct.setStyleSheet(f"color:{col_m if man>=META else _col_pct};font-size:11px;background:transparent;min-width:32px;")
                     self._lbl_tar_pct.setStyleSheet(f"color:{col_t if tar>=META else _col_pct};font-size:11px;background:transparent;min-width:32px;")
+                    # Fuegos artificiales al alcanzar la meta (solo una vez por turno)
+                    if man >= META and not self._meta_man_celebrado:
+                        self._meta_man_celebrado = True
+                        FuegosArtificiales(self, "Turno Mañana")
+                    if tar >= META and not self._meta_tar_celebrado:
+                        self._meta_tar_celebrado = True
+                        FuegosArtificiales(self, "Turno Tarde")
 
                 QTimer.singleShot(0, _upd)
             except Exception:
