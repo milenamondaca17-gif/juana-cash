@@ -179,11 +179,11 @@ class ProductoDialog(QDialog):
         for i, (w, l) in enumerate(self.extra_codes_inputs):
             if w == input_widget:
                 self.extra_codes_inputs.pop(i)
-                input_widget.deleteLater()
-                # Limpiar widgets del layout antes de borrarlo
                 while layout_obj.count():
                     item = layout_obj.takeAt(0)
-                    if item.widget(): item.widget().deleteLater()
+                    if item.widget():
+                        item.widget().deleteLater()
+                self.barras_layout.removeItem(layout_obj)
                 break
 
     def calcular_margen(self):
@@ -204,6 +204,17 @@ class ProductoDialog(QDialog):
             return
         if self.input_precio_venta.value() <= 0:
             QMessageBox.warning(self, "Error", "El precio de venta debe ser mayor a $0")
+            return
+        if self.input_precio_compra.value() < 0:
+            QMessageBox.warning(self, "Error", "El precio de costo no puede ser negativo")
+            return
+        codigo_principal = self.input_codigo.text().strip()
+        codigos_extra = [inp.text().strip() for inp, _ in self.extra_codes_inputs if inp.text().strip()]
+        if len(codigos_extra) != len(set(codigos_extra)):
+            QMessageBox.warning(self, "Error", "Hay códigos extra duplicados")
+            return
+        if codigo_principal and codigo_principal in codigos_extra:
+            QMessageBox.warning(self, "Error", "Un código extra no puede ser igual al código principal")
             return
         self.accept()
 
@@ -375,12 +386,7 @@ class ProductosScreen(QWidget):
 
     def mostrar_productos(self, productos, es_filtro=False):
         MAX_MOSTRAR = 50
-        if not es_filtro and len(productos) > MAX_MOSTRAR:
-            mostrar = productos[:MAX_MOSTRAR]
-            self.lbl_filtro_info = f"Mostrando {MAX_MOSTRAR} de {len(productos)} — Usá el buscador para encontrar productos"
-        else:
-            mostrar = productos
-            self.lbl_filtro_info = ""
+        mostrar = productos[:MAX_MOSTRAR] if not es_filtro and len(productos) > MAX_MOSTRAR else productos
         self.tabla.setRowCount(len(mostrar))
         for i, p in enumerate(mostrar):
             self.tabla.setItem(i, 0, QTableWidgetItem(p["nombre"]))
@@ -535,6 +541,7 @@ class ProductosScreen(QWidget):
         lay.addLayout(btns)
 
         def confirmar():
+            btn_ok.setEnabled(False)
             nuevo_stock = input_stock.value()
             motivo = combo_motivo.currentText()
             datos = dict(p)
@@ -546,7 +553,10 @@ class ProductosScreen(QWidget):
                     dialog.accept()
                     QMessageBox.information(self, "✅",
                         f"Stock actualizado a {nuevo_stock}\nMotivo: {motivo}")
+                else:
+                    btn_ok.setEnabled(True)
             except Exception:
+                btn_ok.setEnabled(True)
                 QMessageBox.critical(dialog, "Error", "No se puede conectar")
 
         btn_ok.clicked.connect(confirmar)

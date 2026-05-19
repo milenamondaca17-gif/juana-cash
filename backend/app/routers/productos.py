@@ -80,7 +80,7 @@ def buscar_producto(q: str, db: Session = Depends(get_db)):
         (Producto.nombre.contains(q)) |
         (Producto.codigo_barra == q) |
         (Producto.id.in_(
-            db.query(CodigoBarra.producto_id).filter(CodigoBarra.codigo == q)
+            db.query(CodigoBarra.producto_id).filter(CodigoBarra.codigo.contains(q))
         )),
         Producto.activo == True
     ).limit(50).all()
@@ -97,6 +97,8 @@ def _resolver_categoria(datos: ProductoCrear, db: Session) -> dict:
     d = {k: v for k, v in datos.model_dump().items() if k not in ("categoria", "codigos_extra")}
     if datos.categoria and not datos.categoria_id:
         nombre_cat = datos.categoria.strip()
+        if not nombre_cat:
+            return d
         cat = db.query(Categoria).filter(
             func.lower(Categoria.nombre) == nombre_cat.lower(),
             Categoria.activo == True
@@ -121,8 +123,15 @@ def _guardar_codigos_extra(producto_id: int, codigos_extra: list, db: Session):
             db.rollback()
             raise HTTPException(status_code=400, detail=f"El código '{codigo}' ya está en uso por otro producto")
 
+def _validar_precios(datos: ProductoCrear):
+    if datos.precio_venta <= 0:
+        raise HTTPException(status_code=400, detail="El precio de venta debe ser mayor a $0")
+    if datos.precio_costo is not None and datos.precio_costo < 0:
+        raise HTTPException(status_code=400, detail="El precio de costo no puede ser negativo")
+
 @router.post("/")
 def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
+    _validar_precios(datos)
     if datos.codigo_barra:
         existente = db.query(Producto).filter(Producto.codigo_barra == datos.codigo_barra).first()
         if existente:
@@ -144,6 +153,7 @@ def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
 
 @router.put("/{id}")
 def actualizar_producto(id: int, datos: ProductoCrear, db: Session = Depends(get_db)):
+    _validar_precios(datos)
     p = db.query(Producto).filter(Producto.id == id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
@@ -224,7 +234,7 @@ def _aplicar_cambio_precio(id: int, precio: float, usuario: str, db: Session):
     db.refresh(p)
     print(f"[PRECIO OK] {p.nombre} actualizado a ${precio} en la DB")
 
-    return {
+    resultado = {
         "ok": True,
         "id": p.id,
         "nombre": p.nombre,
@@ -232,6 +242,9 @@ def _aplicar_cambio_precio(id: int, precio: float, usuario: str, db: Session):
         "precio_nuevo": precio,
         "alerta_creada": True
     }
+    if p.precio_costo and precio < float(p.precio_costo):
+        resultado["advertencia"] = f"Precio menor al costo (${float(p.precio_costo):.0f})"
+    return resultado
 
 
 @router.post("/{id}/cambiar-precio")
@@ -275,6 +288,8 @@ def aplicar_redondeo(precio: float, redondeo: int) -> float:
 @router.post("/actualizacion-masiva")
 def actualizacion_masiva(datos: ActualizacionMasiva, db: Session = Depends(get_db)):
     """Actualiza precios de todos los productos (o una categoría) por un porcentaje."""
+    if datos.porcentaje == 0:
+        raise HTTPException(status_code=400, detail="El porcentaje no puede ser 0")
     query = db.query(Producto).filter(Producto.activo == True)
     if datos.categoria_id:
         query = query.filter(Producto.categoria_id == datos.categoria_id)
@@ -285,6 +300,12 @@ def actualizacion_masiva(datos: ActualizacionMasiva, db: Session = Depends(get_d
         precio_anterior = float(p.precio_venta)
         nuevo_precio = precio_anterior * (1 + datos.porcentaje / 100)
         nuevo_precio = aplicar_redondeo(nuevo_precio, datos.redondeo)
+        # Si tras el redondeo el precio quedó igual o por debajo del costo, subir al siguiente step
+        if p.precio_costo and nuevo_precio <= float(p.precio_costo):
+            import math
+            costo = float(p.precio_costo)
+            step = datos.redondeo if datos.redondeo > 0 else 1
+            nuevo_precio = math.ceil((costo + 0.01) / step) * step
         p.precio_venta = nuevo_precio
         if not datos.solo_precio_venta and p.precio_costo:
             p.precio_costo = aplicar_redondeo(
