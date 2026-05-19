@@ -14,7 +14,7 @@ hiddenimports = [
 ]
 
 for pkg in ['uvicorn', 'fastapi', 'sqlalchemy', 'passlib', 'jose',
-            'starlette', 'pydantic', 'anyio', 'h11', 'requests']:
+            'starlette', 'pydantic', 'anyio', 'h11', 'requests', 'reportlab']:
     tmp = collect_all(pkg)
     datas += tmp[0]; binaries += tmp[1]; hiddenimports += tmp[2]
 

@@ -1,8 +1,8 @@
-import requests
+import requests, os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QFrame, QPushButton, QTableWidget,
                              QTableWidgetItem, QHeaderView, QMessageBox,
-                             QScrollArea, QDateEdit, QLineEdit)
+                             QScrollArea, QDateEdit, QLineEdit, QFileDialog)
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont, QColor, QBrush
 
@@ -79,6 +79,12 @@ class ReportesScreen(QWidget):
         btn_filtrar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 6px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_filtrar.clicked.connect(lambda: self.cambiar_periodo("rango"))
         filtros_lay.addWidget(btn_filtrar)
+
+        btn_pdf = QPushButton("📄 PDF")
+        btn_pdf.setFixedSize(80, 34)
+        btn_pdf.setStyleSheet("QPushButton { background: #7c3aed; color: white; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #6d28d9; }")
+        btn_pdf.clicked.connect(self._exportar_pdf)
+        filtros_lay.addWidget(btn_pdf)
         
         layout.addLayout(filtros_lay)
 
@@ -432,6 +438,148 @@ class ReportesScreen(QWidget):
                 self.lbl_prod_total.setText("Sin datos")
         except Exception as e:
             print(f"Error productos: {e}")
+
+    def _exportar_pdf(self):
+        from datetime import date as _date
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib import colors as _rl_colors
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+            from reportlab.lib.styles import ParagraphStyle
+            from reportlab.lib.units import cm
+        except ImportError:
+            QMessageBox.critical(self, "Error", "Librería reportlab no disponible.")
+            return
+
+        periodo_labels = {"hoy": "Hoy", "semana": "Ultimos 7 dias", "mes": "Este mes", "anio": "Este anio", "rango": "Rango"}
+        label = periodo_labels.get(self.periodo_actual, self.periodo_actual)
+        nombre_def = f"JuanaCash_Reporte_{self.periodo_actual}_{_date.today().strftime('%Y%m%d')}.pdf"
+        escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+        ruta, _ = QFileDialog.getSaveFileName(self, "Guardar PDF", os.path.join(escritorio, nombre_def), "PDF (*.pdf)")
+        if not ruta:
+            return
+
+        # Datos frescos
+        try:
+            url = f"{API_URL}/reportes/{self.periodo_actual}"
+            params = {"desde": self.fecha_desde.date().toString("yyyy-MM-dd"),
+                      "hasta": self.fecha_hasta.date().toString("yyyy-MM-dd")} if self.periodo_actual == "rango" else {}
+            r = requests.get(url, params=params, timeout=10)
+            if r.status_code != 200:
+                QMessageBox.warning(self, "Error", "No se pudieron obtener los datos."); return
+            d = r.json()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Sin conexion: {e}"); return
+
+        desde_p = self.prod_desde.date().toString("yyyy-MM-dd")
+        hasta_p = self.prod_hasta.date().toString("yyyy-MM-dd")
+        try:
+            r2 = requests.get(f"{API_URL}/reportes/productos-por-fecha",
+                              params={"desde": desde_p, "hasta": hasta_p}, timeout=10)
+            productos = r2.json() if r2.status_code == 200 else []
+        except Exception:
+            productos = []
+
+        def _fmt(v): return f"${float(v):,.0f}".replace(",", ".")
+
+        ventas = [v for v in d.get("ventas", []) if v.get("estado") == "completada"]
+        total   = sum(float(v["total"]) for v in ventas)
+        tickets = len(ventas)
+        prom    = total / tickets if tickets > 0 else 0
+
+        # Desglose metodos
+        desglose = {}
+        for v in ventas:
+            m = v.get("metodo_pago", "efectivo")
+            desglose[m] = desglose.get(m, 0.0) + float(v["total"])
+
+        doc = SimpleDocTemplate(ruta, pagesize=A4,
+                                leftMargin=1.5*cm, rightMargin=1.5*cm,
+                                topMargin=2*cm, bottomMargin=2*cm)
+
+        _ROJO  = _rl_colors.HexColor("#e94560")
+        _GRIS  = _rl_colors.HexColor("#555555")
+        _DARK  = _rl_colors.HexColor("#1a1a2e")
+        _WHITE = _rl_colors.white
+
+        t_titulo = ParagraphStyle("titulo", fontSize=20, fontName="Helvetica-Bold", textColor=_ROJO, spaceAfter=4)
+        t_sub    = ParagraphStyle("sub",    fontSize=11, fontName="Helvetica",      textColor=_GRIS, spaceAfter=14)
+        t_sec    = ParagraphStyle("sec",    fontSize=12, fontName="Helvetica-Bold", textColor=_DARK, spaceBefore=12, spaceAfter=6)
+
+        story = [
+            Paragraph("JUANA CASH — REPORTE DE VENTAS", t_titulo),
+            Paragraph(f"{label}   |   Generado: {_date.today().strftime('%d/%m/%Y')}", t_sub),
+        ]
+
+        # Tabla resumen
+        story.append(Paragraph("Resumen", t_sec))
+        resumen_data = [["Total periodo", "Tickets", "Ticket promedio"],
+                        [_fmt(total), str(tickets), _fmt(prom)]]
+        tbl_res = Table(resumen_data, colWidths=[5.5*cm, 4*cm, 5.5*cm])
+        tbl_res.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), _DARK),
+            ("TEXTCOLOR",  (0,0), (-1,0), _WHITE),
+            ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
+            ("FONTSIZE",   (0,0), (-1,0), 10),
+            ("FONTSIZE",   (0,1), (-1,1), 13),
+            ("FONTNAME",   (0,1), (-1,1), "Helvetica-Bold"),
+            ("TEXTCOLOR",  (0,1), (-1,1), _ROJO),
+            ("ALIGN",      (0,0), (-1,-1), "CENTER"),
+            ("VALIGN",     (0,0), (-1,-1), "MIDDLE"),
+            ("ROWBACKGROUNDS", (0,1), (-1,1), [_rl_colors.HexColor("#f8f8f8")]),
+            ("BOX",        (0,0), (-1,-1), 0.5, _rl_colors.HexColor("#cccccc")),
+            ("INNERGRID",  (0,0), (-1,-1), 0.3, _rl_colors.HexColor("#dddddd")),
+            ("TOPPADDING", (0,0), (-1,-1), 8),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+        ]))
+        story.append(tbl_res)
+
+        # Tabla metodos de pago
+        if desglose:
+            story.append(Paragraph("Metodos de pago", t_sec))
+            metodos_data = [["Metodo", "Total"]] + [[k.replace("_", " ").title(), _fmt(v)] for k, v in sorted(desglose.items(), key=lambda x: -x[1])]
+            tbl_met = Table(metodos_data, colWidths=[9*cm, 6*cm])
+            tbl_met.setStyle(TableStyle([
+                ("BACKGROUND", (0,0), (-1,0), _DARK),
+                ("TEXTCOLOR",  (0,0), (-1,0), _WHITE),
+                ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
+                ("FONTSIZE",   (0,0), (-1,-1), 10),
+                ("ROWBACKGROUNDS", (0,1), (-1,-1), [_rl_colors.white, _rl_colors.HexColor("#f8f8f8")]),
+                ("ALIGN",      (1,0), (1,-1), "RIGHT"),
+                ("BOX",        (0,0), (-1,-1), 0.5, _rl_colors.HexColor("#cccccc")),
+                ("INNERGRID",  (0,0), (-1,-1), 0.3, _rl_colors.HexColor("#dddddd")),
+                ("TOPPADDING", (0,0), (-1,-1), 6),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+            ]))
+            story.append(tbl_met)
+
+        # Tabla productos
+        if productos:
+            story.append(Paragraph(f"Productos vendidos ({len(productos)})", t_sec))
+            prod_data = [["Producto", "Cant.", "Tickets", "Total"]]
+            for p in productos[:50]:
+                prod_data.append([p["nombre"], f"{float(p['cantidad']):g}", str(p["tickets"]), _fmt(float(p["facturado"]))])
+            tbl_prod = Table(prod_data, colWidths=[9*cm, 2.5*cm, 2.5*cm, 4*cm])
+            tbl_prod.setStyle(TableStyle([
+                ("BACKGROUND", (0,0), (-1,0), _DARK),
+                ("TEXTCOLOR",  (0,0), (-1,0), _WHITE),
+                ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
+                ("FONTSIZE",   (0,0), (-1,-1), 9),
+                ("ROWBACKGROUNDS", (0,1), (-1,-1), [_rl_colors.white, _rl_colors.HexColor("#f8f8f8")]),
+                ("ALIGN",      (1,0), (-1,-1), "CENTER"),
+                ("ALIGN",      (3,0), (3,-1), "RIGHT"),
+                ("BOX",        (0,0), (-1,-1), 0.5, _rl_colors.HexColor("#cccccc")),
+                ("INNERGRID",  (0,0), (-1,-1), 0.3, _rl_colors.HexColor("#dddddd")),
+                ("TOPPADDING", (0,0), (-1,-1), 5),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ]))
+            story.append(tbl_prod)
+
+        try:
+            doc.build(story)
+            QMessageBox.information(self, "PDF generado", f"Guardado en:\n{ruta}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error al generar PDF", str(e))
 
     def showEvent(self, event):
         super().showEvent(event)

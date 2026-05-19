@@ -126,16 +126,16 @@ def _reporte_nocturno():
                 datos = _json.loads(r.read().decode())
                 desglose = datos.get("desglose_metodos", {})
                 total    = float(datos.get("total_vendido", 0))
-                tickets  = int(datos.get("tickets_hoy", 0))
-                prom     = float(datos.get("ticket_promedio", 0))
+                tickets  = int(datos.get("cantidad_ventas", 0))
+                prom     = (total / tickets) if tickets > 0 else 0
 
                 def _p(v): return f"${float(v):,.0f}"
 
-                # Categorías del día completo
-                r2 = _ur.urlopen("http://127.0.0.1:8000/reportes/por-categoria", timeout=5)
-                cats = _json.loads(r2.read().decode())
-                carne = next((c["total"] for c in cats if "carn" in c["categoria"].lower()), 0)
-                fiamb = next((c["total"] for c in cats if "fiamb" in c["categoria"].lower()), 0)
+                # Departamentos del día completo (producto 930=Carnicería, 1003=Fiambrería)
+                r2 = _ur.urlopen("http://127.0.0.1:8000/reportes/departamentos", timeout=5)
+                deptos = _json.loads(r2.read().decode())
+                carne = deptos.get("carniceria", 0)
+                fiamb = deptos.get("fiambreria", 0)
 
                 # Gastos del día completo
                 r3 = _ur.urlopen("http://127.0.0.1:8000/gastos/hoy", timeout=5)
@@ -191,10 +191,88 @@ def _reporte_nocturno():
                     pass
         time.sleep(30)
 
+def _reporte_semanal():
+    """Los lunes a las 9:00 envía el resumen de la semana anterior a los 3 números."""
+    import urllib.request as _ur
+    import json as _json
+    from datetime import datetime as _dt, timedelta as _td
+    NUMEROS = ["2634670678", "2634633099", "2634633067"]
+    enviado_semana = None
+    while True:
+        ahora = _dt.now()
+        # weekday() 0 = lunes
+        if ahora.weekday() == 0 and ahora.hour == 9 and ahora.minute == 0 and enviado_semana != ahora.date():
+            try:
+                hoy = ahora.date()
+                lunes_esta = hoy - _td(days=hoy.weekday())
+                dom_ant    = lunes_esta - _td(days=1)
+                lun_ant    = dom_ant   - _td(days=6)
+                desde = lun_ant.isoformat()
+                hasta = dom_ant.isoformat()
+
+                r = _ur.urlopen(f"http://127.0.0.1:8000/reportes/rango?desde={desde}&hasta={hasta}", timeout=5)
+                datos = _json.loads(r.read().decode())
+                total   = float(datos.get("total_vendido", 0))
+                tickets = int(datos.get("cantidad_ventas", 0))
+                prom    = (total / tickets) if tickets > 0 else 0
+
+                desglose = {}
+                for v in datos.get("ventas", []):
+                    if v.get("estado") != "completada":
+                        continue
+                    m = v.get("metodo_pago", "efectivo")
+                    desglose[m] = desglose.get(m, 0.0) + float(v["total"])
+
+                # Semana anterior para comparar
+                lun_ante2 = lun_ant - _td(days=7)
+                dom_ante2 = lun_ant - _td(days=1)
+                r2 = _ur.urlopen(f"http://127.0.0.1:8000/reportes/rango?desde={lun_ante2}&hasta={dom_ante2}", timeout=5)
+                datos2 = _json.loads(r2.read().decode())
+                total_ant = float(datos2.get("total_vendido", 0))
+                variacion = ((total - total_ant) / total_ant * 100) if total_ant > 0 else 0
+                flecha = "↑" if variacion >= 0 else "↓"
+                color_var = f"({flecha} {abs(variacion):.1f}% vs sem. anterior)"
+
+                def _p(v): return f"${float(v):,.0f}"
+
+                msg = (
+                    f"📅 *RESUMEN SEMANAL — JUANA CASH*\n"
+                    f"🗓 {lun_ant.strftime('%d/%m')} al {dom_ant.strftime('%d/%m/%Y')}\n"
+                    f"\n🎫 Tickets: {tickets}  |  Prom: {_p(prom)}"
+                    f"\n{'─'*24}"
+                    f"\n💵 Efectivo:    {_p(desglose.get('efectivo', 0))}"
+                    f"\n🏧 Débito:      {_p(desglose.get('debito', 0))}"
+                    f"\n💳 Tarjeta:     {_p(desglose.get('tarjeta', 0))}"
+                    f"\n📱 QR/MP:       {_p(desglose.get('mercadopago_qr', 0))}"
+                    f"\n🏦 Transfer.:   {_p(desglose.get('transferencia', 0))}"
+                    f"\n💸 Fiado:       {_p(desglose.get('fiado', 0))}"
+                    f"\n{'─'*24}"
+                    f"\n📊 *Total semana: {_p(total)}*"
+                    f"\n{color_var}"
+                )
+                for num in NUMEROS:
+                    try:
+                        payload = _json.dumps({"phone": num, "message": msg}).encode()
+                        req = _ur.Request("http://127.0.0.1:3001/send",
+                                          data=payload,
+                                          headers={"Content-Type": "application/json"})
+                        _ur.urlopen(req, timeout=5)
+                    except Exception:
+                        pass
+                enviado_semana = ahora.date()
+            except Exception as e:
+                try:
+                    with open(os.path.join(DATA_DIR, "debug.log"), "a", encoding="utf-8") as f:
+                        f.write(f"[{ahora}] ERROR reporte semanal: {e}\n")
+                except Exception:
+                    pass
+        time.sleep(30)
+
 threading.Thread(target=run_backend, daemon=True).start()
 threading.Thread(target=_udp_broadcaster, daemon=True).start()
 threading.Thread(target=_auto_backup, daemon=True).start()
 threading.Thread(target=_reporte_nocturno, daemon=True).start()
+threading.Thread(target=_reporte_semanal, daemon=True).start()
 time.sleep(3)
 
 from PyQt6.QtWidgets import QApplication

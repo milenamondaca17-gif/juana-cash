@@ -2203,6 +2203,46 @@ def _main(page: ft.Page):
         if sel == "hoy":
             resumen_hoy_data = resumen.get("hoy", {}) if resumen else None
             if resumen_hoy_data:
+                # ── Gráfico 7 días ────────────────────────────────────────
+                from datetime import datetime as _dth
+                datos_7d = api_get("/caja/historial-efectivo", params={"dias": 7}) or []
+                if datos_7d:
+                    _max_7d = max((float(d.get("total", 0)) for d in datos_7d), default=1) or 1
+                    _CHART_H = 60
+                    _barras_7d = []
+                    for _dia in reversed(datos_7d):
+                        _tot_d  = float(_dia.get("total", 0))
+                        _bar_h  = max(4, int(_CHART_H * (_tot_d / _max_7d)))
+                        _esp_h  = _CHART_H - _bar_h
+                        _fech   = _dia.get("fecha", "")
+                        try:
+                            _dw = _dth.strptime(_fech, "%Y-%m-%d").weekday()
+                            _dl = ["Lu","Ma","Mi","Ju","Vi","Sá","Do"][_dw]
+                        except Exception:
+                            _dl = _fech[-2:]
+                        _es_hoy_d = (_fech == _cdate.today().isoformat())
+                        _col_bar  = "#F43F5E" if _es_hoy_d else "#3B82F6"
+                        _col_lbl  = "white"   if _es_hoy_d else "#64748B"
+                        _barras_7d.append(
+                            ft.Column([
+                                ft.Container(height=_esp_h),
+                                ft.Container(width=28, height=_bar_h, bgcolor=_col_bar,
+                                             border_radius=ft.border_radius.only(top_left=3, top_right=3)),
+                                ft.Text(_dl, size=9, color=_col_lbl, text_align=ft.TextAlign.CENTER),
+                                ft.Text(_p(_tot_d), size=8, color="#475569", text_align=ft.TextAlign.CENTER),
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=2, width=38)
+                        )
+                    lista_caja_ui.controls.append(
+                        ft.Container(
+                            content=ft.Column([
+                                ft.Text("ÚLTIMOS 7 DÍAS", size=10, weight="bold", color="#94A3B8"),
+                                ft.Row(_barras_7d, alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+                                       vertical_alignment=ft.CrossAxisAlignment.END),
+                            ], spacing=8),
+                            bgcolor="#0F172A", padding=14, border_radius=12
+                        )
+                    )
+
                 # ── Card efectivo en caja ─────────────────────────────────
                 gastos_data  = api_get("/gastos/hoy") or {}
                 total_gastos = float(gastos_data.get("total", 0))
