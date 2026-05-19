@@ -11,7 +11,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "4.1.4"
+APP_VERSION = "4.2.0"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -2258,6 +2258,51 @@ def _main(page: ft.Page):
                             border_radius=12
                         )
                     )
+                # Carnicería / Fiambrería del día vs ayer
+                from datetime import date as _cdate, timedelta as _ctd
+                _hoy_s  = _cdate.today().isoformat()
+                _ayer_s = (_cdate.today() - _ctd(days=1)).isoformat()
+                _dep_hoy  = api_get("/reportes/departamentos", params={"desde": f"{_hoy_s}T00:00:00",  "hasta": f"{_hoy_s}T23:59:59"})  or {}
+                _dep_ayer = api_get("/reportes/departamentos", params={"desde": f"{_ayer_s}T00:00:00", "hasta": f"{_ayer_s}T23:59:59"}) or {}
+                def _dep_cmp(a, p):
+                    if p == 0: return "", "#94A3B8"
+                    pct = ((a - p) / p) * 100
+                    return (f"↑ {pct:.1f}% vs ayer", "#10B981") if pct >= 0 else (f"↓ {abs(pct):.1f}% vs ayer", "#EF4444")
+                _carne_a = float(_dep_hoy.get("carniceria", 0)); _carne_p = float(_dep_ayer.get("carniceria", 0))
+                _fiamb_a = float(_dep_hoy.get("fiambreria", 0)); _fiamb_p = float(_dep_ayer.get("fiambreria", 0))
+                _carne_cmp_txt, _carne_cmp_col = _dep_cmp(_carne_a, _carne_p)
+                _fiamb_cmp_txt, _fiamb_cmp_col = _dep_cmp(_fiamb_a, _fiamb_p)
+                lista_caja_ui.controls.append(
+                    ft.Container(
+                        content=ft.Column([
+                            ft.Text("POR DEPARTAMENTO", size=10, weight="bold", color="#94A3B8"),
+                            ft.Row([
+                                ft.Container(
+                                    content=ft.Column([
+                                        ft.Text("🥩 CARNICERÍA", size=10, weight="bold", color="#EF4444"),
+                                        ft.Text(_p(_carne_a), size=18, weight="w900", color="white"),
+                                        ft.Text(_carne_cmp_txt, size=10, color=_carne_cmp_col),
+                                    ], spacing=2),
+                                    bgcolor="#1E293B", border_radius=10,
+                                    border=ft.border.only(left=ft.border.BorderSide(3, "#EF4444")),
+                                    padding=10, expand=True
+                                ),
+                                ft.Container(
+                                    content=ft.Column([
+                                        ft.Text("🍖 FIAMBRERÍA", size=10, weight="bold", color="#F59E0B"),
+                                        ft.Text(_p(_fiamb_a), size=18, weight="w900", color="white"),
+                                        ft.Text(_fiamb_cmp_txt, size=10, color=_fiamb_cmp_col),
+                                    ], spacing=2),
+                                    bgcolor="#1E293B", border_radius=10,
+                                    border=ft.border.only(left=ft.border.BorderSide(3, "#F59E0B")),
+                                    padding=10, expand=True
+                                ),
+                            ], spacing=8),
+                        ], spacing=6),
+                        bgcolor="#0F172A", padding=14, border_radius=12
+                    )
+                )
+
                 if not any(float(resumen_hoy_data.get(m, 0)) > 0 for m in MICON):
                     lista_caja_ui.controls.append(
                         ft.Container(

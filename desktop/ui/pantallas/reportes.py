@@ -100,6 +100,38 @@ class ReportesScreen(QWidget):
         conteo_lay.addWidget(self.card_promedio[0])
         layout.addWidget(conteo_frame)
 
+        # ── DEPARTAMENTOS (CARNICERÍA / FIAMBRERÍA) ──────────────────────────
+        deptos_frame = QFrame()
+        deptos_frame.setStyleSheet("background: #16213e; border-radius: 12px;")
+        deptos_lay = QHBoxLayout(deptos_frame)
+        deptos_lay.setContentsMargins(12, 8, 12, 8)
+        deptos_lay.setSpacing(12)
+
+        carne_card = QFrame()
+        carne_card.setStyleSheet("background: #1a2744; border-left: 3px solid #e74c3c; border-radius: 8px;")
+        carne_l = QVBoxLayout(carne_card)
+        carne_l.setContentsMargins(12, 8, 12, 8)
+        carne_l.addWidget(QLabel("🥩 CARNICERÍA", styleSheet="color: #e74c3c; font-size: 10px; font-weight: bold; background: transparent;"))
+        self.lbl_carne_val = QLabel("$0", styleSheet="color: white; font-size: 20px; font-weight: bold; background: transparent;")
+        self.lbl_carne_comp = QLabel("", styleSheet="color: #a0a0b0; font-size: 10px; background: transparent;")
+        carne_l.addWidget(self.lbl_carne_val)
+        carne_l.addWidget(self.lbl_carne_comp)
+
+        fiamb_card = QFrame()
+        fiamb_card.setStyleSheet("background: #1a2744; border-left: 3px solid #f39c12; border-radius: 8px;")
+        fiamb_l = QVBoxLayout(fiamb_card)
+        fiamb_l.setContentsMargins(12, 8, 12, 8)
+        fiamb_l.addWidget(QLabel("🍖 FIAMBRERÍA", styleSheet="color: #f39c12; font-size: 10px; font-weight: bold; background: transparent;"))
+        self.lbl_fiamb_val = QLabel("$0", styleSheet="color: white; font-size: 20px; font-weight: bold; background: transparent;")
+        self.lbl_fiamb_comp = QLabel("", styleSheet="color: #a0a0b0; font-size: 10px; background: transparent;")
+        fiamb_l.addWidget(self.lbl_fiamb_val)
+        fiamb_l.addWidget(self.lbl_fiamb_comp)
+
+        deptos_lay.addWidget(carne_card)
+        deptos_lay.addWidget(fiamb_card)
+        deptos_lay.addStretch()
+        layout.addWidget(deptos_frame)
+
         # ── MÉTODOS DE PAGO ──────────────────────────────────────────────────
         metodos_lay = QHBoxLayout()
         self.cards_metodo = {}
@@ -305,9 +337,71 @@ class ReportesScreen(QWidget):
                     self.prod_desde.setDate(self.fecha_desde.date())
                     self.prod_hasta.setDate(self.fecha_hasta.date())
                 self.cargar_productos_por_fecha()
+                self._cargar_departamentos()
 
         except Exception as e:
             print(f"Error en reportes: {e}")
+
+    def _cargar_departamentos(self):
+        import calendar as _cal
+        from datetime import date as _date, timedelta as _td
+
+        hoy = _date.today()
+        if self.periodo_actual == "hoy":
+            d_act, h_act = hoy.isoformat(), hoy.isoformat()
+            d_prv = h_prv = (hoy - _td(days=1)).isoformat()
+            label_prv = "vs ayer"
+        elif self.periodo_actual == "semana":
+            d_act = (hoy - _td(days=7)).isoformat(); h_act = hoy.isoformat()
+            d_prv = (hoy - _td(days=14)).isoformat(); h_prv = (hoy - _td(days=8)).isoformat()
+            label_prv = "vs sem. ant."
+        elif self.periodo_actual == "mes":
+            ini = hoy.replace(day=1)
+            d_act = ini.isoformat(); h_act = hoy.isoformat()
+            p_ini = _date(ini.year - 1, 12, 1) if ini.month == 1 else _date(ini.year, ini.month - 1, 1)
+            p_dia = min(hoy.day, _cal.monthrange(p_ini.year, p_ini.month)[1])
+            d_prv = p_ini.isoformat(); h_prv = _date(p_ini.year, p_ini.month, p_dia).isoformat()
+            label_prv = "vs mes ant."
+        elif self.periodo_actual == "anio":
+            d_act = hoy.replace(month=1, day=1).isoformat(); h_act = hoy.isoformat()
+            d_prv = _date(hoy.year - 1, 1, 1).isoformat()
+            h_prv = _date(hoy.year - 1, hoy.month, min(hoy.day, _cal.monthrange(hoy.year - 1, hoy.month)[1])).isoformat()
+            label_prv = "vs año ant."
+        elif self.periodo_actual == "rango":
+            d_act = self.fecha_desde.date().toString("yyyy-MM-dd")
+            h_act = self.fecha_hasta.date().toString("yyyy-MM-dd")
+            desde_d = self.fecha_desde.date().toPyDate()
+            hasta_d = self.fecha_hasta.date().toPyDate()
+            delta = (hasta_d - desde_d).days + 1
+            d_prv = (desde_d - _td(days=delta)).isoformat()
+            h_prv = (desde_d - _td(days=1)).isoformat()
+            label_prv = "vs período ant."
+        else:
+            return
+        try:
+            r_act = requests.get(f"{API_URL}/reportes/departamentos",
+                params={"desde": f"{d_act}T00:00:00", "hasta": f"{h_act}T23:59:59"}, timeout=5)
+            r_prv = requests.get(f"{API_URL}/reportes/departamentos",
+                params={"desde": f"{d_prv}T00:00:00", "hasta": f"{h_prv}T23:59:59"}, timeout=5)
+            act = r_act.json() if r_act.status_code == 200 else {}
+            prv = r_prv.json() if r_prv.status_code == 200 else {}
+            carne_a = float(act.get("carniceria", 0)); carne_p = float(prv.get("carniceria", 0))
+            fiamb_a = float(act.get("fiambreria", 0)); fiamb_p = float(prv.get("fiambreria", 0))
+            self.lbl_carne_val.setText(_p(carne_a))
+            self.lbl_fiamb_val.setText(_p(fiamb_a))
+            def _cmp(a, p):
+                if p == 0:
+                    return "", "#a0a0b0"
+                pct = ((a - p) / p) * 100
+                return (f"↑ {pct:.1f}% {label_prv}", "#27ae60") if pct >= 0 else (f"↓ {abs(pct):.1f}% {label_prv}", "#e74c3c")
+            txt_c, col_c = _cmp(carne_a, carne_p)
+            txt_f, col_f = _cmp(fiamb_a, fiamb_p)
+            self.lbl_carne_comp.setText(txt_c)
+            self.lbl_carne_comp.setStyleSheet(f"color: {col_c}; font-size: 10px; background: transparent;")
+            self.lbl_fiamb_comp.setText(txt_f)
+            self.lbl_fiamb_comp.setStyleSheet(f"color: {col_f}; font-size: 10px; background: transparent;")
+        except Exception as e:
+            print(f"Error departamentos: {e}")
 
     def cargar_productos_por_fecha(self):
         desde = self.prod_desde.date().toString("yyyy-MM-dd")
