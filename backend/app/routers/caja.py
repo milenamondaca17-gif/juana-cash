@@ -224,6 +224,69 @@ def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
         })
     return resultado
 
+@router.get("/turnos-hoy")
+def turnos_hoy(db: Session = Depends(get_db)):
+    """Devuelve todos los turnos (abiertos y cerrados) del día actual con desglose y pagos de empleados."""
+    import json as _json
+    from ..models.venta import Pago
+    from ..models.gasto import Gasto
+    from ..models.usuario import Usuario
+
+    hoy = date.today()
+    inicio_dia = datetime.combine(hoy, datetime.min.time())
+    fin_dia    = datetime.combine(hoy, datetime.max.time())
+
+    turnos = db.query(CajaTurno).filter(
+        CajaTurno.apertura >= inicio_dia,
+        CajaTurno.apertura <= fin_dia,
+    ).order_by(CajaTurno.apertura.asc()).all()
+
+    resultado = []
+    for t in turnos:
+        hasta = t.cierre if t.cierre else datetime.now()
+
+        ventas = db.query(Venta).filter(
+            Venta.fecha >= t.apertura,
+            Venta.fecha <= hasta,
+            Venta.estado == "completada"
+        ).all()
+        ids_ventas = [v.id for v in ventas]
+
+        desglose = {"efectivo": 0.0, "debito": 0.0, "tarjeta": 0.0,
+                    "mercadopago_qr": 0.0, "transferencia": 0.0, "fiado": 0.0}
+        if ids_ventas:
+            pagos = db.query(Pago).filter(Pago.venta_id.in_(ids_ventas)).all()
+            for p in pagos:
+                m = p.metodo.lower()
+                if m in desglose:
+                    desglose[m] += float(p.monto or 0)
+
+        total_gastos = sum(float(g.monto) for g in db.query(Gasto).filter(
+            Gasto.fecha >= t.apertura, Gasto.fecha <= hasta).all())
+
+        usuario = db.query(Usuario).filter(Usuario.id == t.usuario_id).first()
+        nombre_cajero = usuario.nombre if usuario else f"Usuario {t.usuario_id}"
+
+        try:
+            pagos_emp = _json.loads(t.pagos_empleados) if t.pagos_empleados else []
+        except Exception:
+            pagos_emp = []
+
+        total_vendido = sum(desglose.values())
+
+        resultado.append({
+            "cajero":          nombre_cajero,
+            "estado":          t.estado,
+            "apertura":        str(t.apertura)[:16] if t.apertura else "",
+            "cierre":          str(t.cierre)[:16] if t.cierre else "",
+            "cantidad_ventas": len(ventas),
+            "total_vendido":   total_vendido,
+            "total_gastos":    total_gastos,
+            "desglose":        desglose,
+            "pagos_empleados": pagos_emp,
+        })
+    return resultado
+
 @router.get("/resumen-rapido")
 def resumen_rapido(usuario_id: int = 1, db: Session = Depends(get_db)):
     """

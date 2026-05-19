@@ -121,57 +121,103 @@ def _reporte_nocturno():
         ahora = _dt.now()
         if ahora.hour == 22 and ahora.minute == 20 and enviado_hoy != ahora.date():
             try:
-                # Totales del día completo (sin filtro de apertura)
-                r = _ur.urlopen("http://127.0.0.1:8000/reportes/hoy", timeout=5)
-                datos = _json.loads(r.read().decode())
-                desglose = datos.get("desglose_metodos", {})
-                total    = float(datos.get("total_vendido", 0))
-                tickets  = int(datos.get("cantidad_ventas", 0))
-                prom     = (total / tickets) if tickets > 0 else 0
-
                 def _p(v): return f"${float(v):,.0f}"
 
-                # Departamentos del día completo (producto 930=Carnicería, 1003=Fiambrería)
+                # Turnos del día con desglose y pagos de empleados
+                r_t = _ur.urlopen("http://127.0.0.1:8000/caja/turnos-hoy", timeout=5)
+                turnos = _json.loads(r_t.read().decode())
+
+                # Totales acumulados del día
+                total_dia     = 0.0
+                tickets_dia   = 0
+                total_gastos_dia = 0.0
+                total_emp_dia = 0.0
+                desglose_dia  = {"efectivo": 0.0, "debito": 0.0, "tarjeta": 0.0,
+                                 "mercadopago_qr": 0.0, "transferencia": 0.0, "fiado": 0.0}
+
+                bloques_turno = ""
+                for i, t in enumerate(turnos, 1):
+                    cajero   = t.get("cajero", "?")
+                    estado   = "🟢 abierto" if t.get("estado") == "abierto" else "🔴 cerrado"
+                    ap       = t.get("apertura", "")[-5:]  # HH:MM
+                    ci       = t.get("cierre", "")[-5:] or "—"
+                    tickets  = t.get("cantidad_ventas", 0)
+                    vendido  = float(t.get("total_vendido", 0))
+                    gastos_t = float(t.get("total_gastos", 0))
+                    desg     = t.get("desglose", {})
+                    emp_list = t.get("pagos_empleados", [])
+                    total_emp_t = sum(float(e.get("monto", 0)) for e in emp_list)
+
+                    for k in desglose_dia:
+                        desglose_dia[k] += float(desg.get(k, 0))
+                    total_dia        += vendido
+                    tickets_dia      += tickets
+                    total_gastos_dia += gastos_t
+                    total_emp_dia    += total_emp_t
+
+                    lineas_emp_t = ""
+                    if emp_list:
+                        lineas_emp_t = f"\n  👥 Empleados: " + " | ".join(
+                            f"{e['nombre']} {_p(e['monto'])}" for e in emp_list
+                        )
+
+                    bloques_turno += (
+                        f"\n{'━'*22}"
+                        f"\n*Turno {i} — {cajero}* {estado}"
+                        f"\n⏰ {ap} → {ci}  |  🎫 {tickets} tickets"
+                        f"\n💵 Efect: {_p(desg.get('efectivo',0))}"
+                        f"  🏧 Déb: {_p(desg.get('debito',0))}"
+                        f"\n💳 Tarj: {_p(desg.get('tarjeta',0))}"
+                        f"  📱 QR: {_p(desg.get('mercadopago_qr',0))}"
+                        f"\n💸 Fiado: {_p(desg.get('fiado',0))}"
+                        f"  🏦 Trans: {_p(desg.get('transferencia',0))}"
+                        f"\n📊 Total: {_p(vendido)}"
+                        + (f"  |  🧾 Gastos: {_p(gastos_t)}" if gastos_t > 0 else "")
+                        + lineas_emp_t
+                    )
+
+                # Departamentos del día
                 r2 = _ur.urlopen("http://127.0.0.1:8000/reportes/departamentos", timeout=5)
                 deptos = _json.loads(r2.read().decode())
                 carne = deptos.get("carniceria", 0)
                 fiamb = deptos.get("fiambreria", 0)
 
-                # Gastos del día completo
+                # Gastos del día (lista detallada)
                 r3 = _ur.urlopen("http://127.0.0.1:8000/gastos/hoy", timeout=5)
                 datos_gastos = _json.loads(r3.read().decode())
                 lista_gastos = datos_gastos.get("gastos", [])
-                total_gastos = float(datos_gastos.get("total", 0))
-                neto = total - total_gastos
-
                 if lista_gastos:
-                    lineas_gastos = "\n\n🧾 *Gastos del día:*"
+                    lineas_gastos = "\n\n🧾 *Gastos:*"
                     for g in lista_gastos:
                         lineas_gastos += f"\n  • {g['descripcion']}: {_p(g['monto'])}"
-                    lineas_gastos += f"\n  Total: {_p(total_gastos)}"
                 else:
-                    lineas_gastos = f"\n\n🧾 Gastos: {_p(0)}"
+                    lineas_gastos = ""
+
+                prom_dia = (total_dia / tickets_dia) if tickets_dia > 0 else 0
+                neto_dia = total_dia - total_gastos_dia - total_emp_dia
 
                 ts = ahora.strftime("%d/%m/%Y")
                 msg = (
                     f"📊 *RESUMEN DEL DÍA — JUANA CASH*\n"
-                    f"📅 {ts}\n"
-                    f"\n🎫 Tickets: {tickets}  |  Prom: {_p(prom)}"
-                    f"\n{'─'*24}"
-                    f"\n💵 Efectivo:    {_p(desglose.get('efectivo', 0))}"
-                    f"\n🏧 Débito:      {_p(desglose.get('debito', 0))}"
-                    f"\n💳 Tarjeta:     {_p(desglose.get('tarjeta', 0))}"
-                    f"\n📱 QR/MP:       {_p(desglose.get('mercadopago_qr', 0))}"
-                    f"\n🏦 Transfer.:   {_p(desglose.get('transferencia', 0))}"
-                    f"\n💸 Fiado:       {_p(desglose.get('fiado', 0))}"
-                    f"\n{'─'*24}"
-                    f"\n📊 Total vendido: {_p(total)}"
-                    f"\n📉 Gastos:        -{_p(total_gastos)}"
-                    f"\n📈 *Neto del día:  {_p(neto)}*"
+                    f"📅 {ts}"
+                    + bloques_turno +
+                    f"\n{'━'*22}"
+                    f"\n📋 *TOTALES DEL DÍA*"
+                    f"\n🎫 Tickets: {tickets_dia}  |  Prom: {_p(prom_dia)}"
+                    f"\n💵 Efectivo:   {_p(desglose_dia['efectivo'])}"
+                    f"\n🏧 Débito:     {_p(desglose_dia['debito'])}"
+                    f"\n💳 Tarjeta:    {_p(desglose_dia['tarjeta'])}"
+                    f"\n📱 QR/MP:      {_p(desglose_dia['mercadopago_qr'])}"
+                    f"\n🏦 Transfer.:  {_p(desglose_dia['transferencia'])}"
+                    f"\n💸 Fiado:      {_p(desglose_dia['fiado'])}"
+                    f"\n{'─'*22}"
+                    f"\n📊 Total vendido:  {_p(total_dia)}"
+                    f"\n👥 Total empleados: -{_p(total_emp_dia)}"
+                    f"\n🧾 Total gastos:    -{_p(total_gastos_dia)}"
+                    f"\n📈 *Neto del día:   {_p(neto_dia)}*"
                     + lineas_gastos +
-                    f"\n\n🥩 *Por departamento:*"
-                    f"\n  Carnicería:   {_p(carne)}"
-                    f"\n  Fiambrería:   {_p(fiamb)}"
+                    f"\n\n🥩 Carnicería:  {_p(carne)}"
+                    f"\n🧀 Fiambrería:  {_p(fiamb)}"
                 )
                 for num in NUMEROS:
                     try:
