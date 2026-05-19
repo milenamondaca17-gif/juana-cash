@@ -284,6 +284,56 @@ class MainWindow(QMainWindow):
         
         self.main_layout.addWidget(self.navbar)
 
+        # ── Barra de meta por turno ───────────────────────────────────────────
+        from PyQt6.QtWidgets import QProgressBar
+        _META = 750_000
+        self._META = _META
+
+        self._meta_bar = QFrame()
+        self._meta_bar.setFixedHeight(34)
+        self._meta_bar.setStyleSheet("background: #0a1628; border-bottom: 1px solid #1e3a5f;")
+        self._meta_bar.hide()
+
+        _mb_lay = QHBoxLayout(self._meta_bar)
+        _mb_lay.setContentsMargins(18, 3, 18, 3)
+        _mb_lay.setSpacing(16)
+
+        _BAR_SS = ("QProgressBar{background:#1e2d45;border-radius:4px;border:none;}"
+                   "QProgressBar::chunk{background:qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+                   "stop:0 #b45309,stop:0.6 #f59e0b,stop:1 #fde68a);border-radius:4px;}")
+
+        # --- Mañana ---
+        _man = QHBoxLayout(); _man.setSpacing(8)
+        _man.addWidget(QLabel("🌅 Mañana", styleSheet="color:#94a3b8;font-size:11px;font-weight:bold;background:transparent;min-width:68px;"))
+        self._bar_man = QProgressBar()
+        self._bar_man.setMaximum(_META); self._bar_man.setValue(0)
+        self._bar_man.setFixedHeight(8); self._bar_man.setTextVisible(False)
+        self._bar_man.setStyleSheet(_BAR_SS)
+        _man.addWidget(self._bar_man, 1)
+        self._lbl_man = QLabel("$0 / $750.000", styleSheet="color:#f59e0b;font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
+        self._lbl_man_pct = QLabel("0%", styleSheet="color:#64748b;font-size:11px;background:transparent;min-width:32px;")
+        _man.addWidget(self._lbl_man); _man.addWidget(self._lbl_man_pct)
+        _mb_lay.addLayout(_man, 1)
+
+        _sep = QFrame(); _sep.setFrameShape(QFrame.Shape.VLine)
+        _sep.setStyleSheet("background:#1e3a5f;"); _sep.setFixedWidth(1)
+        _mb_lay.addWidget(_sep)
+
+        # --- Tarde ---
+        _tar = QHBoxLayout(); _tar.setSpacing(8)
+        _tar.addWidget(QLabel("🌆 Tarde", styleSheet="color:#94a3b8;font-size:11px;font-weight:bold;background:transparent;min-width:68px;"))
+        self._bar_tar = QProgressBar()
+        self._bar_tar.setMaximum(_META); self._bar_tar.setValue(0)
+        self._bar_tar.setFixedHeight(8); self._bar_tar.setTextVisible(False)
+        self._bar_tar.setStyleSheet(_BAR_SS)
+        _tar.addWidget(self._bar_tar, 1)
+        self._lbl_tar = QLabel("$0 / $750.000", styleSheet="color:#f59e0b;font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
+        self._lbl_tar_pct = QLabel("0%", styleSheet="color:#64748b;font-size:11px;background:transparent;min-width:32px;")
+        _tar.addWidget(self._lbl_tar); _tar.addWidget(self._lbl_tar_pct)
+        _mb_lay.addLayout(_tar, 1)
+
+        self.main_layout.addWidget(self._meta_bar)
+
         # ── Stack de pantallas ────────────────────────────────────────────────
         self.stack = QStackedWidget()
         self.stack.setStyleSheet("background-color: transparent;")
@@ -434,8 +484,15 @@ class MainWindow(QMainWindow):
         self._ultima_venta_celular = None
         self._timer_celular.start(15000)  # cada 15 segundos
         
-        self.navbar.show() 
-        self.cambiar_pantalla("ventas") 
+        self.navbar.show()
+        self._meta_bar.show()
+        if not hasattr(self, '_timer_meta'):
+            self._timer_meta = QTimer()
+            self._timer_meta.timeout.connect(self._actualizar_meta)
+        self._timer_meta.start(30000)
+        self._actualizar_meta()
+
+        self.cambiar_pantalla("ventas")
 
         if not hasattr(self, '_timer_timeout'):
             self._timer_timeout = QTimer()
@@ -672,6 +729,56 @@ class MainWindow(QMainWindow):
         import threading
         threading.Thread(target=_fetch, daemon=True).start()
 
+    def _actualizar_meta(self):
+        def _fetch():
+            try:
+                r = requests.get(f"{API_URL}/reportes/hoy", timeout=4)
+                if r.status_code != 200:
+                    return
+                ventas = r.json().get("ventas", [])
+                META = self._META
+                man = 0.0; tar = 0.0
+                for v in ventas:
+                    if v.get("estado") != "completada":
+                        continue
+                    fecha_str = v.get("fecha", "")
+                    try:
+                        hora = int(str(fecha_str)[11:13])
+                    except Exception:
+                        continue
+                    monto = float(v.get("total", 0))
+                    if hora < 15:
+                        man += monto
+                    else:
+                        tar += monto
+
+                def _p(v): return f"${v:,.0f}".replace(",", ".")
+
+                def _upd():
+                    pct_m = min(100, int(man / META * 100))
+                    pct_t = min(100, int(tar / META * 100))
+                    self._bar_man.setValue(int(min(man, META)))
+                    self._bar_tar.setValue(int(min(tar, META)))
+                    col_m = "#10b981" if man >= META else "#f59e0b"
+                    col_t = "#10b981" if tar >= META else "#f59e0b"
+                    sfx_m = " ✓ META!" if man >= META else ""
+                    sfx_t = " ✓ META!" if tar >= META else ""
+                    self._lbl_man.setText(f"{_p(man)} / $750.000{sfx_m}")
+                    self._lbl_tar.setText(f"{_p(tar)} / $750.000{sfx_t}")
+                    self._lbl_man.setStyleSheet(f"color:{col_m};font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
+                    self._lbl_tar.setStyleSheet(f"color:{col_t};font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
+                    self._lbl_man_pct.setText(f"{pct_m}%")
+                    self._lbl_tar_pct.setText(f"{pct_t}%")
+                    _col_pct = "#64748b"
+                    self._lbl_man_pct.setStyleSheet(f"color:{col_m if man>=META else _col_pct};font-size:11px;background:transparent;min-width:32px;")
+                    self._lbl_tar_pct.setStyleSheet(f"color:{col_t if tar>=META else _col_pct};font-size:11px;background:transparent;min-width:32px;")
+
+                QTimer.singleShot(0, _upd)
+            except Exception:
+                pass
+        import threading
+        threading.Thread(target=_fetch, daemon=True).start()
+
     def recargar_tema(self, tema_key):
         import sys as _sys
         global _T
@@ -805,9 +912,12 @@ class MainWindow(QMainWindow):
         self.usuario_actual = None
         self.cajero_actual = None
         self.navbar.hide()
+        self._meta_bar.hide()
         self.stack.setCurrentWidget(self.login_screen)
         self.setWindowTitle("Juana Cash - Sistema POS")
         if hasattr(self, '_timer_timeout'):
             self._timer_timeout.stop()
+        if hasattr(self, '_timer_meta'):
+            self._timer_meta.stop()
         if hasattr(self, '_timer_celular'):
             self._timer_celular.stop()

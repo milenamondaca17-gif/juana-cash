@@ -1,8 +1,8 @@
 {
-  "version": "4.3.0",
-  "desktop_version": "4.3.0",
+  "version": "4.3.1",
+  "desktop_version": "4.3.1",
   "apk_version": "4.2.0",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.0/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.0/JuanaCash.apk",
-  "notas": "v4.3.0 - Carniceria y Fiambreria con comparacion en Reportes y Caja APK / v4.2.0 - Carniceria y Fiambreria en Caja APK"
+  "notas": "v4.3.1 - Barra de meta diaria por turno en navbar / v4.2.0 - Carniceria y Fiambreria en Caja APK"
 }
