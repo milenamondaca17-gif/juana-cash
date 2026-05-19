@@ -195,6 +195,7 @@ def _reporte_nocturno():
 
                 prom_dia = (total_dia / tickets_dia) if tickets_dia > 0 else 0
                 neto_dia = total_dia - total_gastos_dia - total_emp_dia
+                balance_ef = desglose_dia['efectivo'] - total_emp_dia - total_gastos_dia
 
                 ts = ahora.strftime("%d/%m/%Y")
                 msg = (
@@ -211,10 +212,13 @@ def _reporte_nocturno():
                     f"\n🏦 Transfer.:  {_p(desglose_dia['transferencia'])}"
                     f"\n💸 Fiado:      {_p(desglose_dia['fiado'])}"
                     f"\n{'─'*22}"
-                    f"\n📊 Total vendido:  {_p(total_dia)}"
-                    f"\n👥 Total empleados: -{_p(total_emp_dia)}"
-                    f"\n🧾 Total gastos:    -{_p(total_gastos_dia)}"
-                    f"\n📈 *Neto del día:   {_p(neto_dia)}*"
+                    f"\n📊 Total vendido:    {_p(total_dia)}"
+                    f"\n👥 Empleados pagados: -{_p(total_emp_dia)}"
+                    f"\n🧾 Gastos:           -{_p(total_gastos_dia)}"
+                    f"\n📈 *Neto del día:     {_p(neto_dia)}*"
+                    f"\n{'─'*22}"
+                    f"\n💵 *Balance efectivo: {_p(balance_ef)}*"
+                    f"\n_(efectivo - empleados - gastos)_"
                     + lineas_gastos +
                     f"\n\n🥩 Carnicería:  {_p(carne)}"
                     f"\n🧀 Fiambrería:  {_p(fiamb)}"
