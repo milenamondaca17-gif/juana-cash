@@ -399,18 +399,13 @@ class MainWindow(QMainWindow):
                    "QProgressBar::chunk{background:qlineargradient(x1:0,y1:0,x2:1,y2:0,"
                    "stop:0 #b45309,stop:0.6 #f59e0b,stop:1 #fde68a);border-radius:4px;}")
 
-        self._lbl_meta_nombre = QLabel("🎯", styleSheet="color:#94a3b8;font-size:11px;font-weight:bold;background:transparent;min-width:140px;")
-        _mb_lay.addWidget(self._lbl_meta_nombre)
-
         self._bar_meta = QProgressBar()
         self._bar_meta.setMaximum(self._META); self._bar_meta.setValue(0)
         self._bar_meta.setFixedHeight(8); self._bar_meta.setTextVisible(False)
         self._bar_meta.setStyleSheet(_BAR_SS)
         _mb_lay.addWidget(self._bar_meta, 1)
 
-        self._lbl_meta_val = QLabel("$0", styleSheet="color:#f59e0b;font-size:11px;font-weight:bold;background:transparent;min-width:90px;")
-        self._lbl_meta_pct = QLabel("0%", styleSheet="color:#64748b;font-size:11px;background:transparent;min-width:36px;text-align:right;")
-        _mb_lay.addWidget(self._lbl_meta_val)
+        self._lbl_meta_pct = QLabel("0%", styleSheet="color:#64748b;font-size:11px;font-weight:bold;background:transparent;min-width:36px;")
         _mb_lay.addWidget(self._lbl_meta_pct)
 
         self.main_layout.addWidget(self._meta_bar)
@@ -568,9 +563,6 @@ class MainWindow(QMainWindow):
         self.navbar.show()
         self._meta_bar.show()
         self._meta_celebrado = False
-        turno_label = cajero.get("turno", "")
-        icono = "🌅" if "Mañana" in turno_label else "🌆"
-        self._lbl_meta_nombre.setText(f"{icono} {cajero.get('nombre','')}")
         if not hasattr(self, '_timer_meta'):
             self._timer_meta = QTimer()
             self._timer_meta.timeout.connect(self._actualizar_meta)
@@ -835,14 +827,10 @@ class MainWindow(QMainWindow):
                     return
                 total = float(r.json().get("total_vendido", 0))
 
-                def _p(v): return f"${v:,.0f}".replace(",", ".")
-
                 def _upd():
                     pct = min(100, int(total / META * 100))
                     self._bar_meta.setValue(int(min(total, META)))
                     col = "#10b981" if total >= META else "#f59e0b"
-                    self._lbl_meta_val.setText(_p(total))
-                    self._lbl_meta_val.setStyleSheet(f"color:{col};font-size:11px;font-weight:bold;background:transparent;min-width:90px;")
                     self._lbl_meta_pct.setText(f"{pct}%")
                     self._lbl_meta_pct.setStyleSheet(f"color:{col if total>=META else '#64748b'};font-size:11px;font-weight:bold;background:transparent;min-width:36px;")
                     if total >= META and not getattr(self, '_meta_celebrado', False):
@@ -991,7 +979,6 @@ class MainWindow(QMainWindow):
         self.navbar.hide()
         self._meta_bar.hide()
         self._bar_meta.setValue(0)
-        self._lbl_meta_val.setText("$0")
         self._lbl_meta_pct.setText("0%")
         self._meta_celebrado = False
         self.stack.setCurrentWidget(self.login_screen)
