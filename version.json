@@ -1,8 +1,8 @@
 {
-  "version": "4.3.7",
-  "desktop_version": "4.3.7",
+  "version": "4.3.8",
+  "desktop_version": "4.3.8",
   "apk_version": "4.2.0",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.7/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.8/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.0/JuanaCash.apk",
-  "notas": "v4.3.7 - Fix productos: validaciones, busqueda parcial, doble stock, codigos duplicados"
+  "notas": "v4.3.8 - Fix clientes: descripcion fiados, boton deuda, montos negativos, pagos con usuario real"
 }

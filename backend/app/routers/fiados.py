@@ -12,7 +12,8 @@ class FiadoCrear(BaseModel):
     cliente_id: int
     venta_id: Optional[int] = None
     monto: float
-    saldo: float
+    saldo: float = 0
+    descripcion: Optional[str] = None
 
 class PagoFiadoCrear(BaseModel):
     fiado_id: int
@@ -31,11 +32,15 @@ def fiados_cliente(cliente_id: int, db: Session = Depends(get_db)):
 
 @router.post("/")
 def crear_fiado(datos: FiadoCrear, db: Session = Depends(get_db)):
+    if datos.monto <= 0:
+        raise HTTPException(status_code=400, detail="El monto debe ser mayor a cero")
     cliente = db.query(Cliente).filter(Cliente.id == datos.cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    saldo = datos.saldo if datos.saldo > 0 else datos.monto
     fiado = Fiado(cliente_id=datos.cliente_id, venta_id=datos.venta_id,
-                  monto=datos.monto, saldo=datos.saldo, estado="pendiente")
+                  monto=datos.monto, saldo=saldo, estado="pendiente",
+                  descripcion=datos.descripcion)
     db.add(fiado)
     cliente.deuda_actual = float(cliente.deuda_actual or 0) + datos.monto
     db.commit()
@@ -44,6 +49,8 @@ def crear_fiado(datos: FiadoCrear, db: Session = Depends(get_db)):
 
 @router.post("/pagar")
 def pagar_fiado(datos: PagoFiadoCrear, db: Session = Depends(get_db)):
+    if datos.monto <= 0:
+        raise HTTPException(status_code=400, detail="El monto del pago debe ser mayor a cero")
     fiado = db.query(Fiado).filter(Fiado.id == datos.fiado_id).first()
     if not fiado:
         raise HTTPException(status_code=404, detail="Fiado no encontrado")

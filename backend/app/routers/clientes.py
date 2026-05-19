@@ -107,9 +107,12 @@ def historial_cliente(id: int, db: Session = Depends(get_db)):
             "saldo": float(f.saldo),
             "fecha": str(f.created_at),
             "estado": f.estado or "pendiente",
+            "descripcion": f.descripcion or "",
             "vencimiento": str(f.vencimiento) if f.vencimiento else None,
             "pagos": [
-                {"monto": float(p.monto), "fecha": str(p.fecha), "metodo": p.metodo or "efectivo"}
+                {"monto": float(p.monto), "fecha": str(p.fecha),
+                 "metodo": p.metodo or "efectivo",
+                 "usuario_id": p.usuario_id}
                 for p in pagos_f
             ]
         })

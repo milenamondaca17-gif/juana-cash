@@ -29,6 +29,7 @@ with engine.connect() as _conn:
         ("caja_turnos", "total_empleados",  "NUMERIC DEFAULT 0"),
         ("ventas",      "recargo",          "NUMERIC DEFAULT 0"),
         ("fiados",      "monto_pagado",     "NUMERIC DEFAULT 0"),
+        ("fiados",      "descripcion",      "TEXT"),
     ]:
         try:
             tablas = _inspector.get_table_names()

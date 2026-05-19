@@ -11,6 +11,7 @@ class Fiado(Base):
     monto        = Column(Numeric(12,2), nullable=False)
     monto_pagado = Column(Numeric(12,2), server_default="0")
     saldo        = Column(Numeric(12,2), nullable=False)
+    descripcion  = Column(String(300), nullable=True)
     estado       = Column(String(15), default="pendiente")
     vencimiento  = Column(Date, nullable=True)
     created_at   = Column(DateTime, server_default=func.now())
