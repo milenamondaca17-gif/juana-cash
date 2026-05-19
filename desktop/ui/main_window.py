@@ -382,10 +382,9 @@ class MainWindow(QMainWindow):
         
         self.main_layout.addWidget(self.navbar)
 
-        # ── Barra de meta por turno ───────────────────────────────────────────
+        # ── Barra de meta por turno (1 barra = empleado logueado) ───────────────
         from PyQt6.QtWidgets import QProgressBar
-        _META = 750_000
-        self._META = _META
+        self._META = 750_000
 
         self._meta_bar = QFrame()
         self._meta_bar.setFixedHeight(34)
@@ -394,41 +393,25 @@ class MainWindow(QMainWindow):
 
         _mb_lay = QHBoxLayout(self._meta_bar)
         _mb_lay.setContentsMargins(18, 3, 18, 3)
-        _mb_lay.setSpacing(16)
+        _mb_lay.setSpacing(12)
 
         _BAR_SS = ("QProgressBar{background:#1e2d45;border-radius:4px;border:none;}"
                    "QProgressBar::chunk{background:qlineargradient(x1:0,y1:0,x2:1,y2:0,"
                    "stop:0 #b45309,stop:0.6 #f59e0b,stop:1 #fde68a);border-radius:4px;}")
 
-        # --- Mañana ---
-        _man = QHBoxLayout(); _man.setSpacing(8)
-        _man.addWidget(QLabel("🌅 Mañana", styleSheet="color:#94a3b8;font-size:11px;font-weight:bold;background:transparent;min-width:68px;"))
-        self._bar_man = QProgressBar()
-        self._bar_man.setMaximum(_META); self._bar_man.setValue(0)
-        self._bar_man.setFixedHeight(8); self._bar_man.setTextVisible(False)
-        self._bar_man.setStyleSheet(_BAR_SS)
-        _man.addWidget(self._bar_man, 1)
-        self._lbl_man = QLabel("$0 / $750.000", styleSheet="color:#f59e0b;font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
-        self._lbl_man_pct = QLabel("0%", styleSheet="color:#64748b;font-size:11px;background:transparent;min-width:32px;")
-        _man.addWidget(self._lbl_man); _man.addWidget(self._lbl_man_pct)
-        _mb_lay.addLayout(_man, 1)
+        self._lbl_meta_nombre = QLabel("🎯", styleSheet="color:#94a3b8;font-size:11px;font-weight:bold;background:transparent;min-width:140px;")
+        _mb_lay.addWidget(self._lbl_meta_nombre)
 
-        _sep = QFrame(); _sep.setFrameShape(QFrame.Shape.VLine)
-        _sep.setStyleSheet("background:#1e3a5f;"); _sep.setFixedWidth(1)
-        _mb_lay.addWidget(_sep)
+        self._bar_meta = QProgressBar()
+        self._bar_meta.setMaximum(self._META); self._bar_meta.setValue(0)
+        self._bar_meta.setFixedHeight(8); self._bar_meta.setTextVisible(False)
+        self._bar_meta.setStyleSheet(_BAR_SS)
+        _mb_lay.addWidget(self._bar_meta, 1)
 
-        # --- Tarde ---
-        _tar = QHBoxLayout(); _tar.setSpacing(8)
-        _tar.addWidget(QLabel("🌆 Tarde", styleSheet="color:#94a3b8;font-size:11px;font-weight:bold;background:transparent;min-width:68px;"))
-        self._bar_tar = QProgressBar()
-        self._bar_tar.setMaximum(_META); self._bar_tar.setValue(0)
-        self._bar_tar.setFixedHeight(8); self._bar_tar.setTextVisible(False)
-        self._bar_tar.setStyleSheet(_BAR_SS)
-        _tar.addWidget(self._bar_tar, 1)
-        self._lbl_tar = QLabel("$0 / $750.000", styleSheet="color:#f59e0b;font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
-        self._lbl_tar_pct = QLabel("0%", styleSheet="color:#64748b;font-size:11px;background:transparent;min-width:32px;")
-        _tar.addWidget(self._lbl_tar); _tar.addWidget(self._lbl_tar_pct)
-        _mb_lay.addLayout(_tar, 1)
+        self._lbl_meta_val = QLabel("$0", styleSheet="color:#f59e0b;font-size:11px;font-weight:bold;background:transparent;min-width:90px;")
+        self._lbl_meta_pct = QLabel("0%", styleSheet="color:#64748b;font-size:11px;background:transparent;min-width:36px;text-align:right;")
+        _mb_lay.addWidget(self._lbl_meta_val)
+        _mb_lay.addWidget(self._lbl_meta_pct)
 
         self.main_layout.addWidget(self._meta_bar)
 
@@ -584,8 +567,10 @@ class MainWindow(QMainWindow):
         
         self.navbar.show()
         self._meta_bar.show()
-        self._meta_man_celebrado = False
-        self._meta_tar_celebrado = False
+        self._meta_celebrado = False
+        turno_label = cajero.get("turno", "")
+        icono = "🌅" if "Mañana" in turno_label else "🌆"
+        self._lbl_meta_nombre.setText(f"{icono} {cajero.get('nombre','')}")
         if not hasattr(self, '_timer_meta'):
             self._timer_meta = QTimer()
             self._timer_meta.timeout.connect(self._actualizar_meta)
@@ -832,53 +817,38 @@ class MainWindow(QMainWindow):
     def _actualizar_meta(self):
         def _fetch():
             try:
-                r = requests.get(f"{API_URL}/reportes/hoy", timeout=4)
+                META = self._META
+                usuario_id = (self.cajero_actual or {}).get("id", 1)
+                # Obtener apertura real del turno
+                apertura = None
+                try:
+                    rt = requests.get(f"{API_URL}/caja/turno-actual/{usuario_id}", timeout=3)
+                    if rt.status_code == 200 and rt.json().get("abierto"):
+                        apertura = rt.json().get("apertura")
+                except Exception:
+                    pass
+                params = {}
+                if apertura:
+                    params["desde"] = str(apertura).replace(" ", "T")
+                r = requests.get(f"{API_URL}/reportes/hoy", params=params, timeout=4)
                 if r.status_code != 200:
                     return
-                ventas = r.json().get("ventas", [])
-                META = self._META
-                man = 0.0; tar = 0.0
-                for v in ventas:
-                    if v.get("estado") != "completada":
-                        continue
-                    fecha_str = v.get("fecha", "")
-                    try:
-                        hora = int(str(fecha_str)[11:13])
-                    except Exception:
-                        continue
-                    monto = float(v.get("total", 0))
-                    if hora < 15:
-                        man += monto
-                    else:
-                        tar += monto
+                total = float(r.json().get("total_vendido", 0))
 
                 def _p(v): return f"${v:,.0f}".replace(",", ".")
 
                 def _upd():
-                    pct_m = min(100, int(man / META * 100))
-                    pct_t = min(100, int(tar / META * 100))
-                    self._bar_man.setValue(int(min(man, META)))
-                    self._bar_tar.setValue(int(min(tar, META)))
-                    col_m = "#10b981" if man >= META else "#f59e0b"
-                    col_t = "#10b981" if tar >= META else "#f59e0b"
-                    sfx_m = " ✓ META!" if man >= META else ""
-                    sfx_t = " ✓ META!" if tar >= META else ""
-                    self._lbl_man.setText(f"{_p(man)} / $750.000{sfx_m}")
-                    self._lbl_tar.setText(f"{_p(tar)} / $750.000{sfx_t}")
-                    self._lbl_man.setStyleSheet(f"color:{col_m};font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
-                    self._lbl_tar.setStyleSheet(f"color:{col_t};font-size:11px;font-weight:bold;background:transparent;min-width:130px;")
-                    self._lbl_man_pct.setText(f"{pct_m}%")
-                    self._lbl_tar_pct.setText(f"{pct_t}%")
-                    _col_pct = "#64748b"
-                    self._lbl_man_pct.setStyleSheet(f"color:{col_m if man>=META else _col_pct};font-size:11px;background:transparent;min-width:32px;")
-                    self._lbl_tar_pct.setStyleSheet(f"color:{col_t if tar>=META else _col_pct};font-size:11px;background:transparent;min-width:32px;")
-                    # Fuegos artificiales al alcanzar la meta (solo una vez por turno)
-                    if man >= META and not self._meta_man_celebrado:
-                        self._meta_man_celebrado = True
-                        FuegosArtificiales(self, "Turno Mañana")
-                    if tar >= META and not self._meta_tar_celebrado:
-                        self._meta_tar_celebrado = True
-                        FuegosArtificiales(self, "Turno Tarde")
+                    pct = min(100, int(total / META * 100))
+                    self._bar_meta.setValue(int(min(total, META)))
+                    col = "#10b981" if total >= META else "#f59e0b"
+                    self._lbl_meta_val.setText(_p(total))
+                    self._lbl_meta_val.setStyleSheet(f"color:{col};font-size:11px;font-weight:bold;background:transparent;min-width:90px;")
+                    self._lbl_meta_pct.setText(f"{pct}%")
+                    self._lbl_meta_pct.setStyleSheet(f"color:{col if total>=META else '#64748b'};font-size:11px;font-weight:bold;background:transparent;min-width:36px;")
+                    if total >= META and not getattr(self, '_meta_celebrado', False):
+                        self._meta_celebrado = True
+                        turno = (self.cajero_actual or {}).get("turno", "")
+                        FuegosArtificiales(self, turno[:25] if turno else "")
 
                 QTimer.singleShot(0, _upd)
             except Exception:
@@ -1020,6 +990,10 @@ class MainWindow(QMainWindow):
         self.cajero_actual = None
         self.navbar.hide()
         self._meta_bar.hide()
+        self._bar_meta.setValue(0)
+        self._lbl_meta_val.setText("$0")
+        self._lbl_meta_pct.setText("0%")
+        self._meta_celebrado = False
         self.stack.setCurrentWidget(self.login_screen)
         self.setWindowTitle("Juana Cash - Sistema POS")
         if hasattr(self, '_timer_timeout'):
