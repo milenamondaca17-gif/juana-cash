@@ -320,6 +320,35 @@ def ventas_por_categoria(desde: str = None, hasta: str = None, db: Session = Dep
         for r in rows
     ]
 
+@router.get("/departamentos")
+def ventas_departamentos(desde: str = None, hasta: str = None, db: Session = Depends(get_db)):
+    """
+    Devuelve total vendido para Carnicería (producto_id=3, cb=930) y Fiambrería (producto_id=11, cb=1003).
+    """
+    from datetime import datetime as _dt
+
+    def _suma(producto_id):
+        q = db.query(func.sum(ItemVenta.subtotal))\
+              .join(Venta, ItemVenta.venta_id == Venta.id)\
+              .filter(ItemVenta.producto_id == producto_id, Venta.estado == "completada")
+        if desde:
+            try:
+                q = q.filter(Venta.fecha >= _dt.fromisoformat(desde.replace("T", " ")))
+            except Exception:
+                pass
+        if hasta:
+            try:
+                q = q.filter(Venta.fecha <= _dt.fromisoformat(hasta.replace("T", " ")))
+            except Exception:
+                pass
+        result = q.scalar()
+        return round(float(result or 0), 2)
+
+    return {
+        "carniceria": _suma(3),
+        "fiambreria": _suma(11),
+    }
+
 @router.get("/ventas-periodo")
 def ventas_por_periodo(periodo: str = "dia", db: Session = Depends(get_db)):
     if periodo == "mes":

@@ -34,8 +34,8 @@ _T = _get_tema()
 
 DEPARTAMENTOS = {
     "7":    {"nombre": "Kiosco",     "icono": "🛒", "color": "#8e44ad"},
-    "930":  {"nombre": "Carnicería", "icono": "🥩", "color": "#e74c3c"},
-    "1003": {"nombre": "Fiambrería", "icono": "🧀", "color": "#f39c12"},
+    "930":  {"nombre": "Carnicería", "icono": "🥩", "color": "#e74c3c",  "db_id": 3},
+    "1003": {"nombre": "Fiambrería", "icono": "🧀", "color": "#f39c12",  "db_id": 11},
     "1004": {"nombre": "Lácteos",    "icono": "🥛", "color": "#3498db"},
     "1005": {"nombre": "Golosinas",  "icono": "🍬", "color": "#e91e8c"},
     "1006": {"nombre": "Líquidos",   "icono": "🍻", "color": "#1abc9c"},
@@ -1282,12 +1282,13 @@ class VentasScreen(QWidget):
                 return
             total = sum(montos_temp)
             self.items_venta.append({
-                "producto_id": 0,
+                "producto_id": depto.get("db_id", 0),
                 "nombre": f"{depto['icono']} {depto['nombre']}",
                 "precio_unitario": total,
                 "cantidad": 1,
                 "subtotal": total,
-                "descuento": 0
+                "descuento": 0,
+                "es_departamento": True
             })
             self.actualizar_tabla()
             dialog.accept()
@@ -1609,18 +1610,19 @@ class VentasScreen(QWidget):
                 vuelto = max(0, entrega - monto_secundario)
         except (ValueError, TypeError):
             pass
-        # Incluir TODOS los items — balanza/depto (pid=0) como genérico (pid=1)
-        # Si se filtraban, venta.total quedaba menor que lo cobrado (el bug)
         items_backend = []
         for _i in self.items_venta:
-            if _i["producto_id"] != 0:
-                items_backend.append(_i)
-            else:
+            if _i.get("es_departamento"):
+                items_backend.append({"producto_id": _i["producto_id"], "cantidad": 1,
+                                       "precio_unitario": _i["subtotal"], "descuento": 0,
+                                       "es_departamento": True})
+            elif _i["producto_id"] == 0:
                 items_backend.append({"producto_id": 1, "cantidad": 1,
                                        "precio_unitario": _i["subtotal"], "descuento": 0,
                                        "es_departamento": True})
+            else:
+                items_backend.append(_i)
         if not items_backend:
-            # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
         try:
@@ -1714,18 +1716,19 @@ class VentasScreen(QWidget):
                 vuelto = max(0, entrega - monto_secundario)
         except (ValueError, TypeError):
             pass
-        # Incluir TODOS los items — balanza/depto (pid=0) como genérico (pid=1)
-        # Si se filtraban, venta.total quedaba menor que lo cobrado (el bug)
         items_backend = []
         for _i in self.items_venta:
-            if _i["producto_id"] != 0:
-                items_backend.append(_i)
-            else:
+            if _i.get("es_departamento"):
+                items_backend.append({"producto_id": _i["producto_id"], "cantidad": 1,
+                                       "precio_unitario": _i["subtotal"], "descuento": 0,
+                                       "es_departamento": True})
+            elif _i["producto_id"] == 0:
                 items_backend.append({"producto_id": 1, "cantidad": 1,
                                        "precio_unitario": _i["subtotal"], "descuento": 0,
                                        "es_departamento": True})
+            else:
+                items_backend.append(_i)
         if not items_backend:
-            # Solo ocurre si el carrito estaba vacío (imposible, hay guard arriba)
             items_backend = [{"producto_id": 1, "cantidad": 1,
                                "precio_unitario": total_final - recargo_monto, "descuento": 0}]
         try:
