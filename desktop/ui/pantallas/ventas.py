@@ -1119,12 +1119,13 @@ class VentasScreen(QWidget):
         if precio_balanza:
             self.input_buscar.clear()
             self.items_venta.append({
-                "producto_id":     0,
+                "producto_id":     3,
                 "nombre":          "Carnicería (balanza)",
                 "precio_unitario": precio_balanza,
                 "cantidad":        1,
                 "subtotal":        precio_balanza,
                 "descuento":       0,
+                "es_departamento": True,
             })
             self.actualizar_tabla()
             return
