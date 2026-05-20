@@ -128,10 +128,11 @@ def _reporte_nocturno():
                 turnos = _json.loads(r_t.read().decode())
 
                 # Totales acumulados del día
-                total_dia     = 0.0
-                tickets_dia   = 0
-                total_gastos_dia = 0.0
-                total_emp_dia = 0.0
+                total_dia            = 0.0
+                tickets_dia          = 0
+                total_gastos_dia     = 0.0
+                total_emp_dia        = 0.0
+                cobros_fiado_ef_dia  = 0.0
                 desglose_dia  = {"efectivo": 0.0, "debito": 0.0, "tarjeta": 0.0,
                                  "mercadopago_qr": 0.0, "transferencia": 0.0, "fiado": 0.0}
 
@@ -150,10 +151,14 @@ def _reporte_nocturno():
 
                     for k in desglose_dia:
                         desglose_dia[k] += float(desg.get(k, 0))
-                    total_dia        += vendido
-                    tickets_dia      += tickets
-                    total_gastos_dia += gastos_t
-                    total_emp_dia    += total_emp_t
+                    total_dia           += vendido
+                    tickets_dia         += tickets
+                    total_gastos_dia    += gastos_t
+                    total_emp_dia       += total_emp_t
+                    cobros_fiado_ef_dia += sum(
+                        float(cf.get("monto", 0)) for cf in t.get("cobros_fiado", [])
+                        if cf.get("metodo", "efectivo") == "efectivo"
+                    )
 
                     lineas_emp_t = ""
                     if emp_list:
@@ -216,7 +221,7 @@ def _reporte_nocturno():
 
                 prom_dia = (total_dia / tickets_dia) if tickets_dia > 0 else 0
                 neto_dia = total_dia - total_gastos_dia - total_emp_dia
-                balance_ef = desglose_dia['efectivo'] - total_emp_dia - total_gastos_dia
+                balance_ef = desglose_dia['efectivo'] + cobros_fiado_ef_dia - total_emp_dia - total_gastos_dia
 
                 ts = ahora.strftime("%d/%m/%Y")
                 msg = (
@@ -238,8 +243,9 @@ def _reporte_nocturno():
                     f"\n🧾 Gastos:           -{_p(total_gastos_dia)}"
                     f"\n📈 *Neto del día:     {_p(neto_dia)}*"
                     f"\n{'─'*22}"
-                    f"\n💵 *Balance efectivo: {_p(balance_ef)}*"
-                    f"\n_(efectivo - empleados - gastos)_"
+                    + (f"\n💳 Cobros fiado ef.: +{_p(cobros_fiado_ef_dia)}" if cobros_fiado_ef_dia > 0 else "")
+                    + f"\n💵 *Balance efectivo: {_p(balance_ef)}*"
+                    f"\n_(efectivo ventas + cobros fiado - empleados - gastos)_"
                     + lineas_gastos +
                     f"\n\n🥩 Carnicería:  {_p(carne)}"
                     f"\n🧀 Fiambrería:  {_p(fiamb)}"
