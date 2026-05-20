@@ -949,9 +949,13 @@ class CajaScreen(QWidget):
             monto_apertura = 0
 
         total_aportes = 0.0
+        aportes_lista = []
         try:
             r_ap = requests.get(f"{API_URL}/caja/aportes/{self.turno_actual['id']}", timeout=3)
-            total_aportes = float(r_ap.json().get("total", 0)) if r_ap.status_code == 200 else 0
+            if r_ap.status_code == 200:
+                ap_data = r_ap.json()
+                total_aportes = float(ap_data.get("total_efectivo", ap_data.get("total", 0)))
+                aportes_lista = ap_data.get("aportes", [])
         except Exception:
             pass
 
@@ -1313,7 +1317,15 @@ class CajaScreen(QWidget):
                             f"\n  Fiambrería:   {_p(total_fiamb)}"
                         )
                         linea_apertura = f"\n🔓 Apertura:      {_p(monto_apertura)}"
-                        linea_aportes = (f"\n💰 Aportes:       +{_p(total_aportes)}" if total_aportes > 0 else "")
+                        _metodo_emoji = {"efectivo": "💵", "transferencia": "🏦",
+                                         "mercadopago_qr": "📱", "debito": "🏧"}
+                        if aportes_lista:
+                            linea_aportes = "\n💰 *Aportes:*"
+                            for _ap in aportes_lista:
+                                _em = _metodo_emoji.get(_ap.get("metodo", "efectivo"), "💰")
+                                linea_aportes += f"\n  {_em} {_ap.get('metodo','efectivo').capitalize()}: +{_p(_ap.get('monto',0))}"
+                        else:
+                            linea_aportes = ""
                         msg_wa = (
                             f"🏪 *CIERRE DE CAJA — JUANA CASH*\n"
                             f"📅 {ts}  |  👤 {getattr(self, 'nombre_cajero', '?')}\n"
@@ -1375,15 +1387,24 @@ class CajaScreen(QWidget):
         lay.setSpacing(12)
         lay.setContentsMargins(24, 20, 24, 20)
 
-        titulo = QLabel("💰 Ingresá un aporte de efectivo")
+        titulo = QLabel("💰 Aporte de caja")
         titulo.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
         titulo.setStyleSheet(f"color: {TEXT_MAIN}; background: transparent;")
         lay.addWidget(titulo)
 
-        sub = QLabel("Se suma al efectivo esperado en caja (ej: plata del sobre, cambio extra).")
+        sub = QLabel("Solo aportes en efectivo afectan el cajón. Transferencia/QR se registra como información.")
         sub.setWordWrap(True)
         sub.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; background: transparent;")
         lay.addWidget(sub)
+
+        lbl_met = QLabel("Método:")
+        lbl_met.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
+        lay.addWidget(lbl_met)
+        combo_metodo = QComboBox()
+        combo_metodo.addItems(["💵 Efectivo", "🏦 Transferencia", "📱 QR / Mercado Pago", "🏧 Débito"])
+        combo_metodo.setFixedHeight(38)
+        combo_metodo.setStyleSheet(f"QComboBox {{ background: {BG_MAIN}; border: 1.5px solid {BORDER}; border-radius: 8px; padding: 6px 12px; color: {TEXT_MAIN}; }} QComboBox::drop-down {{ border: none; }}")
+        lay.addWidget(combo_metodo)
 
         lbl_m = QLabel("Monto ($):")
         lbl_m.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
@@ -1427,13 +1448,18 @@ class CajaScreen(QWidget):
                 QMessageBox.warning(dialog, "Error", "Ingresá un monto válido mayor a cero")
                 return
             desc = inp_desc.text().strip() or "Aporte de caja"
+            _metodo_map = {"💵 Efectivo": "efectivo", "🏦 Transferencia": "transferencia",
+                           "📱 QR / Mercado Pago": "mercadopago_qr", "🏧 Débito": "debito"}
+            metodo = _metodo_map.get(combo_metodo.currentText(), "efectivo")
             try:
                 r = requests.post(f"{API_URL}/caja/aporte",
-                                  json={"turno_id": self.turno_actual["id"], "monto": monto, "descripcion": desc},
+                                  json={"turno_id": self.turno_actual["id"], "monto": monto,
+                                        "metodo": metodo, "descripcion": desc},
                                   timeout=5)
                 if r.status_code == 200:
                     dialog.accept()
-                    QMessageBox.information(self, "✅ Aporte registrado", f"Se agregaron {_p(monto)} a la caja.")
+                    nota = "" if metodo == "efectivo" else " (no afecta el cajón)"
+                    QMessageBox.information(self, "✅ Aporte registrado", f"Se registraron {_p(monto)}{nota}.")
                     self.actualizar_ventas()
                 else:
                     btn_ok.setEnabled(True)
@@ -1789,7 +1815,9 @@ class CajaScreen(QWidget):
                 if turno_id:
                     try:
                         r_ap = requests.get(f"{API_URL}/caja/aportes/{turno_id}", timeout=3)
-                        total_aportes = float(r_ap.json().get("total", 0)) if r_ap.status_code == 200 else 0
+                        if r_ap.status_code == 200:
+                            _ap_data = r_ap.json()
+                            total_aportes = float(_ap_data.get("total_efectivo", _ap_data.get("total", 0)))
                     except Exception:
                         pass
                 ef_caja = monto_apertura + total_aportes + float(desglose.get("efectivo", 0)) - total_gastos

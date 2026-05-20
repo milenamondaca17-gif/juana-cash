@@ -25,11 +25,12 @@ from sqlalchemy import text as _text, inspect as _inspect
 _inspector = _inspect(engine)
 with engine.connect() as _conn:
     for _table, _col, _def in [
-        ("caja_turnos", "pagos_empleados", "TEXT"),
-        ("caja_turnos", "total_empleados",  "NUMERIC DEFAULT 0"),
-        ("ventas",      "recargo",          "NUMERIC DEFAULT 0"),
-        ("fiados",      "monto_pagado",     "NUMERIC DEFAULT 0"),
-        ("fiados",      "descripcion",      "TEXT"),
+        ("caja_turnos",  "pagos_empleados", "TEXT"),
+        ("caja_turnos",  "total_empleados",  "NUMERIC DEFAULT 0"),
+        ("ventas",       "recargo",          "NUMERIC DEFAULT 0"),
+        ("fiados",       "monto_pagado",     "NUMERIC DEFAULT 0"),
+        ("fiados",       "descripcion",      "TEXT"),
+        ("caja_aportes", "metodo",           "TEXT DEFAULT 'efectivo'"),
     ]:
         try:
             tablas = _inspector.get_table_names()

@@ -1,8 +1,8 @@
 {
-  "version": "4.3.9",
-  "desktop_version": "4.3.9",
+  "version": "4.4.0",
+  "desktop_version": "4.4.0",
   "apk_version": "4.2.0",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.9/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.0/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.2.0/JuanaCash.apk",
-  "notas": "v4.3.9 - Dashboard: race condition, horario pico real, metodo principal, barras proporcionales, tabla limpia en error"
+  "notas": "v4.4.0 - Aporte de caja con metodo: solo efectivo afecta el cajon, transferencia/QR se registra informativo"
 }

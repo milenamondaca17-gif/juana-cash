@@ -5,8 +5,9 @@ from ..database import Base
 class CajaAporte(Base):
     __tablename__ = "caja_aportes"
 
-    id        = Column(Integer, primary_key=True, index=True)
-    turno_id  = Column(Integer, ForeignKey("caja_turnos.id"), nullable=False)
-    monto     = Column(Float, nullable=False)
+    id          = Column(Integer, primary_key=True, index=True)
+    turno_id    = Column(Integer, ForeignKey("caja_turnos.id"), nullable=False)
+    monto       = Column(Float, nullable=False)
+    metodo      = Column(String, default="efectivo")
     descripcion = Column(String, default="Aporte de caja")
-    fecha     = Column(DateTime, default=datetime.now)
+    fecha       = Column(DateTime, default=datetime.now)

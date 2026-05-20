@@ -161,6 +161,16 @@ def _reporte_nocturno():
                             f"{e['nombre']} {_p(e['monto'])}" for e in emp_list
                         )
 
+                    aportes_t = t.get("aportes", [])
+                    _em_map = {"efectivo": "💵", "transferencia": "🏦",
+                               "mercadopago_qr": "📱", "debito": "🏧"}
+                    lineas_aportes_t = ""
+                    if aportes_t:
+                        lineas_aportes_t = "\n  💰 Aportes: " + " | ".join(
+                            f"{_em_map.get(a.get('metodo','efectivo'),'💰')} {_p(a.get('monto',0))}"
+                            for a in aportes_t
+                        )
+
                     bloques_turno += (
                         f"\n{'━'*22}"
                         f"\n*Turno {i} — {cajero}* {estado}"
@@ -174,6 +184,7 @@ def _reporte_nocturno():
                         f"\n📊 Total: {_p(vendido)}"
                         + (f"  |  🧾 Gastos: {_p(gastos_t)}" if gastos_t > 0 else "")
                         + lineas_emp_t
+                        + lineas_aportes_t
                     )
 
                 # Departamentos del día

@@ -18,6 +18,7 @@ class AbrirCajaSchema(BaseModel):
 class AporteSchema(BaseModel):
     turno_id: int
     monto: float
+    metodo: str = "efectivo"
     descripcion: Optional[str] = "Aporte de caja"
 
 class PagoEmpleado(BaseModel):
@@ -90,11 +91,12 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     ).all()
     total_gastos = sum(float(g.monto) for g in gastos_hoy)
 
-    # Aportes de caja del turno
+    # Aportes de caja del turno — solo los de efectivo afectan el cajón
     aportes_turno = db.query(CajaAporte).filter(
         CajaAporte.turno_id == turno_id
     ).all()
-    total_aportes = sum(float(a.monto) for a in aportes_turno)
+    total_aportes = sum(float(a.monto) for a in aportes_turno if (a.metodo or "efectivo") == "efectivo")
+    total_aportes_otros = sum(float(a.monto) for a in aportes_turno if (a.metodo or "efectivo") != "efectivo")
 
     # Pagos de empleados del cierre
     pagos_emp = datos.pagos_empleados or []
@@ -117,15 +119,18 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
 
     db.commit()
     return {
-        "mensaje":           "Caja cerrada",
-        "total_vendido":     total_vendido,
-        "efectivo_ventas":   efectivo_ventas,
-        "total_gastos":      total_gastos,
-        "total_aportes":     total_aportes,
-        "efectivo_esperado": efectivo_esperado,
-        "diferencia":        diferencia,
-        "total_empleados":   total_empleados,
-        "pagos_empleados":   [{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp],
+        "mensaje":              "Caja cerrada",
+        "total_vendido":        total_vendido,
+        "efectivo_ventas":      efectivo_ventas,
+        "total_gastos":         total_gastos,
+        "total_aportes":        total_aportes,
+        "total_aportes_otros":  total_aportes_otros,
+        "efectivo_esperado":    efectivo_esperado,
+        "diferencia":           diferencia,
+        "total_empleados":      total_empleados,
+        "pagos_empleados":      [{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp],
+        "aportes_detalle":      [{"monto": float(a.monto), "metodo": a.metodo or "efectivo",
+                                  "descripcion": a.descripcion} for a in aportes_turno],
     }
 
 @router.post("/aporte")
@@ -135,20 +140,23 @@ def registrar_aporte(datos: AporteSchema, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Turno no encontrado o cerrado")
     if datos.monto <= 0:
         raise HTTPException(status_code=400, detail="El monto debe ser mayor a cero")
-    aporte = CajaAporte(turno_id=datos.turno_id, monto=datos.monto, descripcion=datos.descripcion)
+    aporte = CajaAporte(turno_id=datos.turno_id, monto=datos.monto,
+                        metodo=datos.metodo, descripcion=datos.descripcion)
     db.add(aporte)
     db.commit()
     db.refresh(aporte)
-    return {"id": aporte.id, "monto": aporte.monto, "descripcion": aporte.descripcion}
+    return {"id": aporte.id, "monto": aporte.monto, "metodo": aporte.metodo, "descripcion": aporte.descripcion}
 
 @router.get("/aportes/{turno_id}")
 def aportes_turno(turno_id: int, db: Session = Depends(get_db)):
     aportes = db.query(CajaAporte).filter(CajaAporte.turno_id == turno_id).order_by(CajaAporte.fecha).all()
     total = sum(float(a.monto) for a in aportes)
+    total_efectivo = sum(float(a.monto) for a in aportes if (a.metodo or "efectivo") == "efectivo")
     return {
-        "aportes": [{"id": a.id, "monto": float(a.monto), "descripcion": a.descripcion,
-                     "hora": a.fecha.strftime("%H:%M")} for a in aportes],
-        "total": total
+        "aportes": [{"id": a.id, "monto": float(a.monto), "metodo": a.metodo or "efectivo",
+                     "descripcion": a.descripcion, "hora": a.fecha.strftime("%H:%M")} for a in aportes],
+        "total": total,
+        "total_efectivo": total_efectivo,
     }
 
 @router.get("/turno-actual/{usuario_id}")
@@ -266,6 +274,11 @@ def turnos_hoy(db: Session = Depends(get_db)):
         total_gastos = sum(float(g.monto) for g in db.query(Gasto).filter(
             Gasto.fecha >= t.apertura, Gasto.fecha <= hasta).all())
 
+        aportes_t = db.query(CajaAporte).filter(CajaAporte.turno_id == t.id).all()
+        total_aportes_t = sum(float(a.monto) for a in aportes_t)
+        aportes_lista_t = [{"monto": float(a.monto), "metodo": a.metodo or "efectivo",
+                             "descripcion": a.descripcion} for a in aportes_t]
+
         usuario = db.query(Usuario).filter(Usuario.id == t.usuario_id).first()
         nombre_cajero = usuario.nombre if usuario else f"Usuario {t.usuario_id}"
 
@@ -284,6 +297,8 @@ def turnos_hoy(db: Session = Depends(get_db)):
             "cantidad_ventas": len(ventas),
             "total_vendido":   total_vendido,
             "total_gastos":    total_gastos,
+            "total_aportes":   total_aportes_t,
+            "aportes":         aportes_lista_t,
             "desglose":        desglose,
             "pagos_empleados": pagos_emp,
         })
