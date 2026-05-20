@@ -105,26 +105,41 @@ class DashboardScreen(QWidget):
     def __init__(self):
         super().__init__()
         self.datos = None
-        self._cargando = False  # Evita threads acumulados
+        self._cargando = False
+        self._request_id = 0  # Contador para descartar respuestas viejas
         self.setup_ui()
-        self.datos_recibidos.connect(self._aplicar_datos)  # Siempre en hilo principal
+        self.datos_recibidos.connect(self._aplicar_datos)
         self.timer = QTimer()
         self.timer.timeout.connect(self._cargar_datos_hilo)
-        self.timer.start(30000)  # Refresca cada 30 segundos
+        self.timer.start(30000)
 
     def _cargar_datos_hilo(self):
         if self._cargando:
             return
         self._cargando = True
+        self._request_id += 1
         import threading
-        threading.Thread(target=self._fetch_datos, daemon=True).start()
+        threading.Thread(target=self._fetch_datos, args=(self._request_id,), daemon=True).start()
 
-    def _fetch_datos(self):
+    def _fetch_datos(self, req_id):
         """HTTP en thread separado — nunca toca widgets."""
         try:
             r = requests.get(f"{API_URL}/reportes/dashboard", timeout=5)
-            if r.status_code == 200:
-                self.datos_recibidos.emit(r.json())
+            if r.status_code == 200 and req_id == self._request_id:
+                datos = r.json()
+                # Obtener horario pico y agregarlo al mismo dict
+                try:
+                    r_h = requests.get(f"{API_URL}/reportes/horario-pico", timeout=5)
+                    if r_h.status_code == 200:
+                        horas = r_h.json()
+                        datos["horas_hoy"] = horas
+                        if horas:
+                            max_h = max(horas, key=lambda h: h.get("ventas", 0))
+                            if max_h.get("ventas", 0) > 0:
+                                datos["hora_pico"] = max_h.get("hora")
+                except Exception:
+                    pass
+                self.datos_recibidos.emit(datos)
         except Exception as e:
             print(f"[Dashboard] Error: {e}")
         finally:
@@ -337,7 +352,11 @@ class DashboardScreen(QWidget):
         promedio = to_float(d.get("ticket_promedio"))
         self.card_promedio.actualizar(_p(promedio))
 
-        metodo_principal = str(d.get("metodo_mas_usado") or "efectivo")
+        desglose_temp = d.get("desglose_metodos") or {}
+        if isinstance(desglose_temp, dict) and desglose_temp:
+            metodo_principal = max(desglose_temp, key=lambda k: to_float(desglose_temp.get(k)))
+        else:
+            metodo_principal = "efectivo"
         nombre_mp = NOMBRES_METODO.get(metodo_principal, metodo_principal)
         color_mp = COLORES_METODO.get(metodo_principal, "#f39c12")
         self.card_metodo.actualizar(nombre_mp)
@@ -350,10 +369,16 @@ class DashboardScreen(QWidget):
                 child.widget().deleteLater()
 
         desglose = d.get("desglose_metodos")
-        if not isinstance(desglose, dict): 
+        if not isinstance(desglose, dict):
             desglose = {}
-            
+
+        if not desglose:
+            lbl_sin = QLabel("Sin ventas registradas hoy")
+            lbl_sin.setStyleSheet(f"color: {_T['text_muted']}; font-size: 12px; background: transparent;")
+            self.metodos_contenido.addWidget(lbl_sin)
+
         total_metodos = sum(to_float(v) for v in desglose.values()) or 1
+        MAX_BAR_W = 200
         for metodo, monto in sorted(desglose.items(), key=lambda x: to_float(x[1]), reverse=True):
             monto_f = to_float(monto)
             fila = QFrame()
@@ -378,11 +403,11 @@ class DashboardScreen(QWidget):
 
             barra = QFrame()
             barra.setFixedHeight(6)
+            barra.setFixedWidth(MAX_BAR_W)
             barra.setStyleSheet(f"QFrame {{ background: #0f3460; border-radius: 3px; border: none; }}")
             barra_inner = QFrame(barra)
             barra_inner.setFixedHeight(6)
-            barra_w = max(4, int(pct * 2))
-            barra_inner.setFixedWidth(barra_w)
+            barra_inner.setFixedWidth(max(4, int(pct / 100 * MAX_BAR_W)))
             barra_inner.setStyleSheet(f"QFrame {{ background: {color}; border-radius: 3px; border: none; }}")
             fila_layout.addWidget(barra)
 
@@ -457,24 +482,28 @@ class DashboardScreen(QWidget):
         super().showEvent(event)
         self._cargar_datos_hilo()
     def cargar_ventas_periodo(self, periodo):
+        self.tabla_detallada.setRowCount(0)
         try:
-            # Esta es la ruta que creamos en el servidor
             r = requests.get(f"{API_URL}/reportes/ventas-periodo?periodo={periodo}", timeout=5)
             if r.status_code == 200:
                 datos = r.json()
                 self.tabla_detallada.setRowCount(len(datos))
                 for i, fila in enumerate(datos):
-                    # Sacamos los datos con cuidado para que no falle
                     fecha = str(fila.get("fecha", "-"))
                     prod = str(fila.get("producto", "Desconocido"))
                     cant = str(fila.get("cantidad", 0))
-                    total = _p(float(fila.get('total', 0)))
-
+                    total = _p(float(fila.get("total", 0)))
                     self.tabla_detallada.setItem(i, 0, QTableWidgetItem(fecha))
                     self.tabla_detallada.setItem(i, 1, QTableWidgetItem(prod))
                     self.tabla_detallada.setItem(i, 2, QTableWidgetItem(cant))
                     self.tabla_detallada.setItem(i, 3, QTableWidgetItem(total))
             else:
-                print(f"Error en el servidor: {r.status_code}")
-        except Exception as e:
-            print(f"Error cargando la tabla: {e}")    
+                self.tabla_detallada.setRowCount(1)
+                item = QTableWidgetItem(f"Error al cargar datos ({r.status_code})")
+                item.setForeground(QColor("#e94560"))
+                self.tabla_detallada.setItem(0, 0, item)
+        except Exception:
+            self.tabla_detallada.setRowCount(1)
+            item = QTableWidgetItem("Sin conexión con el servidor")
+            item.setForeground(QColor("#e94560"))
+            self.tabla_detallada.setItem(0, 0, item)    
