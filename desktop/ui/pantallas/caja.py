@@ -1853,7 +1853,7 @@ class CajaScreen(QWidget):
                 monto_apertura = float((self.turno_actual or {}).get("monto_apertura", 0))
                 total_aportes = 0.0
                 turno_id = (self.turno_actual or {}).get("id")
-                _apertura_str = (self.turno_actual or {}).get("apertura", "")
+                _apertura_str = self._apertura_iso()
                 if turno_id:
                     try:
                         r_ap = requests.get(f"{API_URL}/caja/aportes/{turno_id}", timeout=3)

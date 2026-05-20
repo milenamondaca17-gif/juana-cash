@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, Date
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from ..database import Base
 
 class Fiado(Base):
@@ -25,5 +26,5 @@ class PagoFiado(Base):
     monto       = Column(Numeric(12,2), nullable=False)
     metodo      = Column(String(20), nullable=True)
     observacion = Column(String(300), nullable=True)
-    fecha       = Column(DateTime, server_default=func.now())
+    fecha       = Column(DateTime, default=datetime.now)
     fiado       = relationship("Fiado")
