@@ -98,13 +98,27 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
     total_aportes = sum(float(a.monto) for a in aportes_turno if (a.metodo or "efectivo") == "efectivo")
     total_aportes_otros = sum(float(a.monto) for a in aportes_turno if (a.metodo or "efectivo") != "efectivo")
 
+    # Cobros de fiado del turno — efectivo suma al cajón, el resto es informativo
+    from ..models.fiado import PagoFiado, Fiado
+    from ..models.cliente import Cliente as ClienteModel
+    cobros_fiado_raw = (db.query(PagoFiado, ClienteModel)
+                        .join(Fiado, PagoFiado.fiado_id == Fiado.id)
+                        .join(ClienteModel, Fiado.cliente_id == ClienteModel.id)
+                        .filter(PagoFiado.fecha >= turno.apertura, PagoFiado.fecha <= momento_cierre)
+                        .all())
+    cobros_fiado = [{"cliente": c.nombre, "monto": float(p.monto),
+                     "metodo": (p.metodo or "efectivo").lower()}
+                    for p, c in cobros_fiado_raw]
+    total_cobros_fiado_efectivo = sum(x["monto"] for x in cobros_fiado if x["metodo"] == "efectivo")
+
     # Pagos de empleados del cierre
     pagos_emp = datos.pagos_empleados or []
     total_empleados = sum(p.monto for p in pagos_emp)
 
-    # Efectivo esperado = apertura + aportes + efectivo ventas - gastos - empleados
+    # Efectivo esperado = apertura + aportes_efectivo + efectivo_ventas + cobros_fiado_efectivo - gastos - empleados
     monto_apertura = float(turno.monto_apertura or 0)
-    efectivo_esperado = monto_apertura + total_aportes + efectivo_ventas - total_gastos - total_empleados
+    efectivo_esperado = (monto_apertura + total_aportes + efectivo_ventas
+                         + total_cobros_fiado_efectivo - total_gastos - total_empleados)
 
     # Diferencia: lo que declaró el cajero vs lo que debería haber
     diferencia = datos.monto_cierre - efectivo_esperado
@@ -124,13 +138,15 @@ def cerrar_caja(turno_id: int, datos: CerrarCajaSchema, db: Session = Depends(ge
         "efectivo_ventas":      efectivo_ventas,
         "total_gastos":         total_gastos,
         "total_aportes":        total_aportes,
-        "total_aportes_otros":  total_aportes_otros,
-        "efectivo_esperado":    efectivo_esperado,
-        "diferencia":           diferencia,
-        "total_empleados":      total_empleados,
-        "pagos_empleados":      [{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp],
-        "aportes_detalle":      [{"monto": float(a.monto), "metodo": a.metodo or "efectivo",
-                                  "descripcion": a.descripcion} for a in aportes_turno],
+        "total_aportes_otros":         total_aportes_otros,
+        "total_cobros_fiado_efectivo": total_cobros_fiado_efectivo,
+        "cobros_fiado":                cobros_fiado,
+        "efectivo_esperado":           efectivo_esperado,
+        "diferencia":                  diferencia,
+        "total_empleados":             total_empleados,
+        "pagos_empleados":             [{"nombre": p.nombre, "monto": p.monto} for p in pagos_emp],
+        "aportes_detalle":             [{"monto": float(a.monto), "metodo": a.metodo or "efectivo",
+                                         "descripcion": a.descripcion} for a in aportes_turno],
     }
 
 @router.post("/aporte")
@@ -279,6 +295,17 @@ def turnos_hoy(db: Session = Depends(get_db)):
         aportes_lista_t = [{"monto": float(a.monto), "metodo": a.metodo or "efectivo",
                              "descripcion": a.descripcion} for a in aportes_t]
 
+        from ..models.fiado import PagoFiado as _PF, Fiado as _Fiado
+        from ..models.cliente import Cliente as _Cli
+        cobros_f_raw = (db.query(_PF, _Cli)
+                        .join(_Fiado, _PF.fiado_id == _Fiado.id)
+                        .join(_Cli, _Fiado.cliente_id == _Cli.id)
+                        .filter(_PF.fecha >= t.apertura, _PF.fecha <= hasta)
+                        .all())
+        cobros_fiado_t = [{"cliente": c.nombre, "monto": float(p.monto),
+                           "metodo": (p.metodo or "efectivo").lower()}
+                          for p, c in cobros_f_raw]
+
         usuario = db.query(Usuario).filter(Usuario.id == t.usuario_id).first()
         nombre_cajero = usuario.nombre if usuario else f"Usuario {t.usuario_id}"
 
@@ -299,6 +326,7 @@ def turnos_hoy(db: Session = Depends(get_db)):
             "total_gastos":    total_gastos,
             "total_aportes":   total_aportes_t,
             "aportes":         aportes_lista_t,
+            "cobros_fiado":    cobros_fiado_t,
             "desglose":        desglose,
             "pagos_empleados": pagos_emp,
         })

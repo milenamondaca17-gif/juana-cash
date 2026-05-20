@@ -959,9 +959,26 @@ class CajaScreen(QWidget):
         except Exception:
             pass
 
+        cobros_fiado = []
+        total_cobros_fiado_ef = 0.0
+        try:
+            from datetime import datetime as _dtnow
+            _hasta = _dtnow.now().strftime("%Y-%m-%dT%H:%M:%S")
+            _desde = apertura or ""
+            if _desde:
+                r_cf = requests.get(f"{API_URL}/fiados/cobros-turno",
+                                    params={"desde": _desde, "hasta": _hasta}, timeout=3)
+                if r_cf.status_code == 200:
+                    cf_data = r_cf.json()
+                    cobros_fiado = cf_data.get("cobros", [])
+                    total_cobros_fiado_ef = float(cf_data.get("total_efectivo", 0))
+        except Exception:
+            pass
+
         efectivo_esperado = (total_vendido
             + monto_apertura
             + total_aportes
+            + total_cobros_fiado_ef
             - totales["debito"]
             - totales["tarjeta"]
             - totales["mercadopago_qr"]
@@ -1054,6 +1071,7 @@ class CajaScreen(QWidget):
 
         detalle_ef = (f"total {_p(total_vendido)} + inicio {_p(monto_apertura)}"
             + (f" + aporte {_p(total_aportes)}" if total_aportes else "")
+            + (f" + cobros fiado ef. {_p(total_cobros_fiado_ef)}" if total_cobros_fiado_ef else "")
             + f" - no efectivo {_p(totales['debito'] + totales['tarjeta'] + totales['mercadopago_qr'] + totales['transferencia'] + totales['fiado'])}"
             + f" - gastos {_p(total_gastos)}")
         lbl_ef_card = fila_metodo("💵", "Efectivo",          efectivo_esperado,         "#27ae60", detalle_ef)
@@ -1062,6 +1080,19 @@ class CajaScreen(QWidget):
         fila_metodo("📱", "Mercado Pago/QR",   totales["mercadopago_qr"], "#009ee3")
         fila_metodo("🏦", "Transferencia",     totales["transferencia"],  "#9b59b6")
         fila_metodo("💸", "Fiado (pendiente)", totales["fiado"],          "#e74c3c")
+
+        if cobros_fiado:
+            sep_cf = QFrame(); sep_cf.setFixedHeight(1); sep_cf.setStyleSheet("background: #0f3460; border: none;")
+            lay.addWidget(sep_cf)
+            lbl_cf_titulo = QLabel("💳 Cobros de fiado del turno")
+            lbl_cf_titulo.setStyleSheet("color: #a0a0b0; font-size: 12px; letter-spacing: 1px; font-weight: bold;")
+            lay.addWidget(lbl_cf_titulo)
+            _em_fiado = {"efectivo": "💵", "transferencia": "🏦", "mercadopago_qr": "📱",
+                         "debito": "🏧", "tarjeta": "💳"}
+            for cf in cobros_fiado:
+                _em = _em_fiado.get(cf.get("metodo", "efectivo"), "💰")
+                _nota = "" if cf.get("metodo", "efectivo") == "efectivo" else " (no cajón)"
+                fila_metodo(_em, f"{cf.get('cliente','?')}{_nota}", cf.get("monto", 0), "#f39c12")
 
         sep2 = QFrame(); sep2.setFixedHeight(1); sep2.setStyleSheet("background: #0f3460; border: none;")
         lay.addWidget(sep2)
@@ -1318,7 +1349,7 @@ class CajaScreen(QWidget):
                         )
                         linea_apertura = f"\n🔓 Apertura:      {_p(monto_apertura)}"
                         _metodo_emoji = {"efectivo": "💵", "transferencia": "🏦",
-                                         "mercadopago_qr": "📱", "debito": "🏧"}
+                                         "mercadopago_qr": "📱", "debito": "🏧", "tarjeta": "💳"}
                         if aportes_lista:
                             linea_aportes = "\n💰 *Aportes:*"
                             for _ap in aportes_lista:
@@ -1326,6 +1357,15 @@ class CajaScreen(QWidget):
                                 linea_aportes += f"\n  {_em} {_ap.get('metodo','efectivo').capitalize()}: +{_p(_ap.get('monto',0))}"
                         else:
                             linea_aportes = ""
+
+                        if cobros_fiado:
+                            linea_cobros = "\n💳 *Cobros de fiado:*"
+                            for _cf in cobros_fiado:
+                                _em = _metodo_emoji.get(_cf.get("metodo", "efectivo"), "💰")
+                                _nota = "" if _cf.get("metodo", "efectivo") == "efectivo" else " ⚠️no cajón"
+                                linea_cobros += f"\n  {_em} {_cf.get('cliente','?')}: {_p(_cf.get('monto',0))}{_nota}"
+                        else:
+                            linea_cobros = ""
                         msg_wa = (
                             f"🏪 *CIERRE DE CAJA — JUANA CASH*\n"
                             f"📅 {ts}  |  👤 {getattr(self, 'nombre_cajero', '?')}\n"
@@ -1341,7 +1381,8 @@ class CajaScreen(QWidget):
                             + lineas_emp +
                             f"\n{'─'*24}"
                             + linea_apertura
-                            + linea_aportes +
+                            + linea_aportes
+                            + linea_cobros +
                             f"\n💵 Ef. esperado:  {_p(net_esperado)}"
                             f"\n💵 Ef. contado:   {_p(monto_declarado)}"
                             f"\n{faltante_txt}"
@@ -1812,6 +1853,7 @@ class CajaScreen(QWidget):
                 monto_apertura = float((self.turno_actual or {}).get("monto_apertura", 0))
                 total_aportes = 0.0
                 turno_id = (self.turno_actual or {}).get("id")
+                _apertura_str = (self.turno_actual or {}).get("apertura", "")
                 if turno_id:
                     try:
                         r_ap = requests.get(f"{API_URL}/caja/aportes/{turno_id}", timeout=3)
@@ -1820,7 +1862,18 @@ class CajaScreen(QWidget):
                             total_aportes = float(_ap_data.get("total_efectivo", _ap_data.get("total", 0)))
                     except Exception:
                         pass
-                ef_caja = monto_apertura + total_aportes + float(desglose.get("efectivo", 0)) - total_gastos
+                cobros_fiado_ef = 0.0
+                if _apertura_str:
+                    try:
+                        from datetime import datetime as _dtn
+                        _hasta_cf = _dtn.now().strftime("%Y-%m-%dT%H:%M:%S")
+                        r_cf = requests.get(f"{API_URL}/fiados/cobros-turno",
+                                            params={"desde": _apertura_str, "hasta": _hasta_cf}, timeout=3)
+                        if r_cf.status_code == 200:
+                            cobros_fiado_ef = float(r_cf.json().get("total_efectivo", 0))
+                    except Exception:
+                        pass
+                ef_caja = monto_apertura + total_aportes + cobros_fiado_ef + float(desglose.get("efectivo", 0)) - total_gastos
                 self.lbl_ef_caja.setText(f"💵 Efectivo en caja: {_p(ef_caja)}")
         except Exception:
             pass

@@ -2,7 +2,7 @@ import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
-                              QDialog, QFormLayout, QDoubleSpinBox, QMenu)
+                              QDialog, QFormLayout, QDoubleSpinBox, QMenu, QComboBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -687,6 +687,15 @@ class ClientesScreen(QWidget):
         lbl.setStyleSheet("color: #e94560; font-size: 14px; font-weight: bold;")
         lay.addWidget(lbl)
 
+        lbl_met = QLabel("Método de pago:")
+        lbl_met.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        lay.addWidget(lbl_met)
+        combo_metodo = QComboBox()
+        combo_metodo.addItems(["💵 Efectivo", "🏦 Transferencia", "📱 QR / Mercado Pago", "🏧 Débito", "💳 Tarjeta"])
+        combo_metodo.setFixedHeight(38)
+        combo_metodo.setStyleSheet("QComboBox { background: #0f3460; border: 1px solid #a0a0b0; border-radius: 8px; padding: 6px 10px; color: white; } QComboBox::drop-down { border: none; }")
+        lay.addWidget(combo_metodo)
+
         lbl2 = QLabel("Monto a pagar ($):")
         lbl2.setStyleSheet("color: #a0a0b0; font-size: 13px;")
         lay.addWidget(lbl2)
@@ -733,6 +742,10 @@ class ClientesScreen(QWidget):
                     [f for f in r_f.json() if f.get("estado") != "pagado" and float(f.get("saldo", 0)) > 0],
                     key=lambda f: f.get("id", 0)
                 )
+                _metodo_map = {"💵 Efectivo": "efectivo", "🏦 Transferencia": "transferencia",
+                               "📱 QR / Mercado Pago": "mercadopago_qr",
+                               "🏧 Débito": "debito", "💳 Tarjeta": "tarjeta"}
+                metodo_pago = _metodo_map.get(combo_metodo.currentText(), "efectivo")
                 usuario_id = self.usuario_actual.get("id", 1)
                 restante = monto_pago
                 errores = 0
@@ -745,7 +758,7 @@ class ClientesScreen(QWidget):
                             "fiado_id": fiado["id"],
                             "usuario_id": usuario_id,
                             "monto": pago,
-                            "metodo": "efectivo",
+                            "metodo": metodo_pago,
                         }, timeout=5)
                         if rp.status_code == 200:
                             restante -= pago

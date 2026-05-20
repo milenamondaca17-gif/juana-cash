@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 from ..database import get_db
 from ..models.fiado import Fiado, PagoFiado
 from ..models.cliente import Cliente
@@ -21,6 +22,45 @@ class PagoFiadoCrear(BaseModel):
     monto: float
     metodo: str = "efectivo"
     observacion: Optional[str] = None
+
+@router.get("/cobros-turno")
+def cobros_turno(desde: str, hasta: str, db: Session = Depends(get_db)):
+    """Pagos de fiado en un rango de fecha — para integrar en el cierre de caja."""
+    try:
+        dt_desde = datetime.fromisoformat(desde)
+        dt_hasta = datetime.fromisoformat(hasta)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+
+    pagos = (db.query(PagoFiado, Cliente)
+             .join(Fiado, PagoFiado.fiado_id == Fiado.id)
+             .join(Cliente, Fiado.cliente_id == Cliente.id)
+             .filter(PagoFiado.fecha >= dt_desde, PagoFiado.fecha <= dt_hasta)
+             .all())
+
+    detalle = []
+    total_efectivo = 0.0
+    total_otros = 0.0
+    for pago, cliente in pagos:
+        metodo = (pago.metodo or "efectivo").lower()
+        monto = float(pago.monto)
+        if metodo == "efectivo":
+            total_efectivo += monto
+        else:
+            total_otros += monto
+        detalle.append({
+            "cliente":    cliente.nombre,
+            "monto":      monto,
+            "metodo":     metodo,
+            "fecha":      str(pago.fecha)[:16],
+        })
+
+    return {
+        "cobros":          detalle,
+        "total_efectivo":  total_efectivo,
+        "total_otros":     total_otros,
+        "total":           total_efectivo + total_otros,
+    }
 
 @router.get("/")
 def listar_fiados(db: Session = Depends(get_db)):

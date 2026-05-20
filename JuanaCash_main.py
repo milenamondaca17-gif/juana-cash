@@ -171,6 +171,15 @@ def _reporte_nocturno():
                             for a in aportes_t
                         )
 
+                    cobros_fiado_t = t.get("cobros_fiado", [])
+                    lineas_cobros_t = ""
+                    if cobros_fiado_t:
+                        lineas_cobros_t = "\n  💳 Cobros fiado:"
+                        for cf in cobros_fiado_t:
+                            _em_cf = _em_map.get(cf.get("metodo", "efectivo"), "💰")
+                            _nota_cf = "" if cf.get("metodo", "efectivo") == "efectivo" else "⚠️"
+                            lineas_cobros_t += f"\n    {_em_cf}{_nota_cf} {cf.get('cliente','?')}: {_p(cf.get('monto',0))}"
+
                     bloques_turno += (
                         f"\n{'━'*22}"
                         f"\n*Turno {i} — {cajero}* {estado}"
@@ -185,6 +194,7 @@ def _reporte_nocturno():
                         + (f"  |  🧾 Gastos: {_p(gastos_t)}" if gastos_t > 0 else "")
                         + lineas_emp_t
                         + lineas_aportes_t
+                        + lineas_cobros_t
                     )
 
                 # Departamentos del día
