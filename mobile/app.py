@@ -11,7 +11,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "4.2.0"
+APP_VERSION = "4.2.1"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -128,13 +128,21 @@ _ip_activa = {"ip": leer_ip()}
 def get_api_url():
     return f"http://{_ip_activa['ip']}:8000"
 
+def _modo_conexion_label(ip):
+    """Etiqueta de modo de conexión para mostrar en la UI."""
+    if ip and ip.startswith("100."):
+        return f"🌐 VPN Tailscale"
+    return f"📡 {ip}"
+
 def detectar_mejor_ip(callback_progreso=None):
     """
-    Tres estrategias en paralelo, gana la más rápida:
-    1. UDP broadcast  — el backend anuncia su IP cada 2 s (instantáneo)
-    2. IP guardada    — verificación rápida de la última IP conocida
-    3. Escaneo TCP    — prueba puerto 8000 en toda la /24 (fallback)
-    Tailscale como último recurso.
+    4 estrategias en paralelo — gana la primera que responde:
+    1. IP guardada    — la última IP conocida (< 1 s si no cambió)
+    2. Tailscale VPN  — funciona con datos móviles y WiFi de casa
+    3. UDP broadcast  — la PC anuncia su IP en la red local cada 2 s
+    4. Escaneo TCP    — escanea la /24 local (fallback lento)
+    Con datos móviles: Tailscale gana en 2-4 s.
+    En red local: IP guardada o broadcast ganan en < 1 s.
     """
     ip_guardada = leer_ip()
     resultado   = [None]
@@ -147,27 +155,40 @@ def detectar_mejor_ip(callback_progreso=None):
                 resultado[0] = ip
         encontrado.set()
 
-    def _via_broadcast():
-        if callback_progreso:
-            callback_progreso("📡 Escuchando broadcast de la PC...")
-        ip = _escuchar_broadcast(timeout=7)
-        if ip and not encontrado.is_set():
-            _set_result(ip)
-
     def _via_guardada():
-        if callback_progreso:
-            callback_progreso(f"🔍 Probando {ip_guardada}...")
         if _probar_ip(ip_guardada, 2) and not encontrado.is_set():
             _set_result(ip_guardada)
+
+    def _via_tailscale():
+        if callback_progreso:
+            callback_progreso("🌐 Probando Tailscale VPN...")
+        ts_ev = threading.Event()
+        def _probar_ts(ts_ip):
+            if encontrado.is_set() or ts_ev.is_set():
+                return
+            if _probar_ip(ts_ip, 5):
+                if not encontrado.is_set():
+                    ts_ev.set()
+                    _set_result(ts_ip)
+        ts_hilos = [threading.Thread(target=_probar_ts, args=(ip,), daemon=True)
+                    for ip in [TAILSCALE_IP, TAILSCALE_IP2]]
+        for h in ts_hilos:
+            h.start()
+        for h in ts_hilos:
+            h.join(timeout=6)
+
+    def _via_broadcast():
+        if callback_progreso:
+            callback_progreso("📡 Buscando en red local...")
+        ip = _escuchar_broadcast(timeout=5)
+        if ip and not encontrado.is_set():
+            _set_result(ip)
 
     def _via_escaneo():
         red = _obtener_red_local()
         if not red:
             return
-        if callback_progreso:
-            callback_progreso(f"🔎 Escaneando red {red}.x...")
         stop_ev = threading.Event()
-
         def _probar_tcp(ip):
             if stop_ev.is_set() or encontrado.is_set():
                 return
@@ -175,38 +196,29 @@ def detectar_mejor_ip(callback_progreso=None):
                 if not encontrado.is_set():
                     stop_ev.set()
                     _set_result(ip)
-
         with ThreadPoolExecutor(max_workers=80) as ex:
             candidatos = [f"{red}.{i}" for i in range(1, 255)]
             futs = [ex.submit(_probar_tcp, ip) for ip in candidatos]
-            encontrado.wait(timeout=12)
+            encontrado.wait(timeout=8)
             for f in futs:
                 f.cancel()
 
-    # Lanzar las tres estrategias en paralelo
+    # Las 4 estrategias en paralelo desde el arranque
     hilos = [
-        threading.Thread(target=_via_broadcast, daemon=True),
         threading.Thread(target=_via_guardada,  daemon=True),
+        threading.Thread(target=_via_tailscale, daemon=True),
+        threading.Thread(target=_via_broadcast, daemon=True),
         threading.Thread(target=_via_escaneo,   daemon=True),
     ]
     for h in hilos:
         h.start()
 
-    encontrado.wait(timeout=13)
+    encontrado.wait(timeout=10)
 
     if resultado[0]:
         guardar_ip(resultado[0])
         _ip_activa["ip"] = resultado[0]
         return resultado[0]
-
-    # Fallback Tailscale — prueba ambas IPs
-    if callback_progreso:
-        callback_progreso("🌐 Probando Tailscale VPN...")
-    for ts_ip in [TAILSCALE_IP, TAILSCALE_IP2]:
-        if _probar_ip(ts_ip, 3):
-            _ip_activa["ip"] = ts_ip
-            guardar_ip(ts_ip)
-            return ts_ip
 
     # Sin conexión — mantener última IP conocida
     _ip_activa["ip"] = ip_guardada
@@ -470,7 +482,7 @@ def _main(page: ft.Page):
     @en_hilo
     def cargar_dashboard(e=None):
         _ip_activa["ip"] = detectar_mejor_ip()
-        lbl_ip_status.value = f"📡 {_ip_activa['ip']}"
+        lbl_ip_status.value = _modo_conexion_label(_ip_activa["ip"])
         data      = api_get("/reportes/hoy")
         data_mes  = api_get("/reportes/mes")
         data_gast = api_get("/gastos/hoy")
@@ -2500,11 +2512,11 @@ def _main(page: ft.Page):
             in_ip.value = ip
             guardar_ip(ip)
             _ip_activa["ip"] = ip
-            lbl_ip_status.value   = f"📡 {ip}"
-            lbl_config_status.value = f"✅ Encontrado en {ip}"
+            lbl_ip_status.value   = _modo_conexion_label(ip)
+            lbl_config_status.value = f"✅ Conectado: {_modo_conexion_label(ip)}"
             lbl_config_status.color = "#10B981"
         else:
-            lbl_config_status.value = "❌ No encontrado. Ingresá la IP manualmente."
+            lbl_config_status.value = "❌ No encontrado. Verificá Tailscale o ingresá la IP manualmente."
             lbl_config_status.color = "#EF4444"
         page.update()
 
@@ -2523,11 +2535,11 @@ def _main(page: ft.Page):
         if data:
             lbl_config_status.value = f"✅ Conectado a {ip}:8000"
             lbl_config_status.color = "#10B981"
-            lbl_ip_status.value     = f"📡 {ip}"
+            lbl_ip_status.value     = _modo_conexion_label(ip)
         else:
             lbl_config_status.value = (
                 f"❌ No se pudo conectar a {ip}:8000\n"
-                "Verificá que la PC esté encendida y en la misma WiFi"
+                "Con datos móviles usá Tailscale. En la red local verificá que la PC esté encendida."
             )
             lbl_config_status.color = "#EF4444"
         page.update()
@@ -2535,20 +2547,24 @@ def _main(page: ft.Page):
     view_config = ft.Container(
         content=ft.Column([
             ft.Text("⚙️ CONFIGURACIÓN", size=20, weight="w900"),
-            ft.Text("Ingresá la IP de la PC o detectala automáticamente",
+            ft.Text("Detectá automáticamente o ingresá la IP manualmente",
                     color="#94A3B8", size=12),
             ft.Container(
                 content=ft.Column([
-                    ft.Text("¿Cómo saber la IP de la PC?", weight="bold",
+                    ft.Text("📡 En la misma WiFi del negocio", weight="bold",
                             color="#38BDF8", size=13),
-                    ft.Text("En la PC abrí CMD y escribí:", color="#94A3B8", size=12),
+                    ft.Text("Usá DETECTAR AUTOMÁTICAMENTE — encuentra la PC solo.",
+                            color="#94A3B8", size=12),
+                    ft.Divider(color="#334155", height=8),
+                    ft.Text("🌐 Con datos móviles o WiFi de casa", weight="bold",
+                            color="#10B981", size=13),
+                    ft.Text("Tailscale VPN se conecta automáticamente. Si falla, ingresá la IP de Tailscale manualmente:",
+                            color="#94A3B8", size=12),
                     ft.Container(
-                        content=ft.Text("ipconfig", color="#10B981",
+                        content=ft.Text(f"{TAILSCALE_IP}", color="#10B981",
                                         font_family="monospace", size=14),
                         bgcolor="#0F172A", padding=10, border_radius=8
                     ),
-                    ft.Text("Buscá 'Dirección IPv4' (ej: 192.168.1.100)",
-                            color="#94A3B8", size=12),
                 ]),
                 bgcolor="#1E293B", padding=14, border_radius=12
             ),
