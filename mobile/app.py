@@ -12,7 +12,7 @@ def _p(v):
     return f"${float(v):,.0f}".replace(",", ".")
 
 APP_VERSION = "4.2.1"
-APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/latest/download/JuanaCash.apk"
+APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.4/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
 def _version_mayor(v1, v2):
@@ -2695,12 +2695,12 @@ def _main(page: ft.Page):
             nueva = data.get("apk_version", data.get("version", ""))
             apk_url = data.get("apk_url", APK_URL)
             if nueva and _version_mayor(nueva, APP_VERSION):
-                _apk_url_descarga["url"] = apk_url
+                _apk_url_descarga["url"] = apk_url if apk_url else APK_URL
                 lbl_update_version.value = f"Nueva versión {nueva} disponible"
                 banner_update.visible = True
                 page.update()
-        except Exception:
-            pass
+        except Exception as _e:
+            print(f"[update] Error verificando: {_e}")
 
     all_views = ft.Column(
         [view_dashboard, view_cobrar, view_ticket, view_ofertas,
