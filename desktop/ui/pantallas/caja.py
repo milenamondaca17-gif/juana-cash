@@ -1342,11 +1342,14 @@ class CajaScreen(QWidget):
                             faltante_txt = f"⚠️ Faltante: {_p(abs(diferencia))}"
                         else:
                             faltante_txt = f"ℹ️ Sobra: {_p(diferencia)}"
-                        lineas_deptos = (
-                            f"\n\n🥩 *Por departamento:*"
-                            f"\n  Carnicería:   {_p(total_carne)}"
-                            f"\n  Fiambrería:   {_p(total_fiamb)}"
-                        )
+                        if total_carne > 0 or total_fiamb > 0:
+                            lineas_deptos = (
+                                f"\n\n🥩 *Por departamento:*"
+                                f"\n  Carnicería:   {_p(total_carne)}"
+                                f"\n  Fiambrería:   {_p(total_fiamb)}"
+                            )
+                        else:
+                            lineas_deptos = ""
                         linea_apertura = f"\n🔓 Apertura:      {_p(monto_apertura)}"
                         _metodo_emoji = {"efectivo": "💵", "transferencia": "🏦",
                                          "mercadopago_qr": "📱", "debito": "🏧", "tarjeta": "💳"}

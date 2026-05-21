@@ -185,6 +185,24 @@ def _reporte_nocturno():
                             _nota_cf = "" if cf.get("metodo", "efectivo") == "efectivo" else "⚠️"
                             lineas_cobros_t += f"\n    {_em_cf}{_nota_cf} {cf.get('cliente','?')}: {_p(cf.get('monto',0))}"
 
+                    dep_carne_t = 0.0
+                    dep_fiamb_t = 0.0
+                    try:
+                        _ap_full = t.get("apertura", "")
+                        _ci_full = t.get("cierre", "") or ahora.strftime("%Y-%m-%dT%H:%M:%S")
+                        if _ap_full:
+                            _dep_url = (f"http://127.0.0.1:8000/reportes/departamentos"
+                                        f"?desde={_ap_full}&hasta={_ci_full}")
+                            _r_dep = _ur.urlopen(_dep_url, timeout=5)
+                            _dep_data = _json.loads(_r_dep.read().decode())
+                            dep_carne_t = float(_dep_data.get("carniceria", 0))
+                            dep_fiamb_t = float(_dep_data.get("fiambreria", 0))
+                    except Exception:
+                        pass
+                    lineas_deptos_t = ""
+                    if dep_carne_t > 0 or dep_fiamb_t > 0:
+                        lineas_deptos_t = f"\n  🥩 Carne: {_p(dep_carne_t)}  🧀 Fiamb: {_p(dep_fiamb_t)}"
+
                     bloques_turno += (
                         f"\n{'━'*22}"
                         f"\n*Turno {i} — {cajero}* {estado}"
@@ -200,6 +218,7 @@ def _reporte_nocturno():
                         + lineas_emp_t
                         + lineas_aportes_t
                         + lineas_cobros_t
+                        + lineas_deptos_t
                     )
 
                 # Departamentos del día
