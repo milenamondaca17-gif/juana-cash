@@ -2,7 +2,7 @@ import requests, os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QFrame, QPushButton, QTableWidget,
                              QTableWidgetItem, QHeaderView, QMessageBox,
-                             QScrollArea, QDateEdit, QLineEdit, QFileDialog)
+                             QDateEdit, QLineEdit, QFileDialog, QTabWidget)
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont, QColor, QBrush
 
@@ -11,8 +11,8 @@ API_URL = "http://127.0.0.1:8000"
 from ui.theme import get_tema as _gt
 _T = _gt()
 _BG = _T["bg_app"]; _CARD = _T["bg_card"]; _TXT = _T["text_main"]
-_MUT = _T["text_muted"]; _PRI = _T["primary"]; _DGR = _T["danger"]
-_BOR = _T["border"]; _OK = _T["success"]
+_MUT = _T["text_muted"]; _PRI = _T["primary"]
+_BOR = _T["border"]
 
 def _p(v):
     return f"${float(v):,.0f}".replace(",", ".")
@@ -26,7 +26,34 @@ class ReportesScreen(QWidget):
 
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
-        layout = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet(f"""
+            QTabWidget::pane {{ border: none; background: {_BG}; }}
+            QTabBar::tab {{
+                background: {_T['bg_card']}; color: {_MUT};
+                font-size: 13px; font-weight: bold;
+                padding: 10px 24px; border: none;
+                border-bottom: 3px solid transparent;
+            }}
+            QTabBar::tab:selected {{
+                color: {_TXT}; background: {_BG};
+                border-bottom: 3px solid {_PRI};
+            }}
+            QTabBar::tab:hover {{ color: {_TXT}; }}
+        """)
+        outer.addWidget(self.tabs)
+
+        self.tabs.addTab(self._build_tab_ventas(),       "📋 Ventas")
+        self.tabs.addTab(self._build_tab_departamentos(), "🥩 Departamentos")
+
+    # ── TAB 1: VENTAS ────────────────────────────────────────────────────────
+    def _build_tab_ventas(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
@@ -40,8 +67,7 @@ class ReportesScreen(QWidget):
         _btn_per_ss = f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}"
         for texto, key in [("Hoy","hoy"),("Semana","semana"),("Mes","mes"),("Año","anio")]:
             btn = QPushButton(texto)
-            btn.setFixedHeight(34)
-            btn.setFixedWidth(70)
+            btn.setFixedHeight(34); btn.setFixedWidth(70)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(_btn_per_ss)
             btn.clicked.connect(lambda _, k=key: self.cambiar_periodo(k))
@@ -49,7 +75,6 @@ class ReportesScreen(QWidget):
         layout.addLayout(header_top)
 
         filtros_lay = QHBoxLayout()
-
         busqueda_frame = QFrame()
         busqueda_frame.setStyleSheet(f"background: {_CARD}; border-radius: 8px; border: 1.5px solid {_BOR};")
         bus_lay = QHBoxLayout(busqueda_frame)
@@ -61,175 +86,299 @@ class ReportesScreen(QWidget):
         self.input_buscar.textChanged.connect(self.filtrar_tabla_local)
         bus_lay.addWidget(self.input_buscar)
         filtros_lay.addWidget(busqueda_frame)
-
         filtros_lay.addStretch()
-
         filtros_lay.addWidget(QLabel("Desde:"))
         self.fecha_desde = QDateEdit(QDate.currentDate().addDays(-7))
         self.fecha_desde.setCalendarPopup(True)
         filtros_lay.addWidget(self.fecha_desde)
-
         filtros_lay.addWidget(QLabel("Hasta:"))
         self.fecha_hasta = QDateEdit(QDate.currentDate())
         self.fecha_hasta.setCalendarPopup(True)
         filtros_lay.addWidget(self.fecha_hasta)
-
         btn_filtrar = QPushButton("Filtrar")
         btn_filtrar.setFixedSize(80, 34)
         btn_filtrar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 6px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_filtrar.clicked.connect(lambda: self.cambiar_periodo("rango"))
         filtros_lay.addWidget(btn_filtrar)
-
         btn_pdf = QPushButton("📄 PDF")
         btn_pdf.setFixedSize(80, 34)
         btn_pdf.setStyleSheet("QPushButton { background: #7c3aed; color: white; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #6d28d9; }")
         btn_pdf.clicked.connect(self._exportar_pdf)
         filtros_lay.addWidget(btn_pdf)
-        
         layout.addLayout(filtros_lay)
 
-        # ── TARJETAS DE CONTEO (CON PC Y CELULAR) ────────────────────────────
         conteo_frame = QFrame()
         conteo_frame.setStyleSheet("background: #16213e; border-radius: 12px;")
         conteo_lay = QHBoxLayout(conteo_frame)
-        
-        self.card_total = self.crear_mini_card("TOTAL PERÍODO", "$0", "#e94560")
-        self.card_pc = self.crear_mini_card("💻 MOSTRADOR", "$0", "#3B82F6")     # NUEVA TARJETA
-        self.card_celular = self.crear_mini_card("📱 CELULAR", "$0", "#F59E0B") # NUEVA TARJETA
-        self.card_tickets = self.crear_mini_card("CANT. TICKETS", "0", "#3498db")
-        self.card_promedio = self.crear_mini_card("PROMEDIO", "$0", "#27ae60")
-        
-        conteo_lay.addWidget(self.card_total[0])
-        conteo_lay.addWidget(self.card_pc[0])
-        conteo_lay.addWidget(self.card_celular[0])
-        conteo_lay.addWidget(self.card_tickets[0])
-        conteo_lay.addWidget(self.card_promedio[0])
+        self.card_total   = self.crear_mini_card("TOTAL PERÍODO", "$0", "#e94560")
+        self.card_pc      = self.crear_mini_card("💻 MOSTRADOR",  "$0", "#3B82F6")
+        self.card_celular = self.crear_mini_card("📱 CELULAR",    "$0", "#F59E0B")
+        self.card_tickets = self.crear_mini_card("CANT. TICKETS", "0",  "#3498db")
+        self.card_promedio= self.crear_mini_card("PROMEDIO",      "$0", "#27ae60")
+        for c in [self.card_total, self.card_pc, self.card_celular, self.card_tickets, self.card_promedio]:
+            conteo_lay.addWidget(c[0])
         layout.addWidget(conteo_frame)
 
-        # ── DEPARTAMENTOS (CARNICERÍA / FIAMBRERÍA) ──────────────────────────
         deptos_frame = QFrame()
         deptos_frame.setStyleSheet("background: #16213e; border-radius: 12px;")
         deptos_lay = QHBoxLayout(deptos_frame)
-        deptos_lay.setContentsMargins(12, 8, 12, 8)
-        deptos_lay.setSpacing(12)
+        deptos_lay.setContentsMargins(12, 8, 12, 8); deptos_lay.setSpacing(12)
 
         carne_card = QFrame()
         carne_card.setStyleSheet("background: #1a2744; border-left: 3px solid #e74c3c; border-radius: 8px;")
-        carne_l = QVBoxLayout(carne_card)
-        carne_l.setContentsMargins(12, 8, 12, 8)
+        carne_l = QVBoxLayout(carne_card); carne_l.setContentsMargins(12, 8, 12, 8)
         carne_l.addWidget(QLabel("🥩 CARNICERÍA", styleSheet="color: #e74c3c; font-size: 10px; font-weight: bold; background: transparent;"))
-        self.lbl_carne_val = QLabel("$0", styleSheet="color: white; font-size: 20px; font-weight: bold; background: transparent;")
-        self.lbl_carne_comp = QLabel("", styleSheet="color: #a0a0b0; font-size: 10px; background: transparent;")
-        carne_l.addWidget(self.lbl_carne_val)
-        carne_l.addWidget(self.lbl_carne_comp)
+        self.lbl_carne_val  = QLabel("$0", styleSheet="color: white; font-size: 20px; font-weight: bold; background: transparent;")
+        self.lbl_carne_comp = QLabel("",   styleSheet="color: #a0a0b0; font-size: 10px; background: transparent;")
+        carne_l.addWidget(self.lbl_carne_val); carne_l.addWidget(self.lbl_carne_comp)
 
         fiamb_card = QFrame()
         fiamb_card.setStyleSheet("background: #1a2744; border-left: 3px solid #f39c12; border-radius: 8px;")
-        fiamb_l = QVBoxLayout(fiamb_card)
-        fiamb_l.setContentsMargins(12, 8, 12, 8)
+        fiamb_l = QVBoxLayout(fiamb_card); fiamb_l.setContentsMargins(12, 8, 12, 8)
         fiamb_l.addWidget(QLabel("🍖 FIAMBRERÍA", styleSheet="color: #f39c12; font-size: 10px; font-weight: bold; background: transparent;"))
-        self.lbl_fiamb_val = QLabel("$0", styleSheet="color: white; font-size: 20px; font-weight: bold; background: transparent;")
-        self.lbl_fiamb_comp = QLabel("", styleSheet="color: #a0a0b0; font-size: 10px; background: transparent;")
-        fiamb_l.addWidget(self.lbl_fiamb_val)
-        fiamb_l.addWidget(self.lbl_fiamb_comp)
+        self.lbl_fiamb_val  = QLabel("$0", styleSheet="color: white; font-size: 20px; font-weight: bold; background: transparent;")
+        self.lbl_fiamb_comp = QLabel("",   styleSheet="color: #a0a0b0; font-size: 10px; background: transparent;")
+        fiamb_l.addWidget(self.lbl_fiamb_val); fiamb_l.addWidget(self.lbl_fiamb_comp)
 
-        deptos_lay.addWidget(carne_card)
-        deptos_lay.addWidget(fiamb_card)
-        deptos_lay.addStretch()
+        deptos_lay.addWidget(carne_card); deptos_lay.addWidget(fiamb_card); deptos_lay.addStretch()
         layout.addWidget(deptos_frame)
 
-        # ── MÉTODOS DE PAGO ──────────────────────────────────────────────────
         metodos_lay = QHBoxLayout()
         self.cards_metodo = {}
-        config_metodos = [
-            ("💵 Efectivo", "efectivo", "#27ae60"),
-            ("💳 Tarjeta", "tarjeta", "#3498db"),
-            ("📱 QR/MP", "mercadopago_qr", "#009ee3"),
-            ("🏦 Transf.", "transferencia", "#9b59b6")
-        ]
-        for nom, key, col in config_metodos:
+        for nom, key, col in [("💵 Efectivo","efectivo","#27ae60"),("💳 Tarjeta","tarjeta","#3498db"),("📱 QR/MP","mercadopago_qr","#009ee3"),("🏦 Transf.","transferencia","#9b59b6")]:
             card = QFrame()
             card.setStyleSheet(f"background: #16213e; border-left: 3px solid {col}; border-radius: 8px;")
             l = QVBoxLayout(card)
             l.addWidget(QLabel(nom, styleSheet=f"color: {col}; font-size: 10px; font-weight: bold;"))
-            lbl_v = QLabel("$0")
-            lbl_v.setStyleSheet(f"color: white; font-size: 14px; font-weight: bold;")
+            lbl_v = QLabel("$0"); lbl_v.setStyleSheet(f"color: white; font-size: 14px; font-weight: bold;")
             l.addWidget(lbl_v)
             self.cards_metodo[key] = lbl_v
             metodos_lay.addWidget(card)
         layout.addLayout(metodos_lay)
 
-        # ── TABLAS ───────────────────────────────────────────────────────────
         tablas_split = QHBoxLayout()
-        
-        # Historial de ventas
         ventas_vlay = QVBoxLayout()
         ventas_vlay.addWidget(QLabel("📜 HISTORIAL DETALLADO", styleSheet="color: #a0a0b0; font-size: 11px; font-weight: bold;"))
         self.tabla_ventas = QTableWidget()
-        
-        self.tabla_ventas.setColumnCount(5) # AHORA SON 5 COLUMNAS
-        self.tabla_ventas.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Hora"]) # SE AGREGA "ORIGEN"
+        self.tabla_ventas.setColumnCount(5)
+        self.tabla_ventas.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Hora"])
         self.tabla_ventas.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla_ventas.setStyleSheet("background: #16213e; gridline-color: #0f3460; color: white;")
         ventas_vlay.addWidget(self.tabla_ventas)
         tablas_split.addLayout(ventas_vlay, 3)
 
-        # Historial productos con filtro de fechas
         top_vlay = QVBoxLayout()
-
-        # Cabecera con filtros
         top_header = QHBoxLayout()
         top_header.addWidget(QLabel("📦 PRODUCTOS VENDIDOS", styleSheet="color: #f39c12; font-size: 11px; font-weight: bold;"))
         top_header.addStretch()
         top_vlay.addLayout(top_header)
-
-        # Filtros de fecha para productos
         prod_filtros = QHBoxLayout()
         prod_filtros.addWidget(QLabel("Desde:", styleSheet="color: #a0a0b0; font-size: 11px;"))
         self.prod_desde = QDateEdit(QDate.currentDate().addDays(-30))
-        self.prod_desde.setCalendarPopup(True)
-        self.prod_desde.setFixedHeight(28)
+        self.prod_desde.setCalendarPopup(True); self.prod_desde.setFixedHeight(28)
         self.prod_desde.setStyleSheet("background: #0f3460; border-radius: 4px; color: white; font-size: 11px; padding: 2px 4px;")
         prod_filtros.addWidget(self.prod_desde)
-
         prod_filtros.addWidget(QLabel("Hasta:", styleSheet="color: #a0a0b0; font-size: 11px;"))
         self.prod_hasta = QDateEdit(QDate.currentDate())
-        self.prod_hasta.setCalendarPopup(True)
-        self.prod_hasta.setFixedHeight(28)
+        self.prod_hasta.setCalendarPopup(True); self.prod_hasta.setFixedHeight(28)
         self.prod_hasta.setStyleSheet("background: #0f3460; border-radius: 4px; color: white; font-size: 11px; padding: 2px 4px;")
         prod_filtros.addWidget(self.prod_hasta)
-
         btn_prod = QPushButton("Filtrar")
         btn_prod.setFixedSize(60, 28)
         btn_prod.setStyleSheet("background: #e94560; border-radius: 4px; font-weight: bold; color: white; font-size: 11px;")
         btn_prod.clicked.connect(self.cargar_productos_por_fecha)
         prod_filtros.addWidget(btn_prod)
         top_vlay.addLayout(prod_filtros)
-
         self.tabla_top = QTableWidget()
         self.tabla_top.setColumnCount(4)
         self.tabla_top.setHorizontalHeaderLabels(["Producto", "Cant.", "Tickets", "Total $"])
         self.tabla_top.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tabla_top.setColumnWidth(1, 60)
-        self.tabla_top.setColumnWidth(2, 60)
-        self.tabla_top.setColumnWidth(3, 90)
+        self.tabla_top.setColumnWidth(1, 60); self.tabla_top.setColumnWidth(2, 60); self.tabla_top.setColumnWidth(3, 90)
         self.tabla_top.setStyleSheet("background: #16213e; color: white; gridline-color: #0f3460;")
         top_vlay.addWidget(self.tabla_top)
-
         self.lbl_prod_total = QLabel("")
         self.lbl_prod_total.setStyleSheet("color: #27ae60; font-size: 11px; font-weight: bold;")
         top_vlay.addWidget(self.lbl_prod_total)
-
         tablas_split.addLayout(top_vlay, 2)
-
         layout.addLayout(tablas_split)
+        return w
+
+    # ── TAB 2: DEPARTAMENTOS ─────────────────────────────────────────────────
+    def _build_tab_departamentos(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
+
+        # Título + filtros en una sola fila
+        header = QHBoxLayout()
+        titulo = QLabel("🥩 Control de Departamentos")
+        titulo.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT};")
+        header.addWidget(titulo)
+        header.addStretch()
+
+        _lbl_ss = "color: #a0a0b0; font-size: 12px;"
+        _dte_ss = "background: #0f3460; border-radius: 6px; color: white; font-size: 12px; padding: 3px 6px;"
+        header.addWidget(QLabel("Desde:", styleSheet=_lbl_ss))
+        self.dep_desde = QDateEdit(QDate.currentDate().addDays(-30))
+        self.dep_desde.setCalendarPopup(True); self.dep_desde.setFixedHeight(34)
+        self.dep_desde.setStyleSheet(_dte_ss)
+        header.addWidget(self.dep_desde)
+        header.addWidget(QLabel("Hasta:", styleSheet=_lbl_ss))
+        self.dep_hasta = QDateEdit(QDate.currentDate())
+        self.dep_hasta.setCalendarPopup(True); self.dep_hasta.setFixedHeight(34)
+        self.dep_hasta.setStyleSheet(_dte_ss)
+        header.addWidget(self.dep_hasta)
+        btn_buscar = QPushButton("🔍 Buscar")
+        btn_buscar.setFixedSize(100, 34)
+        btn_buscar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 6px; font-weight: bold; font-size: 12px; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+        btn_buscar.clicked.connect(self._cargar_dep_diario)
+        header.addWidget(btn_buscar)
+        layout.addLayout(header)
+
+        # Botones rápidos de período
+        per_lay = QHBoxLayout()
+        per_lay.setSpacing(8)
+        _btn_ss = f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1.5px solid {_PRI}; padding: 4px 14px; }} QPushButton:hover {{ background: {_PRI}; color: white; }}"
+        for texto, dias in [("Hoy", 0), ("7 días", 7), ("15 días", 15), ("Este mes", -1)]:
+            btn = QPushButton(texto)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(_btn_ss)
+            btn.clicked.connect(lambda _, d=dias: self._set_dep_periodo(d))
+            per_lay.addWidget(btn)
+        per_lay.addStretch()
+        layout.addLayout(per_lay)
+
+        # Cards de totales
+        cards_lay = QHBoxLayout()
+        cards_lay.setSpacing(16)
+
+        carne_tot = QFrame()
+        carne_tot.setStyleSheet("background: #1a2744; border-left: 4px solid #e74c3c; border-radius: 10px;")
+        ct_l = QVBoxLayout(carne_tot); ct_l.setContentsMargins(20, 14, 20, 14)
+        ct_l.addWidget(QLabel("🥩 CARNICERÍA — Total período", styleSheet="color: #e74c3c; font-size: 11px; font-weight: bold; background: transparent;"))
+        self.dep_lbl_carne_tot = QLabel("$0")
+        self.dep_lbl_carne_tot.setStyleSheet("color: white; font-size: 28px; font-weight: bold; background: transparent;")
+        ct_l.addWidget(self.dep_lbl_carne_tot)
+
+        fiamb_tot = QFrame()
+        fiamb_tot.setStyleSheet("background: #1a2744; border-left: 4px solid #f39c12; border-radius: 10px;")
+        ft_l = QVBoxLayout(fiamb_tot); ft_l.setContentsMargins(20, 14, 20, 14)
+        ft_l.addWidget(QLabel("🍖 FIAMBRERÍA — Total período", styleSheet="color: #f39c12; font-size: 11px; font-weight: bold; background: transparent;"))
+        self.dep_lbl_fiamb_tot = QLabel("$0")
+        self.dep_lbl_fiamb_tot.setStyleSheet("color: white; font-size: 28px; font-weight: bold; background: transparent;")
+        ft_l.addWidget(self.dep_lbl_fiamb_tot)
+
+        total_dep = QFrame()
+        total_dep.setStyleSheet("background: #1a2744; border-left: 4px solid #27ae60; border-radius: 10px;")
+        td_l = QVBoxLayout(total_dep); td_l.setContentsMargins(20, 14, 20, 14)
+        td_l.addWidget(QLabel("📊 TOTAL DEPARTAMENTOS", styleSheet="color: #27ae60; font-size: 11px; font-weight: bold; background: transparent;"))
+        self.dep_lbl_total = QLabel("$0")
+        self.dep_lbl_total.setStyleSheet("color: white; font-size: 28px; font-weight: bold; background: transparent;")
+        td_l.addWidget(self.dep_lbl_total)
+
+        cards_lay.addWidget(carne_tot); cards_lay.addWidget(fiamb_tot); cards_lay.addWidget(total_dep)
+        layout.addLayout(cards_lay)
+
+        # Tabla por día
+        self.dep_tabla = QTableWidget()
+        self.dep_tabla.setColumnCount(4)
+        self.dep_tabla.setHorizontalHeaderLabels(["Fecha", "🥩 Carnicería", "🍖 Fiambrería", "Total día"])
+        hdr = self.dep_tabla.horizontalHeader()
+        hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        hdr.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        hdr.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self.dep_tabla.setStyleSheet("""
+            QTableWidget { background: #16213e; gridline-color: #0f3460; color: white; border-radius: 8px; }
+            QHeaderView::section { background: #0f3460; color: #a0a0b0; font-weight: bold; font-size: 11px; padding: 6px; border: none; }
+            QTableWidget::item { padding: 6px; }
+            QTableWidget::item:selected { background: #0f3460; }
+        """)
+        self.dep_tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.dep_tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.dep_tabla.setAlternatingRowColors(True)
+        self.dep_tabla.setStyleSheet(self.dep_tabla.styleSheet() + "alternate-background-color: #1a2744;")
+        layout.addWidget(self.dep_tabla)
+
+        self.dep_lbl_info = QLabel("")
+        self.dep_lbl_info.setStyleSheet("color: #a0a0b0; font-size: 11px;")
+        layout.addWidget(self.dep_lbl_info)
+
+        return w
+
+    def _set_dep_periodo(self, dias):
+        hoy = QDate.currentDate()
+        if dias == 0:
+            self.dep_desde.setDate(hoy)
+        elif dias == -1:
+            self.dep_desde.setDate(QDate(hoy.year(), hoy.month(), 1))
+        else:
+            self.dep_desde.setDate(hoy.addDays(-dias))
+        self.dep_hasta.setDate(hoy)
+        self._cargar_dep_diario()
+
+    def _cargar_dep_diario(self):
+        desde = self.dep_desde.date().toString("yyyy-MM-dd")
+        hasta = self.dep_hasta.date().toString("yyyy-MM-dd")
+        try:
+            r = requests.get(f"{API_URL}/reportes/departamentos-diario",
+                             params={"desde": f"{desde}T00:00:00", "hasta": f"{hasta}T23:59:59"},
+                             timeout=8)
+            if r.status_code != 200:
+                self.dep_tabla.setRowCount(0)
+                return
+            rows = r.json()
+
+            total_carne = sum(float(x["carniceria"]) for x in rows)
+            total_fiamb = sum(float(x["fiambreria"]) for x in rows)
+            self.dep_lbl_carne_tot.setText(_p(total_carne))
+            self.dep_lbl_fiamb_tot.setText(_p(total_fiamb))
+            self.dep_lbl_total.setText(_p(total_carne + total_fiamb))
+
+            self.dep_tabla.setRowCount(len(rows))
+            for i, row in enumerate(rows):
+                fecha_txt = row["fecha"]
+                try:
+                    from datetime import date as _d
+                    fecha_txt = _d.fromisoformat(row["fecha"]).strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+                carne_v = float(row["carniceria"])
+                fiamb_v = float(row["fiambreria"])
+                total_v = carne_v + fiamb_v
+
+                self.dep_tabla.setItem(i, 0, QTableWidgetItem(fecha_txt))
+                item_c = QTableWidgetItem(_p(carne_v))
+                item_c.setForeground(QBrush(QColor("#e74c3c")))
+                item_c.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.dep_tabla.setItem(i, 1, item_c)
+                item_f = QTableWidgetItem(_p(fiamb_v))
+                item_f.setForeground(QBrush(QColor("#f39c12")))
+                item_f.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.dep_tabla.setItem(i, 2, item_f)
+                item_t = QTableWidgetItem(_p(total_v))
+                item_t.setForeground(QBrush(QColor("#27ae60")))
+                item_t.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.dep_tabla.setItem(i, 3, item_t)
+
+            dias_con_datos = len(rows)
+            self.dep_lbl_info.setText(
+                f"{dias_con_datos} días con ventas de departamentos  ·  "
+                f"Prom. diario: {_p((total_carne + total_fiamb) / dias_con_datos) if dias_con_datos else '$0'}"
+            )
+        except Exception as e:
+            self.dep_tabla.setRowCount(0)
+            self.dep_lbl_info.setText(f"Error al cargar datos: {e}")
+
+    # ── LÓGICA TAB VENTAS ────────────────────────────────────────────────────
     def crear_mini_card(self, titulo, valor, color):
         card = QFrame()
         l = QVBoxLayout(card)
         t = QLabel(titulo, styleSheet="color: #a0a0b0; font-size: 10px;")
-        v = QLabel(valor, styleSheet=f"color: {color}; font-size: 24px; font-weight: bold;")
-        l.addWidget(t)
-        l.addWidget(v)
+        v = QLabel(valor,  styleSheet=f"color: {color}; font-size: 24px; font-weight: bold;")
+        l.addWidget(t); l.addWidget(v)
         return card, v
 
     def cambiar_periodo(self, periodo):
@@ -244,7 +393,6 @@ class ReportesScreen(QWidget):
 
     def cargar_datos(self):
         try:
-            # Construimos la URL según el filtro
             url = f"{API_URL}/reportes/{self.periodo_actual}"
             if self.periodo_actual == "rango":
                 params = {
@@ -258,90 +406,64 @@ class ReportesScreen(QWidget):
             if r.status_code == 200:
                 d = r.json()
                 ventas = d.get("ventas", [])
-                
-                # TOTALES SEPARADOS (NUEVO)
-                total_periodo = 0.0
-                total_pc = 0.0
-                total_celular = 0.0
-                
+
+                total_periodo = 0.0; total_pc = 0.0; total_celular = 0.0
                 for v in ventas:
                     monto = float(v.get("total", 0))
                     total_periodo += monto
-                    
-                    origen = str(v.get("origen", "mostrador")).lower()
-                    if origen == "celular":
+                    if str(v.get("origen", "mostrador")).lower() == "celular":
                         total_celular += monto
                     else:
                         total_pc += monto
-                
+
                 self.card_total[1].setText(_p(total_periodo))
                 self.card_pc[1].setText(_p(total_pc))
                 self.card_celular[1].setText(_p(total_celular))
-
                 self.card_tickets[1].setText(str(len(ventas)))
-                promedio = total_periodo / len(ventas) if ventas else 0
-                self.card_promedio[1].setText(_p(promedio))
+                self.card_promedio[1].setText(_p(total_periodo / len(ventas) if ventas else 0))
 
-                # Limpieza de métodos
                 totales_metodo = {k: 0.0 for k in self.cards_metodo.keys()}
-                
-                # Llenado de tabla de ventas e inteligencia de cobro mixto
                 self.tabla_ventas.setRowCount(len(ventas))
                 for i, v in enumerate(ventas):
                     self.tabla_ventas.setItem(i, 0, QTableWidgetItem(str(v["numero"])))
                     self.tabla_ventas.setItem(i, 1, QTableWidgetItem(_p(float(v['total']))))
-                    
-                    # Inteligencia de métodos (Soporta Mixto)
                     m1 = v.get("metodo_pago", "efectivo")
                     m2 = v.get("metodo_secundario")
                     txt_metodo = m1.upper()
-                    
                     if m2:
-                        txt_metodo = f"MIXTO"
+                        txt_metodo = "MIXTO"
                         monto2 = float(v.get("monto_secundario", 0))
                         monto1 = float(v["total"]) - monto2
                         if m1 in totales_metodo: totales_metodo[m1] += monto1
                         if m2 in totales_metodo: totales_metodo[m2] += monto2
                     else:
                         if m1 in totales_metodo: totales_metodo[m1] += float(v["total"])
-
                     self.tabla_ventas.setItem(i, 2, QTableWidgetItem(txt_metodo))
-                    
-                    # COLUMNA ORIGEN (NUEVA)
                     origen = str(v.get("origen", "mostrador")).lower()
                     if origen == "celular":
-                        item_origen = QTableWidgetItem("📱 Celular")
-                        item_origen.setForeground(QBrush(QColor("#F59E0B")))
+                        item_o = QTableWidgetItem("📱 Celular")
+                        item_o.setForeground(QBrush(QColor("#F59E0B")))
                     else:
-                        item_origen = QTableWidgetItem("💻 Mostrador")
-                        item_origen.setForeground(QBrush(QColor("#3B82F6")))
-                    
-                    self.tabla_ventas.setItem(i, 3, item_origen)
-                    
+                        item_o = QTableWidgetItem("💻 Mostrador")
+                        item_o.setForeground(QBrush(QColor("#3B82F6")))
+                    self.tabla_ventas.setItem(i, 3, item_o)
                     hora = v["fecha"].split("T")[1][:5] if "T" in v["fecha"] else v["fecha"][-8:-3]
                     self.tabla_ventas.setItem(i, 4, QTableWidgetItem(hora))
 
-                # Actualizar cards de métodos
                 for k, lbl in self.cards_metodo.items():
                     lbl.setText(_p(totales_metodo[k]))
 
-                # Top Productos — sincronizar fechas con el período seleccionado
                 if self.periodo_actual == "hoy":
                     hoy = QDate.currentDate()
-                    self.prod_desde.setDate(hoy)
-                    self.prod_hasta.setDate(hoy)
+                    self.prod_desde.setDate(hoy); self.prod_hasta.setDate(hoy)
                 elif self.periodo_actual == "semana":
-                    self.prod_desde.setDate(QDate.currentDate().addDays(-7))
-                    self.prod_hasta.setDate(QDate.currentDate())
+                    self.prod_desde.setDate(QDate.currentDate().addDays(-7)); self.prod_hasta.setDate(QDate.currentDate())
                 elif self.periodo_actual == "mes":
-                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), QDate.currentDate().month(), 1))
-                    self.prod_hasta.setDate(QDate.currentDate())
+                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), QDate.currentDate().month(), 1)); self.prod_hasta.setDate(QDate.currentDate())
                 elif self.periodo_actual == "anio":
-                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), 1, 1))
-                    self.prod_hasta.setDate(QDate.currentDate())
+                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), 1, 1)); self.prod_hasta.setDate(QDate.currentDate())
                 elif self.periodo_actual == "rango":
-                    self.prod_desde.setDate(self.fecha_desde.date())
-                    self.prod_hasta.setDate(self.fecha_hasta.date())
+                    self.prod_desde.setDate(self.fecha_desde.date()); self.prod_hasta.setDate(self.fecha_hasta.date())
                 self.cargar_productos_por_fecha()
                 self._cargar_departamentos()
 
@@ -396,8 +518,7 @@ class ReportesScreen(QWidget):
             self.lbl_carne_val.setText(_p(carne_a))
             self.lbl_fiamb_val.setText(_p(fiamb_a))
             def _cmp(a, p):
-                if p == 0:
-                    return "", "#a0a0b0"
+                if p == 0: return "", "#a0a0b0"
                 pct = ((a - p) / p) * 100
                 return (f"↑ {pct:.1f}% {label_prv}", "#27ae60") if pct >= 0 else (f"↓ {abs(pct):.1f}% {label_prv}", "#e74c3c")
             txt_c, col_c = _cmp(carne_a, carne_p)
@@ -418,8 +539,7 @@ class ReportesScreen(QWidget):
             if r.status_code == 200:
                 productos = r.json()
                 self.tabla_top.setRowCount(len(productos))
-                total_monto = 0.0
-                total_cant  = 0.0
+                total_monto = 0.0; total_cant = 0.0
                 for i, p in enumerate(productos):
                     self.tabla_top.setItem(i, 0, QTableWidgetItem(p["nombre"]))
                     item_cant = QTableWidgetItem(f"{float(p['cantidad']):g}")
@@ -434,8 +554,7 @@ class ReportesScreen(QWidget):
                 self.lbl_prod_total.setText(
                     f"{len(productos)} productos · {total_cant:,.0f} unid. · {_p(total_monto)} total")
             else:
-                self.tabla_top.setRowCount(0)
-                self.lbl_prod_total.setText("Sin datos")
+                self.tabla_top.setRowCount(0); self.lbl_prod_total.setText("Sin datos")
         except Exception as e:
             print(f"Error productos: {e}")
 
@@ -458,8 +577,6 @@ class ReportesScreen(QWidget):
         ruta, _ = QFileDialog.getSaveFileName(self, "Guardar PDF", os.path.join(escritorio, nombre_def), "PDF (*.pdf)")
         if not ruta:
             return
-
-        # Datos frescos
         try:
             url = f"{API_URL}/reportes/{self.periodo_actual}"
             params = {"desde": self.fecha_desde.date().toString("yyyy-MM-dd"),
@@ -481,13 +598,10 @@ class ReportesScreen(QWidget):
             productos = []
 
         def _fmt(v): return f"${float(v):,.0f}".replace(",", ".")
-
         ventas = [v for v in d.get("ventas", []) if v.get("estado") == "completada"]
         total   = sum(float(v["total"]) for v in ventas)
         tickets = len(ventas)
         prom    = total / tickets if tickets > 0 else 0
-
-        # Desglose metodos
         desglose = {}
         for v in ventas:
             m = v.get("metodo_pago", "efectivo")
@@ -496,12 +610,10 @@ class ReportesScreen(QWidget):
         doc = SimpleDocTemplate(ruta, pagesize=A4,
                                 leftMargin=1.5*cm, rightMargin=1.5*cm,
                                 topMargin=2*cm, bottomMargin=2*cm)
-
         _ROJO  = _rl_colors.HexColor("#e94560")
         _GRIS  = _rl_colors.HexColor("#555555")
         _DARK  = _rl_colors.HexColor("#1a1a2e")
         _WHITE = _rl_colors.white
-
         t_titulo = ParagraphStyle("titulo", fontSize=20, fontName="Helvetica-Bold", textColor=_ROJO, spaceAfter=4)
         t_sub    = ParagraphStyle("sub",    fontSize=11, fontName="Helvetica",      textColor=_GRIS, spaceAfter=14)
         t_sec    = ParagraphStyle("sec",    fontSize=12, fontName="Helvetica-Bold", textColor=_DARK, spaceBefore=12, spaceAfter=6)
@@ -510,50 +622,36 @@ class ReportesScreen(QWidget):
             Paragraph("JUANA CASH — REPORTE DE VENTAS", t_titulo),
             Paragraph(f"{label}   |   Generado: {_date.today().strftime('%d/%m/%Y')}", t_sub),
         ]
-
-        # Tabla resumen
         story.append(Paragraph("Resumen", t_sec))
         resumen_data = [["Total periodo", "Tickets", "Ticket promedio"],
                         [_fmt(total), str(tickets), _fmt(prom)]]
         tbl_res = Table(resumen_data, colWidths=[5.5*cm, 4*cm, 5.5*cm])
         tbl_res.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,0), _DARK),
-            ("TEXTCOLOR",  (0,0), (-1,0), _WHITE),
-            ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
-            ("FONTSIZE",   (0,0), (-1,0), 10),
-            ("FONTSIZE",   (0,1), (-1,1), 13),
-            ("FONTNAME",   (0,1), (-1,1), "Helvetica-Bold"),
-            ("TEXTCOLOR",  (0,1), (-1,1), _ROJO),
-            ("ALIGN",      (0,0), (-1,-1), "CENTER"),
-            ("VALIGN",     (0,0), (-1,-1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0,1), (-1,1), [_rl_colors.HexColor("#f8f8f8")]),
-            ("BOX",        (0,0), (-1,-1), 0.5, _rl_colors.HexColor("#cccccc")),
-            ("INNERGRID",  (0,0), (-1,-1), 0.3, _rl_colors.HexColor("#dddddd")),
-            ("TOPPADDING", (0,0), (-1,-1), 8),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+            ("BACKGROUND",(0,0),(-1,0),_DARK),("TEXTCOLOR",(0,0),(-1,0),_WHITE),
+            ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,0),10),
+            ("FONTSIZE",(0,1),(-1,1),13),("FONTNAME",(0,1),(-1,1),"Helvetica-Bold"),
+            ("TEXTCOLOR",(0,1),(-1,1),_ROJO),("ALIGN",(0,0),(-1,-1),"CENTER"),
+            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+            ("ROWBACKGROUNDS",(0,1),(-1,1),[_rl_colors.HexColor("#f8f8f8")]),
+            ("BOX",(0,0),(-1,-1),0.5,_rl_colors.HexColor("#cccccc")),
+            ("INNERGRID",(0,0),(-1,-1),0.3,_rl_colors.HexColor("#dddddd")),
+            ("TOPPADDING",(0,0),(-1,-1),8),("BOTTOMPADDING",(0,0),(-1,-1),8),
         ]))
         story.append(tbl_res)
-
-        # Tabla metodos de pago
         if desglose:
             story.append(Paragraph("Metodos de pago", t_sec))
-            metodos_data = [["Metodo", "Total"]] + [[k.replace("_", " ").title(), _fmt(v)] for k, v in sorted(desglose.items(), key=lambda x: -x[1])]
+            metodos_data = [["Metodo", "Total"]] + [[k.replace("_"," ").title(), _fmt(v)] for k, v in sorted(desglose.items(), key=lambda x: -x[1])]
             tbl_met = Table(metodos_data, colWidths=[9*cm, 6*cm])
             tbl_met.setStyle(TableStyle([
-                ("BACKGROUND", (0,0), (-1,0), _DARK),
-                ("TEXTCOLOR",  (0,0), (-1,0), _WHITE),
-                ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
-                ("FONTSIZE",   (0,0), (-1,-1), 10),
-                ("ROWBACKGROUNDS", (0,1), (-1,-1), [_rl_colors.white, _rl_colors.HexColor("#f8f8f8")]),
-                ("ALIGN",      (1,0), (1,-1), "RIGHT"),
-                ("BOX",        (0,0), (-1,-1), 0.5, _rl_colors.HexColor("#cccccc")),
-                ("INNERGRID",  (0,0), (-1,-1), 0.3, _rl_colors.HexColor("#dddddd")),
-                ("TOPPADDING", (0,0), (-1,-1), 6),
-                ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+                ("BACKGROUND",(0,0),(-1,0),_DARK),("TEXTCOLOR",(0,0),(-1,0),_WHITE),
+                ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),10),
+                ("ROWBACKGROUNDS",(0,1),(-1,-1),[_rl_colors.white,_rl_colors.HexColor("#f8f8f8")]),
+                ("ALIGN",(1,0),(1,-1),"RIGHT"),
+                ("BOX",(0,0),(-1,-1),0.5,_rl_colors.HexColor("#cccccc")),
+                ("INNERGRID",(0,0),(-1,-1),0.3,_rl_colors.HexColor("#dddddd")),
+                ("TOPPADDING",(0,0),(-1,-1),6),("BOTTOMPADDING",(0,0),(-1,-1),6),
             ]))
             story.append(tbl_met)
-
-        # Tabla productos
         if productos:
             story.append(Paragraph(f"Productos vendidos ({len(productos)})", t_sec))
             prod_data = [["Producto", "Cant.", "Tickets", "Total"]]
@@ -561,20 +659,15 @@ class ReportesScreen(QWidget):
                 prod_data.append([p["nombre"], f"{float(p['cantidad']):g}", str(p["tickets"]), _fmt(float(p["facturado"]))])
             tbl_prod = Table(prod_data, colWidths=[9*cm, 2.5*cm, 2.5*cm, 4*cm])
             tbl_prod.setStyle(TableStyle([
-                ("BACKGROUND", (0,0), (-1,0), _DARK),
-                ("TEXTCOLOR",  (0,0), (-1,0), _WHITE),
-                ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
-                ("FONTSIZE",   (0,0), (-1,-1), 9),
-                ("ROWBACKGROUNDS", (0,1), (-1,-1), [_rl_colors.white, _rl_colors.HexColor("#f8f8f8")]),
-                ("ALIGN",      (1,0), (-1,-1), "CENTER"),
-                ("ALIGN",      (3,0), (3,-1), "RIGHT"),
-                ("BOX",        (0,0), (-1,-1), 0.5, _rl_colors.HexColor("#cccccc")),
-                ("INNERGRID",  (0,0), (-1,-1), 0.3, _rl_colors.HexColor("#dddddd")),
-                ("TOPPADDING", (0,0), (-1,-1), 5),
-                ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+                ("BACKGROUND",(0,0),(-1,0),_DARK),("TEXTCOLOR",(0,0),(-1,0),_WHITE),
+                ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),9),
+                ("ROWBACKGROUNDS",(0,1),(-1,-1),[_rl_colors.white,_rl_colors.HexColor("#f8f8f8")]),
+                ("ALIGN",(1,0),(-1,-1),"CENTER"),("ALIGN",(3,0),(3,-1),"RIGHT"),
+                ("BOX",(0,0),(-1,-1),0.5,_rl_colors.HexColor("#cccccc")),
+                ("INNERGRID",(0,0),(-1,-1),0.3,_rl_colors.HexColor("#dddddd")),
+                ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
             ]))
             story.append(tbl_prod)
-
         try:
             doc.build(story)
             QMessageBox.information(self, "PDF generado", f"Guardado en:\n{ruta}")
@@ -583,4 +676,4 @@ class ReportesScreen(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.cargar_datos()    
+        self.cargar_datos()

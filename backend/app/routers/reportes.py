@@ -349,6 +349,43 @@ def ventas_departamentos(desde: str = None, hasta: str = None, db: Session = Dep
         "fiambreria": _suma(11),
     }
 
+@router.get("/departamentos-diario")
+def departamentos_diario(desde: str = None, hasta: str = None, db: Session = Depends(get_db)):
+    from datetime import datetime as _dt
+    from sqlalchemy import case as _case
+
+    q = db.query(
+        func.strftime('%Y-%m-%d', Venta.fecha).label("fecha"),
+        func.sum(_case((ItemVenta.producto_id == 3, ItemVenta.subtotal), else_=0)).label("carniceria"),
+        func.sum(_case((ItemVenta.producto_id == 11, ItemVenta.subtotal), else_=0)).label("fiambreria"),
+    ).join(ItemVenta, ItemVenta.venta_id == Venta.id)\
+     .filter(Venta.estado == "completada")\
+     .filter(ItemVenta.producto_id.in_([3, 11]))
+
+    if desde:
+        try:
+            q = q.filter(Venta.fecha >= _dt.fromisoformat(desde.replace("T", " ")))
+        except Exception:
+            pass
+    if hasta:
+        try:
+            q = q.filter(Venta.fecha <= _dt.fromisoformat(hasta.replace("T", " ")))
+        except Exception:
+            pass
+
+    rows = q.group_by(func.strftime('%Y-%m-%d', Venta.fecha))\
+            .order_by(func.strftime('%Y-%m-%d', Venta.fecha).desc())\
+            .all()
+
+    return [
+        {
+            "fecha": r.fecha,
+            "carniceria": round(float(r.carniceria or 0), 2),
+            "fiambreria": round(float(r.fiambreria or 0), 2),
+        }
+        for r in rows
+    ]
+
 @router.get("/ventas-periodo")
 def ventas_por_periodo(periodo: str = "dia", db: Session = Depends(get_db)):
     if periodo == "mes":
