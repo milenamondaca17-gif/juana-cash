@@ -1084,15 +1084,30 @@ class CajaScreen(QWidget):
         if cobros_fiado:
             sep_cf = QFrame(); sep_cf.setFixedHeight(1); sep_cf.setStyleSheet("background: #0f3460; border: none;")
             lay.addWidget(sep_cf)
-            lbl_cf_titulo = QLabel("💳 Cobros de fiado del turno")
-            lbl_cf_titulo.setStyleSheet("color: #a0a0b0; font-size: 12px; letter-spacing: 1px; font-weight: bold;")
+            lbl_cf_titulo = QLabel("💳 COBROS DE FIADO DEL TURNO")
+            lbl_cf_titulo.setStyleSheet("color: #f39c12; font-size: 12px; letter-spacing: 1px; font-weight: bold;")
             lay.addWidget(lbl_cf_titulo)
             _em_fiado = {"efectivo": "💵", "transferencia": "🏦", "mercadopago_qr": "📱",
                          "debito": "🏧", "tarjeta": "💳"}
+            _cf_ef_total = 0.0
+            _cf_otros_total = 0.0
             for cf in cobros_fiado:
-                _em = _em_fiado.get(cf.get("metodo", "efectivo"), "💰")
-                _nota = "" if cf.get("metodo", "efectivo") == "efectivo" else " (no cajón)"
-                fila_metodo(_em, f"{cf.get('cliente','?')}{_nota}", cf.get("monto", 0), "#f39c12")
+                _met = cf.get("metodo", "efectivo")
+                _em = _em_fiado.get(_met, "💰")
+                _canc = " ✅DEUDA CANCELADA" if cf.get("cancelado") else ""
+                if _met == "efectivo":
+                    _cf_ef_total += cf.get("monto", 0)
+                    _nota = " → cajón"
+                    _col = "#27ae60"
+                else:
+                    _cf_otros_total += cf.get("monto", 0)
+                    _nota = " → banco"
+                    _col = "#9b59b6"
+                fila_metodo(_em, f"{cf.get('cliente','?')}{_canc}{_nota}", cf.get("monto", 0), _col)
+            if _cf_ef_total > 0:
+                fila_metodo("✅", f"  Subtotal efectivo fiado (suma al cajón)", _cf_ef_total, "#27ae60")
+            if _cf_otros_total > 0:
+                fila_metodo("🏦", f"  Subtotal otros medios (verificar banco)", _cf_otros_total, "#9b59b6")
 
         sep2 = QFrame(); sep2.setFixedHeight(1); sep2.setStyleSheet("background: #0f3460; border: none;")
         lay.addWidget(sep2)
@@ -1252,8 +1267,27 @@ class CajaScreen(QWidget):
                    f"  {'Fiambreria:':22s} ${total_fiamb:,.2f}",
                    "-"*40,
                    f"Ef. esperad: ${efectivo_esperado:,.2f}"]
+            # Cobros de fiado
+            if cobros_fiado:
+                ls.append("-"*40)
+                ls.append("COBROS DE FIADO:")
+                _txt_ef = 0.0
+                _txt_ot = 0.0
+                for _cf in cobros_fiado:
+                    _met = _cf.get("metodo", "efectivo")
+                    _canc = " [CANCELA DEUDA]" if _cf.get("cancelado") else ""
+                    _dest = "cajón" if _met == "efectivo" else "banco"
+                    ls.append(f"  {_cf.get('cliente','?'):20s} ${_cf.get('monto',0):,.2f}  {_met}/{_dest}{_canc}")
+                    if _met == "efectivo":
+                        _txt_ef += _cf.get("monto", 0)
+                    else:
+                        _txt_ot += _cf.get("monto", 0)
+                if _txt_ef > 0:
+                    ls.append(f"  {'Subtotal cajón:':20s} ${_txt_ef:,.2f}")
+                if _txt_ot > 0:
+                    ls.append(f"  {'Subtotal banco:':20s} ${_txt_ot:,.2f} (verificar)")
             if decl is not None:
-                ls += [f"Ef. contado: ${decl:,.2f}", f"Diferencia:  ${diff:+,.2f}"]
+                ls += ["-"*40, f"Ef. contado: ${decl:,.2f}", f"Diferencia:  ${diff:+,.2f}"]
             if pagos_emp:
                 ls += ["-"*40, "PAGOS DE EMPLEADOS:"]
                 for p in pagos_emp:
@@ -1362,11 +1396,24 @@ class CajaScreen(QWidget):
                             linea_aportes = ""
 
                         if cobros_fiado:
-                            linea_cobros = "\n💳 *Cobros de fiado:*"
+                            linea_cobros = "\n💳 *COBROS DE FIADO:*"
+                            _waf_ef = 0.0
+                            _waf_ot = 0.0
                             for _cf in cobros_fiado:
-                                _em = _metodo_emoji.get(_cf.get("metodo", "efectivo"), "💰")
-                                _nota = "" if _cf.get("metodo", "efectivo") == "efectivo" else " ⚠️no cajón"
-                                linea_cobros += f"\n  {_em} {_cf.get('cliente','?')}: {_p(_cf.get('monto',0))}{_nota}"
+                                _met = _cf.get("metodo", "efectivo")
+                                _em = _metodo_emoji.get(_met, "💰")
+                                _canc = " ✅CANCELÓ DEUDA" if _cf.get("cancelado") else ""
+                                if _met == "efectivo":
+                                    _waf_ef += _cf.get("monto", 0)
+                                    _dest = "→ cajón"
+                                else:
+                                    _waf_ot += _cf.get("monto", 0)
+                                    _dest = "→ banco"
+                                linea_cobros += f"\n  {_em} {_cf.get('cliente','?')}: {_p(_cf.get('monto',0))} {_dest}{_canc}"
+                            if _waf_ef > 0:
+                                linea_cobros += f"\n  💵 Subtotal cajón: {_p(_waf_ef)}"
+                            if _waf_ot > 0:
+                                linea_cobros += f"\n  🏦 Subtotal banco: {_p(_waf_ot)} (verificar)"
                         else:
                             linea_cobros = ""
                         msg_wa = (

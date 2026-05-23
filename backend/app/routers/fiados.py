@@ -32,7 +32,7 @@ def cobros_turno(desde: str, hasta: str, db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de fecha inválido")
 
-    pagos = (db.query(PagoFiado, Cliente)
+    pagos = (db.query(PagoFiado, Cliente, Fiado)
              .join(Fiado, PagoFiado.fiado_id == Fiado.id)
              .join(Cliente, Fiado.cliente_id == Cliente.id)
              .filter(PagoFiado.fecha >= dt_desde, PagoFiado.fecha <= dt_hasta)
@@ -41,25 +41,27 @@ def cobros_turno(desde: str, hasta: str, db: Session = Depends(get_db)):
     detalle = []
     total_efectivo = 0.0
     total_otros = 0.0
-    for pago, cliente in pagos:
+    for pago, cliente, fiado in pagos:
         metodo = (pago.metodo or "efectivo").lower()
         monto = float(pago.monto)
+        cancelado = (fiado.estado == "pagado") or (float(fiado.saldo or 0) <= 0)
         if metodo == "efectivo":
             total_efectivo += monto
         else:
             total_otros += monto
         detalle.append({
-            "cliente":    cliente.nombre,
-            "monto":      monto,
-            "metodo":     metodo,
-            "fecha":      str(pago.fecha)[:16],
+            "cliente":   cliente.nombre,
+            "monto":     monto,
+            "metodo":    metodo,
+            "fecha":     str(pago.fecha)[:16],
+            "cancelado": cancelado,
         })
 
     return {
-        "cobros":          detalle,
-        "total_efectivo":  total_efectivo,
-        "total_otros":     total_otros,
-        "total":           total_efectivo + total_otros,
+        "cobros":         detalle,
+        "total_efectivo": total_efectivo,
+        "total_otros":    total_otros,
+        "total":          total_efectivo + total_otros,
     }
 
 @router.get("/")

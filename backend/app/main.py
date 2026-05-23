@@ -31,6 +31,7 @@ with engine.connect() as _conn:
         ("fiados",       "monto_pagado",     "NUMERIC DEFAULT 0"),
         ("fiados",       "descripcion",      "TEXT"),
         ("caja_aportes", "metodo",           "TEXT DEFAULT 'efectivo'"),
+        ("pagos_fiado",  "metodo",           "TEXT DEFAULT 'efectivo'"),
     ]:
         try:
             tablas = _inspector.get_table_names()
@@ -122,6 +123,14 @@ def _aplicar_precios_update():
         _log_precios(f"OK: {_upd} actualizados, {_ins} nuevos")
     except Exception as _e:
         _log_precios(f"ERROR: {_e}")
+
+# Migración de datos: pagos_fiado con metodo NULL → efectivo (pagos anteriores al selector)
+with engine.connect() as _conn:
+    try:
+        _conn.execute(_text("UPDATE pagos_fiado SET metodo = 'efectivo' WHERE metodo IS NULL"))
+        _conn.commit()
+    except Exception:
+        pass
 
 _aplicar_precios_update()
 # ─────────────────────────────────────────────────────────────────────────────

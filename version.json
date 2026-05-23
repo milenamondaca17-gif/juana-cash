@@ -1,8 +1,8 @@
 {
-  "version": "4.4.4",
-  "desktop_version": "4.4.4",
+  "version": "4.4.5",
+  "desktop_version": "4.4.5",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.4/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.4/JuanaCash.apk",
-  "notas": "v4.2.1 APK - Tailscale en paralelo, conecta con datos moviles en 2-4 segundos"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.5/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.5/JuanaCash.apk",
+  "notas": "v4.4.5 - Cobros fiado: muestra quien pago, monto, si cancelo deuda, y separa cajón vs banco"
 }
