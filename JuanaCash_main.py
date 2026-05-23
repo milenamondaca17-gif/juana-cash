@@ -223,8 +223,12 @@ def _reporte_nocturno():
                         + lineas_deptos_t
                     )
 
-                # Departamentos del día
-                r2 = _ur.urlopen("http://127.0.0.1:8000/reportes/departamentos", timeout=5)
+                # Departamentos del día (solo hoy)
+                _hoy_str = ahora.strftime("%Y-%m-%dT00:00:00")
+                _ahora_str = ahora.strftime("%Y-%m-%dT%H:%M:%S")
+                r2 = _ur.urlopen(
+                    f"http://127.0.0.1:8000/reportes/departamentos?desde={_hoy_str}&hasta={_ahora_str}",
+                    timeout=5)
                 deptos = _json.loads(r2.read().decode())
                 carne = deptos.get("carniceria", 0)
                 fiamb = deptos.get("fiambreria", 0)
@@ -268,6 +272,8 @@ def _reporte_nocturno():
                     f"\n📋 *DETALLE POR TURNO*"
                     + bloques_turno
                 )
+                _log_r = os.path.join(DATA_DIR, "reporte_nocturno.log")
+                enviados = 0
                 for num in NUMEROS:
                     try:
                         payload = _json.dumps({"phone": num, "message": msg}).encode()
@@ -275,13 +281,24 @@ def _reporte_nocturno():
                                           data=payload,
                                           headers={"Content-Type": "application/json"})
                         _ur.urlopen(req, timeout=5)
-                    except Exception:
-                        pass
+                        enviados += 1
+                    except Exception as _we:
+                        try:
+                            with open(_log_r, "a", encoding="utf-8") as _lf:
+                                _lf.write(f"[{ahora}] ERROR enviando a {num}: {_we}\n")
+                        except Exception:
+                            pass
+                try:
+                    with open(_log_r, "a", encoding="utf-8") as _lf:
+                        _lf.write(f"[{ahora}] Reporte enviado a {enviados}/{len(NUMEROS)} numeros. Total dia: ${total_dia:,.0f}\n")
+                except Exception:
+                    pass
                 enviado_hoy = ahora.date()
             except Exception as e:
                 try:
-                    with open(os.path.join(DATA_DIR, "debug.log"), "a", encoding="utf-8") as f:
-                        f.write(f"[{ahora}] ERROR reporte nocturno: {e}\n")
+                    import traceback as _tb2
+                    with open(os.path.join(DATA_DIR, "reporte_nocturno.log"), "a", encoding="utf-8") as f:
+                        f.write(f"[{ahora}] ERROR reporte nocturno: {e}\n{_tb2.format_exc()}\n")
                 except Exception:
                     pass
         time.sleep(30)
