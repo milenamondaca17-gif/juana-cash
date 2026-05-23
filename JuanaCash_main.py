@@ -181,9 +181,11 @@ def _reporte_nocturno():
                     if cobros_fiado_t:
                         lineas_cobros_t = "\n  💳 Cobros fiado:"
                         for cf in cobros_fiado_t:
-                            _em_cf = _em_map.get(cf.get("metodo", "efectivo"), "💰")
-                            _nota_cf = "" if cf.get("metodo", "efectivo") == "efectivo" else "⚠️"
-                            lineas_cobros_t += f"\n    {_em_cf}{_nota_cf} {cf.get('cliente','?')}: {_p(cf.get('monto',0))}"
+                            _met_cf = cf.get("metodo", "efectivo")
+                            _em_cf = _em_map.get(_met_cf, "💰")
+                            _dest_cf = "cajón" if _met_cf == "efectivo" else "banco"
+                            _canc_cf = " ✅" if cf.get("cancelado") else ""
+                            lineas_cobros_t += f"\n    {_em_cf} {cf.get('cliente','?')}: {_p(cf.get('monto',0))} →{_dest_cf}{_canc_cf}"
 
                     dep_carne_t = 0.0
                     dep_fiamb_t = 0.0
@@ -245,11 +247,8 @@ def _reporte_nocturno():
                 ts = ahora.strftime("%d/%m/%Y")
                 msg = (
                     f"📊 *RESUMEN DEL DÍA — JUANA CASH*\n"
-                    f"📅 {ts}"
-                    + bloques_turno +
+                    f"📅 {ts}  |  🎫 {tickets_dia} tickets  |  Prom: {_p(prom_dia)}"
                     f"\n{'━'*22}"
-                    f"\n📋 *TOTALES DEL DÍA*"
-                    f"\n🎫 Tickets: {tickets_dia}  |  Prom: {_p(prom_dia)}"
                     f"\n💵 Efectivo:   {_p(desglose_dia['efectivo'])}"
                     f"\n🏧 Débito:     {_p(desglose_dia['debito'])}"
                     f"\n💳 Tarjeta:    {_p(desglose_dia['tarjeta'])}"
@@ -257,17 +256,17 @@ def _reporte_nocturno():
                     f"\n🏦 Transfer.:  {_p(desglose_dia['transferencia'])}"
                     f"\n💸 Fiado:      {_p(desglose_dia['fiado'])}"
                     f"\n{'─'*22}"
-                    f"\n📊 Total vendido:    {_p(total_dia)}"
-                    f"\n👥 Empleados pagados: -{_p(total_emp_dia)}"
-                    f"\n🧾 Gastos:           -{_p(total_gastos_dia)}"
-                    f"\n📈 *Neto del día:     {_p(neto_dia)}*"
-                    f"\n{'─'*22}"
+                    f"\n📊 Total vendido:     {_p(total_dia)}"
+                    + (f"\n👥 Empleados:        -{_p(total_emp_dia)}" if total_emp_dia > 0 else "")
+                    + (f"\n🧾 Gastos:           -{_p(total_gastos_dia)}" if total_gastos_dia > 0 else "")
                     + (f"\n💳 Cobros fiado ef.: +{_p(cobros_fiado_ef_dia)}" if cobros_fiado_ef_dia > 0 else "")
-                    + f"\n💵 *Balance efectivo: {_p(balance_ef)}*"
-                    f"\n_(efectivo ventas + cobros fiado - empleados - gastos)_"
-                    + lineas_gastos +
-                    f"\n\n🥩 Carnicería:  {_p(carne)}"
-                    f"\n🧀 Fiambrería:  {_p(fiamb)}"
+                    + f"\n📈 *Neto del día:     {_p(neto_dia)}*"
+                    f"\n💵 *Balance efectivo: {_p(balance_ef)}*"
+                    f"\n🥩 Carnicería: {_p(carne)}  🧀 Fiamb: {_p(fiamb)}"
+                    + lineas_gastos
+                    + f"\n{'━'*22}"
+                    f"\n📋 *DETALLE POR TURNO*"
+                    + bloques_turno
                 )
                 for num in NUMEROS:
                     try:
