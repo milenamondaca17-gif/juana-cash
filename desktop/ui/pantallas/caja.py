@@ -1565,67 +1565,166 @@ class CajaScreen(QWidget):
         dialog.exec()
 
     def registrar_gasto(self):
+        _p = lambda v: f"${float(v):,.0f}".replace(",", ".")
+
         dialog = QDialog(self)
-        dialog.setWindowTitle("💸 Registrar gasto")
-        dialog.setMinimumWidth(360)
+        dialog.setWindowTitle("💸 Gastos del turno")
+        dialog.setMinimumWidth(500)
+        dialog.setMinimumHeight(420)
         dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
         lay = QVBoxLayout(dialog)
-        lay.setSpacing(12)
-        for lbl_txt in ["Descripción del gasto:", "Monto ($):", "Categoría:"]:
-            lbl = QLabel(lbl_txt)
-            lbl.setStyleSheet("color: #a0a0b0; font-size: 13px;")
-            lay.addWidget(lbl)
-            if lbl_txt == "Descripción del gasto:":
-                input_desc = QLineEdit()
-                input_desc.setPlaceholderText("Ej: Bolsas, nafta, insumos...")
-                input_desc.setFixedHeight(44)
-                input_desc.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #9b59b6; border-radius: 8px; padding: 10px; color: white; font-size: 14px; }")
-                lay.addWidget(input_desc)
-            elif lbl_txt == "Monto ($):":
-                input_monto = QLineEdit()
-                input_monto.setFixedHeight(44)
-                input_monto.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #9b59b6; border-radius: 8px; padding: 10px; color: white; font-size: 18px; font-weight: bold; }")
-                lay.addWidget(input_monto)
-            elif lbl_txt == "Categoría:":
-                combo = QComboBox()
-                combo.addItems(["Insumos", "Limpieza", "Transporte", "Servicios", "Personal", "Impuestos", "Otro"])
-                combo.setFixedHeight(40)
-                combo.setStyleSheet("QComboBox { background: #0f3460; border: 1px solid #9b59b6; border-radius: 8px; padding: 8px; color: white; font-size: 14px; } QComboBox::drop-down { border: none; } QComboBox QAbstractItemView { background: #0f3460; color: white; selection-background-color: #9b59b6; }")
-                lay.addWidget(combo)
-        btns = QHBoxLayout()
-        btn_c = QPushButton("Cancelar")
-        btn_c.setFixedHeight(40)
-        btn_c.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
-        btn_c.clicked.connect(dialog.reject)
-        btns.addWidget(btn_c)
-        btn_ok = QPushButton("✅ Registrar")
-        btn_ok.setFixedHeight(40)
-        btn_ok.setStyleSheet("QPushButton { background: #9b59b6; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
-        btns.addWidget(btn_ok)
-        lay.addLayout(btns)
-        def confirmar():
-            desc = input_desc.text().strip()
-            if not desc:
-                QMessageBox.warning(dialog, "Error", "Ingresá una descripción")
-                return
+        lay.setSpacing(10)
+        lay.setContentsMargins(20, 18, 20, 16)
+
+        # Título
+        lbl_titulo = QLabel("💸 GASTOS CARGADOS EN ESTE TURNO")
+        lbl_titulo.setStyleSheet("color: #9b59b6; font-size: 13px; font-weight: bold; letter-spacing: 1px;")
+        lay.addWidget(lbl_titulo)
+
+        # Tabla de gastos
+        from PyQt6.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
+        tabla = QTableWidget()
+        tabla.setColumnCount(4)
+        tabla.setHorizontalHeaderLabels(["Hora", "Descripción", "Categoría", "Monto"])
+        tabla.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        tabla.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
+        tabla.setStyleSheet("""
+            QTableWidget { background: #0f3460; border: 1px solid #2a2a4a; border-radius: 8px; gridline-color: #2a2a4a; }
+            QTableWidget::item { padding: 6px 8px; color: white; }
+            QHeaderView::section { background: #1a1a3e; color: #a0a0b0; padding: 6px; border: none; font-size: 12px; }
+        """)
+        tabla.verticalHeader().setVisible(False)
+        tabla.setColumnWidth(0, 60)
+        tabla.setColumnWidth(2, 100)
+        tabla.setColumnWidth(3, 90)
+        lay.addWidget(tabla)
+
+        # Total
+        lbl_total = QLabel("Total gastos: $0")
+        lbl_total.setStyleSheet("color: #e74c3c; font-size: 14px; font-weight: bold; padding: 4px 0;")
+        lay.addWidget(lbl_total)
+
+        def _cargar_gastos():
             try:
-                monto = float(input_monto.text().strip().replace(".", "").replace(",", "."))
-            except ValueError:
-                QMessageBox.warning(dialog, "Error", "Ingresá un monto válido")
-                return
-            if monto <= 0:
-                QMessageBox.warning(dialog, "Error", "El monto debe ser mayor a cero")
-                return
-            try:
-                r = requests.post(f"{API_URL}/gastos/", json={"descripcion": desc, "monto": monto, "categoria": combo.currentText(), "usuario_id": self.usuario_id}, timeout=5)
-                if r.status_code == 200:
-                    dialog.accept()
-                    QMessageBox.information(self, "✅", f"Gasto registrado: ${monto:,.0f}".replace(",", "."))
-                    self.actualizar_ventas()
+                params = {}
+                apertura = self._apertura_iso()
+                if apertura:
+                    params["desde"] = apertura
+                r = requests.get(f"{API_URL}/gastos/hoy", params=params, timeout=5)
+                if r.status_code != 200:
+                    return
+                data = r.json()
+                lista = data.get("gastos", [])
+                tabla.setRowCount(len(lista))
+                total = 0.0
+                for i, g in enumerate(lista):
+                    hora = g.get("hora", "--:--")
+                    tabla.setItem(i, 0, QTableWidgetItem(hora))
+                    tabla.setItem(i, 1, QTableWidgetItem(g.get("descripcion", "")))
+                    tabla.setItem(i, 2, QTableWidgetItem(g.get("categoria", "")))
+                    monto = float(g.get("monto", 0))
+                    total += monto
+                    item_m = QTableWidgetItem(_p(monto))
+                    item_m.setForeground(__import__("PyQt6.QtGui", fromlist=["QColor"]).QColor("#e74c3c"))
+                    tabla.setItem(i, 3, item_m)
+                lbl_total.setText(f"Total gastos del turno: {_p(total)}")
+                if len(lista) == 0:
+                    tabla.setRowCount(1)
+                    tabla.setItem(0, 0, QTableWidgetItem(""))
+                    item_vacio = QTableWidgetItem("Sin gastos registrados en este turno")
+                    item_vacio.setForeground(__import__("PyQt6.QtGui", fromlist=["QColor"]).QColor("#a0a0b0"))
+                    tabla.setItem(0, 1, item_vacio)
             except Exception:
-                QMessageBox.critical(dialog, "Error", "No se puede conectar")
-        btn_ok.clicked.connect(confirmar)
-        input_monto.returnPressed.connect(confirmar)
+                pass
+
+        _cargar_gastos()
+
+        # Separador
+        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet("background: #2a2a4a; border: none;")
+        lay.addWidget(sep)
+
+        # Botones
+        btns_row = QHBoxLayout()
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.setFixedHeight(40)
+        btn_cerrar.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+        btn_cerrar.clicked.connect(dialog.accept)
+        btns_row.addWidget(btn_cerrar)
+
+        btn_nuevo = QPushButton("➕ Agregar gasto")
+        btn_nuevo.setFixedHeight(40)
+        btn_nuevo.setStyleSheet("QPushButton { background: #9b59b6; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btns_row.addWidget(btn_nuevo)
+        lay.addLayout(btns_row)
+
+        def _abrir_formulario():
+            dlg = QDialog(dialog)
+            dlg.setWindowTitle("Nuevo gasto")
+            dlg.setMinimumWidth(340)
+            dlg.setStyleSheet("background-color: #1a1a2e; color: white;")
+            fl = QVBoxLayout(dlg)
+            fl.setSpacing(10)
+            fl.setContentsMargins(20, 16, 20, 16)
+
+            for txt in ["Descripción:", "Monto ($):", "Categoría:"]:
+                fl.addWidget(_lbl := QLabel(txt))
+                _lbl.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+                if txt == "Descripción:":
+                    inp_desc = QLineEdit()
+                    inp_desc.setPlaceholderText("Ej: Bolsas, nafta, insumos...")
+                    inp_desc.setFixedHeight(42)
+                    inp_desc.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #9b59b6; border-radius: 8px; padding: 10px; color: white; font-size: 14px; }")
+                    fl.addWidget(inp_desc)
+                elif txt == "Monto ($):":
+                    inp_monto = QLineEdit()
+                    inp_monto.setFixedHeight(44)
+                    inp_monto.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #9b59b6; border-radius: 8px; padding: 10px; color: white; font-size: 18px; font-weight: bold; }")
+                    fl.addWidget(inp_monto)
+                elif txt == "Categoría:":
+                    cbo = QComboBox()
+                    cbo.addItems(["Insumos", "Limpieza", "Transporte", "Servicios", "Personal", "Impuestos", "Otro"])
+                    cbo.setFixedHeight(40)
+                    cbo.setStyleSheet("QComboBox { background: #0f3460; border: 1px solid #9b59b6; border-radius: 8px; padding: 8px; color: white; font-size: 14px; } QComboBox::drop-down { border: none; } QComboBox QAbstractItemView { background: #0f3460; color: white; selection-background-color: #9b59b6; }")
+                    fl.addWidget(cbo)
+
+            fb = QHBoxLayout()
+            bc = QPushButton("Cancelar"); bc.setFixedHeight(38)
+            bc.setStyleSheet("QPushButton { background: transparent; color: #a0a0b0; border: 1px solid #a0a0b0; border-radius: 8px; }")
+            bc.clicked.connect(dlg.reject)
+            fb.addWidget(bc)
+            bo = QPushButton("✅ Registrar"); bo.setFixedHeight(38)
+            bo.setStyleSheet("QPushButton { background: #9b59b6; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+            fb.addWidget(bo)
+            fl.addLayout(fb)
+
+            def _confirmar():
+                desc = inp_desc.text().strip()
+                if not desc:
+                    QMessageBox.warning(dlg, "Error", "Ingresá una descripción"); return
+                try:
+                    monto = float(inp_monto.text().strip().replace(".", "").replace(",", "."))
+                except ValueError:
+                    QMessageBox.warning(dlg, "Error", "Ingresá un monto válido"); return
+                if monto <= 0:
+                    QMessageBox.warning(dlg, "Error", "El monto debe ser mayor a cero"); return
+                try:
+                    r = requests.post(f"{API_URL}/gastos/", json={
+                        "descripcion": desc, "monto": monto,
+                        "categoria": cbo.currentText(), "usuario_id": self.usuario_id
+                    }, timeout=5)
+                    if r.status_code == 200:
+                        dlg.accept()
+                        _cargar_gastos()
+                        self.actualizar_ventas()
+                except Exception:
+                    QMessageBox.critical(dlg, "Error", "No se puede conectar")
+
+            bo.clicked.connect(_confirmar)
+            inp_monto.returnPressed.connect(_confirmar)
+            dlg.exec()
+
+        btn_nuevo.clicked.connect(_abrir_formulario)
         dialog.exec()
 
     def registrar_retiro(self):
