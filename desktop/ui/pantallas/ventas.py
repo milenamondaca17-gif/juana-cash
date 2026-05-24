@@ -732,8 +732,8 @@ class VentasScreen(QWidget):
         self.tabla.setStyleSheet(f"""
             QTableWidget {{ background: {BG_PANEL}; alternate-background-color: {BG_MAIN}; border: 1px solid {BORDER}; border-radius: 12px; gridline-color: transparent; outline: none; font-size: 18px; font-weight: bold; }}
             QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 10px; border: none; border-bottom: 2px solid {BORDER}; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: bold; }}
-            QTableWidget::item {{ color: {TEXT_MAIN}; padding: 6px 8px; border-bottom: 1px solid {BORDER}; }}
-            QTableWidget::item:selected {{ background: rgba(55,130,255,0.15); }}
+            QTableWidget::item {{ color: #D4A017; padding: 6px 8px; border-bottom: 1px solid {BORDER}; }}
+            QTableWidget::item:selected {{ background: rgba(212,160,23,0.12); }}
         """)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -873,6 +873,16 @@ class VentasScreen(QWidget):
                 self.timer_marquee.stop()
             elif event.type() == QEvent.Type.FocusOut:
                 self.timer_marquee.start(60)
+            elif event.type() == QEvent.Type.KeyPress:
+                fila = self.tabla.currentRow()
+                if fila >= 0 and fila < len(self.items_venta) and not self.input_buscar.text():
+                    k = event.key()
+                    if k in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
+                        self.cambiar_cantidad(fila, +1)
+                        return True
+                    elif k == Qt.Key.Key_Minus:
+                        self.cambiar_cantidad(fila, -1)
+                        return True
         return super().eventFilter(obj, event)
 
     def animar_marquee(self):

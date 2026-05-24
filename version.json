@@ -1,8 +1,8 @@
 {
-  "version": "4.4.8",
-  "desktop_version": "4.4.8",
+  "version": "4.4.9",
+  "desktop_version": "4.4.9",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.8/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.8/JuanaCash.apk",
-  "notas": "v4.4.8 - Navbar: todos los botones con efecto dorado estilo tecla"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.9/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.9/JuanaCash.apk",
+  "notas": "v4.4.9 - Tabla ventas: texto dorado, teclado +/- ajusta cantidad del producto seleccionado"
 }
