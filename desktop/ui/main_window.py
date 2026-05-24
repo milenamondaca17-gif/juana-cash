@@ -863,42 +863,31 @@ class MainWindow(QMainWindow):
         threading.Thread(target=_fetch, daemon=True).start()
 
     def _actualizar_meta(self):
-        def _fetch():
-            try:
-                r = requests.get(f"{API_URL}/reportes/hoy", timeout=5)
-                if not r.ok:
-                    return
-                total = float(r.json().get("total_vendido", 0))
-            except Exception:
+        try:
+            r = requests.get(f"{API_URL}/reportes/hoy", timeout=3)
+            if not r.ok:
                 return
+            total = float(r.json().get("total_vendido", 0))
+        except Exception:
+            return
 
-            META    = self._META
-            pct     = min(100, int(total / META * 100))
-            val     = int(min(total, META))
-            cumplir = (total >= META) and not getattr(self, '_meta_celebrado', False)
-            col     = "#10b981" if total >= META else ("#f59e0b" if pct >= 50 else "#64748b")
+        META = self._META
+        pct  = min(100, int(total / META * 100))
+        val  = int(min(total, META))
+        col  = "#10b981" if total >= META else ("#f59e0b" if pct >= 50 else "#64748b")
 
-            def _upd():
-                if not self.isVisible():
-                    return
-                self._bar_meta.setValue(val)
-                self._lbl_meta_pct.setText(f"{pct}%")
-                self._lbl_meta_pct.setStyleSheet(
-                    f"color:{col};font-size:11px;font-weight:bold;"
-                    f"background:transparent;min-width:36px;"
-                )
-                if cumplir:
-                    _cfg = _leer_config_logros()
-                    self._meta_celebrado = True
-                    nombre = (self.cajero_actual or {}).get("nombre", "")
-                    fw = FuegosArtificiales(self, nombre, _cfg["titulo"], _cfg["mensaje"])
-                    fw.setGeometry(0, 0, self.width(), self.height())
-                    fw.raise_()
-
-            QTimer.singleShot(0, _upd)
-
-        import threading
-        threading.Thread(target=_fetch, daemon=True).start()
+        self._bar_meta.setValue(val)
+        self._lbl_meta_pct.setText(f"{pct}%")
+        self._lbl_meta_pct.setStyleSheet(
+            f"color:{col};font-size:11px;font-weight:bold;background:transparent;min-width:36px;"
+        )
+        if total >= META and not getattr(self, '_meta_celebrado', False):
+            self._meta_celebrado = True
+            _cfg = _leer_config_logros()
+            nombre = (self.cajero_actual or {}).get("nombre", "")
+            fw = FuegosArtificiales(self, nombre, _cfg["titulo"], _cfg["mensaje"])
+            fw.setGeometry(0, 0, self.width(), self.height())
+            fw.raise_()
 
     def recargar_tema(self, tema_key):
         import sys as _sys

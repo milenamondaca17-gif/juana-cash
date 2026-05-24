@@ -1508,6 +1508,8 @@ class VentasScreen(QWidget):
             total += item["subtotal"]
 
         self.tabla.setUpdatesEnabled(True)
+        if n > 0:
+            self.tabla.scrollToItem(self.tabla.item(n - 1, 0))
         self.lbl_total.setText(_p(total))
         n_items = len(self.items_venta)
         self.lbl_items_count.setText(
