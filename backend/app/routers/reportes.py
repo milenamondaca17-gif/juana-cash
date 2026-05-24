@@ -215,7 +215,11 @@ def stock_bajo(db: Session = Depends(get_db)):
 
 @router.get("/horario-pico")
 def horario_pico(db: Session = Depends(get_db)):
-    ventas = db.query(Venta).filter(Venta.estado == "completada").all()
+    hoy = date.today()
+    ventas = db.query(Venta).filter(
+        func.date(Venta.fecha) == hoy,
+        Venta.estado == "completada"
+    ).all()
     horas = {}
     for v in ventas:
         try:

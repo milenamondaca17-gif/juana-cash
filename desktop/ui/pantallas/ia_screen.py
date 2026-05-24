@@ -24,6 +24,174 @@ def variacion_label(pct):
     return "= 0%", "#a0a0b0"
 
 
+class InsightsHoyWidget(QFrame):
+    """Panel principal: resumen inteligente del día en tiempo real."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("QFrame { background: #16213e; border-radius: 14px; }")
+        root = QVBoxLayout(self)
+        root.setContentsMargins(20, 16, 20, 16)
+        root.setSpacing(12)
+
+        # ── Header ──────────────────────────────────────────────────────────
+        hdr = QHBoxLayout()
+        lbl_t = QLabel("🔥 Resumen Inteligente — Hoy")
+        lbl_t.setFont(QFont("Arial", 15, QFont.Weight.Bold))
+        lbl_t.setStyleSheet("color: white;")
+        hdr.addWidget(lbl_t)
+        hdr.addStretch()
+        self.lbl_hora_act = QLabel("")
+        self.lbl_hora_act.setStyleSheet("color: #a0a0b0; font-size: 11px;")
+        hdr.addWidget(self.lbl_hora_act)
+        btn_ref = QPushButton("🔄")
+        btn_ref.setFixedSize(30, 30)
+        btn_ref.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_ref.setStyleSheet("QPushButton{background:#0f3460;color:white;border-radius:6px;}"
+                              "QPushButton:hover{background:#e94560;}")
+        btn_ref.clicked.connect(self.cargar)
+        hdr.addWidget(btn_ref)
+        root.addLayout(hdr)
+
+        # ── 4 KPI Cards ──────────────────────────────────────────────────────
+        grid = QGridLayout()
+        grid.setSpacing(8)
+        self._c_total    = self._kpi("💰 Ventas hoy",       "$—",  "#e94560")
+        self._c_var      = self._kpi("📊 vs sem. pasada",   "—",   "#f39c12")
+        self._c_prom     = self._kpi("🧾 Ticket promedio",  "$—",  "#27ae60")
+        self._c_proyecc  = self._kpi("🎯 Proyección día",   "$—",  "#3498db")
+        for col, (frame, _) in enumerate([self._c_total, self._c_var, self._c_prom, self._c_proyecc]):
+            grid.addWidget(frame, 0, col)
+        root.addLayout(grid)
+
+        # ── Fila estrella + hora pico ─────────────────────────────────────
+        fila_b = QHBoxLayout()
+        fila_b.setSpacing(8)
+
+        self.panel_estrella = self._info_panel("⭐ Producto estrella del día", "#f39c12")
+        self.lbl_estrella   = self.panel_estrella.findChildren(QLabel)[1]
+        fila_b.addWidget(self.panel_estrella, 2)
+
+        self.panel_pico = self._info_panel("🕐 Hora pico", "#9b59b6")
+        self.lbl_pico   = self.panel_pico.findChildren(QLabel)[1]
+        fila_b.addWidget(self.panel_pico, 1)
+
+        root.addLayout(fila_b)
+
+        # ── Alertas de stock ──────────────────────────────────────────────
+        self.panel_alertas = QFrame()
+        self.panel_alertas.setStyleSheet(
+            "QFrame{background:#2d1515;border-radius:8px;border:1px solid #e94560;}")
+        self._alertas_lay = QVBoxLayout(self.panel_alertas)
+        self._alertas_lay.setContentsMargins(12, 8, 12, 8)
+        self._alertas_lay.setSpacing(4)
+        self.panel_alertas.hide()
+        root.addWidget(self.panel_alertas)
+
+        # Timer auto-refresh 2 min
+        self._timer = QTimer()
+        self._timer.timeout.connect(self.cargar)
+        self._timer.start(120000)
+
+    def _kpi(self, titulo, valor, color):
+        card = QFrame()
+        card.setStyleSheet(f"QFrame{{background:#0f3460;border-radius:10px;"
+                           f"border-left:4px solid {color};}}")
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(3)
+        lbl_t = QLabel(titulo)
+        lbl_t.setStyleSheet("color:#a0a0b0;font-size:10px;")
+        lay.addWidget(lbl_t)
+        lbl_v = QLabel(valor)
+        lbl_v.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        lbl_v.setStyleSheet(f"color:{color};")
+        lay.addWidget(lbl_v)
+        return card, lbl_v
+
+    def _info_panel(self, titulo, color):
+        panel = QFrame()
+        panel.setStyleSheet("QFrame{background:#0f3460;border-radius:10px;}")
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(12, 10, 12, 10)
+        lay.setSpacing(4)
+        lbl_t = QLabel(titulo)
+        lbl_t.setStyleSheet(f"color:{color};font-size:11px;font-weight:bold;")
+        lay.addWidget(lbl_t)
+        lbl_v = QLabel("—")
+        lbl_v.setStyleSheet("color:white;font-size:13px;font-weight:bold;")
+        lbl_v.setWordWrap(True)
+        lay.addWidget(lbl_v)
+        return panel
+
+    def cargar(self):
+        try:
+            r = requests.get(f"{API_URL}/ia/insights-hoy", timeout=5)
+            if r.status_code != 200:
+                return
+            d = r.json()
+        except Exception:
+            return
+
+        from datetime import datetime as _dt
+        self.lbl_hora_act.setText(f"Actualizado: {_dt.now().strftime('%H:%M')}")
+
+        total     = d.get("total_hoy", 0)
+        tickets   = d.get("tickets_hoy", 0)
+        promedio  = d.get("promedio_hoy", 0)
+        var       = d.get("variacion_vs_semana")
+        proyecc   = d.get("proyeccion_dia")
+
+        self._c_total[1].setText(_p(total))
+
+        if var is not None:
+            signo = "▲" if var >= 0 else "▼"
+            col   = "#27ae60" if var >= 0 else "#e94560"
+            self._c_var[1].setText(f"{signo} {abs(var):.1f}%")
+            self._c_var[1].setStyleSheet(f"color:{col};font-size:16px;font-weight:bold;")
+        else:
+            self._c_var[1].setText("Sin datos")
+
+        self._c_prom[1].setText(_p(promedio))
+        self._c_proyecc[1].setText(_p(proyecc) if proyecc else "—")
+
+        estrella = d.get("producto_estrella")
+        if estrella:
+            self.lbl_estrella.setText(
+                f"{estrella['nombre'][:28]}  —  {_p(estrella['total'])}  "
+                f"({estrella['cantidad']} u.)"
+            )
+        else:
+            self.lbl_estrella.setText("Sin ventas aún")
+
+        hora_pico = d.get("hora_pico_hoy")
+        tix_pico  = d.get("tickets_hora_pico", 0)
+        if hora_pico is not None:
+            self.lbl_pico.setText(f"{hora_pico:02d}:00 hs  ({tix_pico} tickets)")
+        else:
+            self.lbl_pico.setText("Sin datos")
+
+        alertas = d.get("alertas_stock", [])
+        while self._alertas_lay.count():
+            w = self._alertas_lay.takeAt(0)
+            if w.widget(): w.widget().deleteLater()
+
+        if alertas:
+            lbl_hdr = QLabel("⚠️  Stock bajo en productos que vendés hoy — pedí antes de que se acaben")
+            lbl_hdr.setStyleSheet("color:#e94560;font-size:11px;font-weight:bold;")
+            self._alertas_lay.addWidget(lbl_hdr)
+            for a in alertas:
+                lbl_a = QLabel(
+                    f"  • {a['nombre']}  —  stock: {a['stock_actual']}  "
+                    f"(mín {a['stock_minimo']})  |  vendido hoy: {a['vendido_hoy']} u."
+                )
+                lbl_a.setStyleSheet("color:#f39c12;font-size:11px;")
+                self._alertas_lay.addWidget(lbl_a)
+            self.panel_alertas.show()
+        else:
+            self.panel_alertas.hide()
+
+
 class ComparativoWidget(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -391,6 +559,9 @@ class IAScreen(QWidget):
         cont_lay.setSpacing(14)
         cont_lay.setContentsMargins(0, 0, 0, 0)
 
+        self.insights = InsightsHoyWidget()
+        cont_lay.addWidget(self.insights)
+
         self.comparativo = ComparativoWidget()
         cont_lay.addWidget(self.comparativo)
 
@@ -407,6 +578,7 @@ class IAScreen(QWidget):
         layout.addWidget(scroll)
 
     def cargar_todo(self):
+        self.insights.cargar()
         self.comparativo.cargar()
         self.anomalias.cargar()
 

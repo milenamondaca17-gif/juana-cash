@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from ..database import get_db
 from ..models.venta import Venta, ItemVenta
 from ..models.producto import Producto
@@ -254,7 +254,104 @@ def comparativo_semanal(db: Session = Depends(get_db)):
     }
 
 
-# ─── 5. Resumen IA completo (para dashboard) ─────────────────────────────────
+# ─── 5. Insights del día ─────────────────────────────────────────────────────
+
+@router.get("/insights-hoy")
+def insights_hoy(db: Session = Depends(get_db)):
+    """Resumen inteligente del día actual: comparativa, proyección, alertas y estrella."""
+    hoy        = date.today()
+    ahora      = datetime.now()
+    hora_actual = ahora.hour
+    mismo_dia  = hoy - timedelta(days=7)
+
+    ventas_hoy = db.query(Venta).filter(
+        func.date(Venta.fecha) == hoy, Venta.estado == "completada"
+    ).all()
+    total_hoy    = sum(float(v.total) for v in ventas_hoy)
+    tickets_hoy  = len(ventas_hoy)
+    promedio_hoy = total_hoy / tickets_hoy if tickets_hoy else 0
+
+    ventas_semana = db.query(Venta).filter(
+        func.date(Venta.fecha) == mismo_dia, Venta.estado == "completada"
+    ).all()
+    total_semana = sum(float(v.total) for v in ventas_semana)
+    variacion_semanal = (
+        round((total_hoy - total_semana) / total_semana * 100, 1)
+        if total_semana > 0 else None
+    )
+
+    horas_hoy = {}
+    for v in ventas_hoy:
+        h = v.fecha.hour
+        horas_hoy[h] = horas_hoy.get(h, 0) + 1
+    hora_pico_hoy    = max(horas_hoy, key=horas_hoy.get) if horas_hoy else None
+    tickets_hora_pico = horas_hoy.get(hora_pico_hoy, 0) if hora_pico_hoy is not None else 0
+
+    top_item = db.query(
+        ItemVenta.producto_id,
+        func.sum(ItemVenta.subtotal).label("total"),
+        func.sum(ItemVenta.cantidad).label("cantidad")
+    ).join(Venta).filter(
+        func.date(Venta.fecha) == hoy,
+        Venta.estado == "completada",
+        ItemVenta.producto_id != 0
+    ).group_by(ItemVenta.producto_id).order_by(func.sum(ItemVenta.subtotal).desc()).first()
+
+    producto_estrella = None
+    if top_item:
+        p = db.query(Producto).filter(Producto.id == top_item.producto_id).first()
+        if p:
+            producto_estrella = {
+                "nombre":   p.nombre,
+                "total":    round(float(top_item.total), 2),
+                "cantidad": int(float(top_item.cantidad))
+            }
+
+    top_vendidos = db.query(
+        ItemVenta.producto_id,
+        func.sum(ItemVenta.cantidad).label("cantidad")
+    ).join(Venta).filter(
+        func.date(Venta.fecha) == hoy,
+        Venta.estado == "completada",
+        ItemVenta.producto_id != 0
+    ).group_by(ItemVenta.producto_id).order_by(func.sum(ItemVenta.cantidad).desc()).limit(15).all()
+
+    alertas = []
+    for item in top_vendidos:
+        p = db.query(Producto).filter(Producto.id == item.producto_id).first()
+        if p and p.stock_actual is not None and p.stock_minimo is not None:
+            stock_a = float(p.stock_actual)
+            stock_m = float(p.stock_minimo)
+            if stock_m > 0 and stock_a <= stock_m * 1.5:
+                alertas.append({
+                    "nombre":       p.nombre,
+                    "stock_actual": round(stock_a, 1),
+                    "stock_minimo": round(stock_m, 1),
+                    "vendido_hoy":  int(float(item.cantidad))
+                })
+
+    proyeccion = None
+    if hora_actual >= 8 and total_hoy > 0:
+        horas_desde_apertura = max(1, hora_actual - 7)
+        horas_hasta_cierre   = max(0, 22 - hora_actual)
+        ritmo_hora = total_hoy / horas_desde_apertura
+        proyeccion = round(total_hoy + ritmo_hora * horas_hasta_cierre, 2)
+
+    return {
+        "total_hoy":                    round(total_hoy, 2),
+        "tickets_hoy":                  tickets_hoy,
+        "promedio_hoy":                 round(promedio_hoy, 2),
+        "total_mismo_dia_semana":       round(total_semana, 2),
+        "variacion_vs_semana":          variacion_semanal,
+        "hora_pico_hoy":                hora_pico_hoy,
+        "tickets_hora_pico":            tickets_hora_pico,
+        "producto_estrella":            producto_estrella,
+        "alertas_stock":                alertas[:5],
+        "proyeccion_dia":               proyeccion,
+    }
+
+
+# ─── 6. Resumen IA completo (para dashboard) ─────────────────────────────────
 
 @router.get("/resumen")
 def resumen_ia(db: Session = Depends(get_db)):
