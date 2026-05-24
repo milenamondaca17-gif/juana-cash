@@ -52,4 +52,6 @@ end;
 [Run]
 Filename: "schtasks"; Parameters: "/delete /tn ""JuanaCash WhatsApp"" /f"; Flags: runhidden waituntilterminated; StatusMsg: "Configurando servidor WhatsApp..."
 Filename: "schtasks"; Parameters: "/create /tn ""JuanaCash WhatsApp"" /tr ""cmd /c cd /d C:\JuanaCash\whatsapp && node server.js"" /sc onlogon /rl highest /f /delay 0000:30"; Flags: runhidden waituntilterminated
+Filename: "schtasks"; Parameters: "/delete /tn ""JuanaCash Reporte Nocturno"" /f"; Flags: runhidden waituntilterminated; StatusMsg: "Configurando reporte nocturno..."
+Filename: "schtasks"; Parameters: "/create /tn ""JuanaCash Reporte Nocturno"" /tr ""{app}\JuanaCash.exe --solo-reporte"" /sc daily /st 22:20 /rl highest /f"; Flags: runhidden waituntilterminated
 Filename: "{app}\JuanaCash.exe"; Description: "Abrir Juana Cash"; Flags: nowait postinstall skipifsilent

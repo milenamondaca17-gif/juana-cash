@@ -110,17 +110,14 @@ def _auto_backup():
                     pass
         time.sleep(30)
 
-def _reporte_nocturno():
-    """A las 22:20 envía el resumen del día completo a los 3 números de WhatsApp."""
+def _generar_y_enviar_reporte():
+    """Genera y envía el reporte nocturno. Se puede llamar directamente o desde el loop."""
     import urllib.request as _ur
     import json as _json
     from datetime import datetime as _dt
     NUMEROS = ["2634670678", "2634633099", "2634633067"]
-    enviado_hoy = None
-    while True:
-        ahora = _dt.now()
-        if ahora.hour == 22 and ahora.minute == 20 and enviado_hoy != ahora.date():
-            try:
+    ahora = _dt.now()
+    try:
                 def _p(v): return f"${float(v):,.0f}"
 
                 # Turnos del día con desglose y pagos de empleados
@@ -293,14 +290,23 @@ def _reporte_nocturno():
                         _lf.write(f"[{ahora}] Reporte enviado a {enviados}/{len(NUMEROS)} numeros. Total dia: ${total_dia:,.0f}\n")
                 except Exception:
                     pass
-                enviado_hoy = ahora.date()
-            except Exception as e:
-                try:
-                    import traceback as _tb2
-                    with open(os.path.join(DATA_DIR, "reporte_nocturno.log"), "a", encoding="utf-8") as f:
-                        f.write(f"[{ahora}] ERROR reporte nocturno: {e}\n{_tb2.format_exc()}\n")
-                except Exception:
-                    pass
+    except Exception as e:
+        try:
+            import traceback as _tb2
+            with open(os.path.join(DATA_DIR, "reporte_nocturno.log"), "a", encoding="utf-8") as f:
+                f.write(f"[{ahora}] ERROR reporte nocturno: {e}\n{_tb2.format_exc()}\n")
+        except Exception:
+            pass
+
+def _reporte_nocturno():
+    """A las 22:20 llama a _generar_y_enviar_reporte()."""
+    from datetime import datetime as _dt
+    enviado_hoy = None
+    while True:
+        ahora = _dt.now()
+        if ahora.hour == 22 and ahora.minute == 20 and enviado_hoy != ahora.date():
+            _generar_y_enviar_reporte()
+            enviado_hoy = ahora.date()
         time.sleep(30)
 
 def _reporte_semanal():
@@ -379,6 +385,15 @@ def _reporte_semanal():
                 except Exception:
                     pass
         time.sleep(30)
+
+# ── Modo --solo-reporte: arranca el backend, envía el reporte y cierra ────────
+if '--solo-reporte' in sys.argv:
+    threading.Thread(target=run_backend, daemon=True).start()
+    time.sleep(5)  # esperar que el backend esté listo
+    _generar_y_enviar_reporte()
+    time.sleep(2)
+    sys.exit(0)
+# ─────────────────────────────────────────────────────────────────────────────
 
 threading.Thread(target=run_backend, daemon=True).start()
 threading.Thread(target=_udp_broadcaster, daemon=True).start()
