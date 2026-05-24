@@ -1,8 +1,8 @@
 {
-  "version": "4.5.0",
-  "desktop_version": "4.5.0",
+  "version": "4.5.1",
+  "desktop_version": "4.5.1",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.0/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.0/JuanaCash.apk",
-  "notas": "v4.5.0 - Fix barra de meta y fuegos artificiales"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.1/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.1/JuanaCash.apk",
+  "notas": "v4.5.1 - Fix barra de logros + scroll automatico en lista de ventas"
 }
