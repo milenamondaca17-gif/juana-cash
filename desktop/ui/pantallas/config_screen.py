@@ -562,6 +562,120 @@ class ConfigScreen(QWidget):
         resp_layout.addStretch()
         tabs.addTab(tab_resp, "💾 Respaldo")
 
+        # ── TAB: LOGROS ──────────────────────────────────────────────────────────
+        tab_logros = QWidget()
+        tab_logros.setStyleSheet(f"background: {_CARD};")
+        log_layout = QVBoxLayout(tab_logros)
+        log_layout.setContentsMargins(20, 20, 20, 20)
+        log_layout.setSpacing(14)
+
+        lbl_log_t = QLabel("🏆 Logros y Metas por Turno")
+        lbl_log_t.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        lbl_log_t.setStyleSheet("color: #D4A017; background: transparent;")
+        log_layout.addWidget(lbl_log_t)
+
+        lbl_log_s = QLabel("Cuando el cajero llega a la meta, se lanzan fuegos artificiales y aparece un cartel de felicitaciones por 4 segundos.")
+        lbl_log_s.setWordWrap(True)
+        lbl_log_s.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        log_layout.addWidget(lbl_log_s)
+
+        # Meta frame
+        meta_frame = QFrame()
+        meta_frame.setStyleSheet("QFrame { background: #0a0f1a; border-radius: 10px; border: 1.5px solid #D4A017; }")
+        meta_lay = QVBoxLayout(meta_frame)
+        meta_lay.setContentsMargins(16, 14, 16, 14)
+        meta_lay.setSpacing(10)
+        lbl_meta_t = QLabel("💰 Objetivo de ventas por turno")
+        lbl_meta_t.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        lbl_meta_t.setStyleSheet("color: #D4A017; background: transparent;")
+        meta_lay.addWidget(lbl_meta_t)
+        meta_fila = QHBoxLayout()
+        lbl_monto = QLabel("Meta:")
+        lbl_monto.setStyleSheet(f"color: {_MUT}; font-size: 13px; background: transparent;")
+        meta_fila.addWidget(lbl_monto)
+        self.spin_meta = QSpinBox()
+        self.spin_meta.setRange(10000, 9999999)
+        self.spin_meta.setSingleStep(50000)
+        self.spin_meta.setValue(750000)
+        self.spin_meta.setPrefix("$ ")
+        self.spin_meta.setFixedHeight(42)
+        self.spin_meta.setFixedWidth(200)
+        self.spin_meta.setStyleSheet("QSpinBox { background: #0a0f1a; border: 1.5px solid #D4A017; border-radius: 8px; padding: 6px; color: #D4A017; font-size: 17px; font-weight: bold; }")
+        meta_fila.addWidget(self.spin_meta)
+        meta_fila.addStretch()
+        meta_lay.addLayout(meta_fila)
+        log_layout.addWidget(meta_frame)
+
+        # Mensaje frame
+        msg_frame = QFrame()
+        msg_frame.setStyleSheet(f"QFrame {{ background: {_BG}; border-radius: 10px; border: 1.5px solid {_BOR}; }}")
+        msg_lay = QVBoxLayout(msg_frame)
+        msg_lay.setContentsMargins(16, 14, 16, 14)
+        msg_lay.setSpacing(8)
+        lbl_msg_t = QLabel("🎉 Mensaje de felicitación")
+        lbl_msg_t.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        lbl_msg_t.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        msg_lay.addWidget(lbl_msg_t)
+
+        ei_log = f"QLineEdit {{ background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 13px; }}"
+        lbl_titulo_l = QLabel("Título del cartel:")
+        lbl_titulo_l.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        msg_lay.addWidget(lbl_titulo_l)
+        self.inp_logro_titulo = QLineEdit()
+        self.inp_logro_titulo.setPlaceholderText("¡FELICITACIONES!")
+        self.inp_logro_titulo.setFixedHeight(38)
+        self.inp_logro_titulo.setStyleSheet(ei_log)
+        msg_lay.addWidget(self.inp_logro_titulo)
+
+        lbl_cuerpo_l = QLabel("Mensaje (usá {nombre} para el nombre del cajero):")
+        lbl_cuerpo_l.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        msg_lay.addWidget(lbl_cuerpo_l)
+        self.inp_logro_msg = QLineEdit()
+        self.inp_logro_msg.setPlaceholderText("{nombre}, llegaste a la meta del turno! 🎉")
+        self.inp_logro_msg.setFixedHeight(38)
+        self.inp_logro_msg.setStyleSheet(ei_log)
+        msg_lay.addWidget(self.inp_logro_msg)
+
+        lbl_hint2 = QLabel("💡 {nombre} se reemplaza por el nombre del cajero logueado")
+        lbl_hint2.setStyleSheet(f"color: {_MUT}; font-size: 11px; background: transparent;")
+        msg_lay.addWidget(lbl_hint2)
+        log_layout.addWidget(msg_frame)
+
+        # Preview
+        prev_frame = QFrame()
+        prev_frame.setFixedHeight(110)
+        prev_frame.setStyleSheet("QFrame { background: #050e1a; border-radius: 12px; border: 2px solid #D4A017; }")
+        prev_lay = QVBoxLayout(prev_frame)
+        prev_lay.setContentsMargins(16, 10, 16, 10)
+        prev_lay.setSpacing(4)
+        lbl_prev_label = QLabel("Vista previa:")
+        lbl_prev_label.setStyleSheet(f"color: {_MUT}; font-size: 10px; background: transparent; border: none;")
+        prev_lay.addWidget(lbl_prev_label)
+        self.lbl_logro_prev_titulo = QLabel("¡FELICITACIONES!")
+        self.lbl_logro_prev_titulo.setFont(QFont("Segoe UI", 18, QFont.Weight.Black))
+        self.lbl_logro_prev_titulo.setStyleSheet("color: #FFD700; background: transparent; border: none;")
+        self.lbl_logro_prev_titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        prev_lay.addWidget(self.lbl_logro_prev_titulo)
+        self.lbl_logro_prev_msg = QLabel("{nombre}, llegaste a la meta del turno! 🎉")
+        self.lbl_logro_prev_msg.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.lbl_logro_prev_msg.setStyleSheet("color: white; background: transparent; border: none;")
+        self.lbl_logro_prev_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        prev_lay.addWidget(self.lbl_logro_prev_msg)
+        log_layout.addWidget(prev_frame)
+
+        self.inp_logro_titulo.textChanged.connect(self._actualizar_preview_logro)
+        self.inp_logro_msg.textChanged.connect(self._actualizar_preview_logro)
+
+        btn_log = QPushButton("💾 Guardar configuración de logros")
+        btn_log.setFixedHeight(44)
+        btn_log.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        btn_log.setStyleSheet("QPushButton { background: #D4A017; color: #050e1a; border-radius: 8px; font-size: 14px; font-weight: bold; border: none; } QPushButton:hover { background: #F5C842; }")
+        btn_log.clicked.connect(self._guardar_logros)
+        log_layout.addWidget(btn_log)
+        log_layout.addStretch()
+
+        tabs.addTab(tab_logros, "🏆 Logros")
+
         layout.addWidget(tabs)
 
     def ejecutar_borrado_ventas(self):
@@ -965,8 +1079,45 @@ class ConfigScreen(QWidget):
         except Exception as ex:
             QMessageBox.critical(self, "Error", str(ex))
 
+    def _actualizar_preview_logro(self):
+        titulo = self.inp_logro_titulo.text().strip() or "¡FELICITACIONES!"
+        msg    = self.inp_logro_msg.text().strip() or "{nombre}, llegaste a la meta del turno! 🎉"
+        self.lbl_logro_prev_titulo.setText(titulo)
+        self.lbl_logro_prev_msg.setText(msg.replace("{nombre}", "Lucas"))
+
+    def _cargar_logros(self):
+        try:
+            cfg_path = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
+            if os.path.exists(cfg_path):
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                self.spin_meta.setValue(cfg.get("meta_ventas", 750000))
+                self.inp_logro_titulo.setText(cfg.get("logro_titulo", ""))
+                self.inp_logro_msg.setText(cfg.get("logro_mensaje", ""))
+        except Exception:
+            pass
+        self._actualizar_preview_logro()
+
+    def _guardar_logros(self):
+        try:
+            cfg_path = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
+            cfg = {}
+            if os.path.exists(cfg_path):
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+            cfg["meta_ventas"]  = self.spin_meta.value()
+            cfg["logro_titulo"] = self.inp_logro_titulo.text().strip() or "¡FELICITACIONES!"
+            cfg["logro_mensaje"] = self.inp_logro_msg.text().strip() or "{nombre}, llegaste a la meta del turno! 🎉"
+            os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2, ensure_ascii=False)
+            QMessageBox.information(self, "✅ Guardado", "Configuración de logros guardada.\nSe aplica en el próximo turno.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
     def showEvent(self, event):
         super().showEvent(event)
         self.cargar_config()
         self._cargar_config_ticket()
         self._actualizar_estado_respaldo()
+        self._cargar_logros()

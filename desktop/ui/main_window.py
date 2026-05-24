@@ -15,15 +15,17 @@ class FuegosArtificiales(QWidget):
     _COLORES = ["#FFD700","#FF6B6B","#4ECDC4","#45B7D1","#FF69B4",
                 "#98FB98","#FFA500","#DDA0DD","#00FA9A","#FF4500"]
 
-    def __init__(self, parent, turno_label=""):
+    def __init__(self, parent, cajero_nombre="", titulo="¡FELICITACIONES!", mensaje="{nombre}, llegaste a la meta del turno! 🎉"):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setGeometry(parent.rect())
+        self.setGeometry(0, 0, parent.width(), parent.height())
         self._particles = []
         self._elapsed   = 0
-        self._duration  = 4500
-        self._turno     = turno_label
+        self._duration  = 5000
+        self._titulo    = titulo
+        self._mensaje   = mensaje.replace("{nombre}", cajero_nombre) if cajero_nombre else mensaje.replace("{nombre}", "")
 
         self._lanzar_rafaga()
         self._timer = QTimer(self)
@@ -67,9 +69,12 @@ class FuegosArtificiales(QWidget):
         self._particles = [p for p in self._particles if p["life"] > 0]
         self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, _event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Fondo semi-oscuro para que los fuegos se vean
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 90))
 
         # Partículas
         for p in self._particles:
@@ -80,34 +85,61 @@ class FuegosArtificiales(QWidget):
             sz = p["size"]
             painter.drawEllipse(int(p["x"] - sz/2), int(p["y"] - sz/2), int(sz), int(sz))
 
-        # Texto de festejo (primeros 2.5 s)
-        if self._elapsed < 2500:
-            alpha = min(255, int(255 * (1 - self._elapsed / 2500))) if self._elapsed > 1800 else 255
-            cx, cy = self.width() // 2, self.height() // 2
+        # Banner de festejo (primeros 4 s)
+        if self._elapsed < 4000:
+            fade_in  = min(1.0, self._elapsed / 300)
+            fade_out = 1.0 if self._elapsed < 3200 else max(0.0, 1.0 - (self._elapsed - 3200) / 800)
+            alpha    = int(255 * fade_in * fade_out)
+            cx, cy   = self.width() // 2, self.height() // 2
 
-            # Sombra
-            shadow = QColor(0, 0, 0, int(alpha * 0.6))
-            painter.setPen(QPen(shadow))
-            font = QFont("Segoe UI", 42, QFont.Weight.Black)
-            painter.setFont(font)
-            painter.drawText(cx - 299, cy - 59, "¡META LOGRADA! 🎉")
+            # Fondo del banner
+            bw, bh = min(self.width() - 80, 780), 170
+            bx, by = cx - bw // 2, cy - bh // 2
+            bg = QColor(5, 14, 26, int(alpha * 0.92))
+            painter.setBrush(QBrush(bg))
+            border_col = QColor(212, 160, 23, alpha)
+            painter.setPen(QPen(border_col, 3))
+            painter.drawRoundedRect(bx, by, bw, bh, 18, 18)
 
-            # Texto dorado
+            # Título dorado
+            font_t = QFont("Segoe UI", 36, QFont.Weight.Black)
+            painter.setFont(font_t)
             gold = QColor("#FFD700"); gold.setAlpha(alpha)
             painter.setPen(QPen(gold))
-            painter.drawText(cx - 300, cy - 60, "¡META LOGRADA! 🎉")
+            painter.drawText(bx, by + 10, bw, 80, Qt.AlignmentFlag.AlignCenter, self._titulo)
 
-            # Subtítulo turno
-            if self._turno:
-                font2 = QFont("Segoe UI", 20, QFont.Weight.Bold)
-                painter.setFont(font2)
-                sub_col = QColor("#ffffff"); sub_col.setAlpha(alpha)
-                painter.setPen(QPen(sub_col))
-                painter.drawText(cx - 149, cy + 10, self._turno)
+            # Separador
+            sep_col = QColor(212, 160, 23, int(alpha * 0.5))
+            painter.setPen(QPen(sep_col, 1))
+            painter.drawLine(bx + 40, by + 88, bx + bw - 40, by + 88)
+
+            # Mensaje
+            font_m = QFont("Segoe UI", 18, QFont.Weight.Bold)
+            painter.setFont(font_m)
+            white = QColor(255, 255, 255, alpha)
+            painter.setPen(QPen(white))
+            painter.drawText(bx, by + 95, bw, 60, Qt.AlignmentFlag.AlignCenter, self._mensaje)
 
         painter.end()
 
 _T = get_tema()
+
+def _leer_config_logros():
+    """Lee meta_ventas, logro_titulo y logro_mensaje desde app_config.json."""
+    try:
+        cfg_path = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
+        if os.path.exists(cfg_path):
+            import json as _json
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = _json.load(f)
+            return {
+                "meta":    cfg.get("meta_ventas", 750000),
+                "titulo":  cfg.get("logro_titulo", "¡FELICITACIONES!"),
+                "mensaje": cfg.get("logro_mensaje", "{nombre}, llegaste a la meta del turno! 🎉"),
+            }
+    except Exception:
+        pass
+    return {"meta": 750000, "titulo": "¡FELICITACIONES!", "mensaje": "{nombre}, llegaste a la meta del turno! 🎉"}
 
 # Importaciones de tus pantallas
 from ui.pantallas.login import LoginScreen
@@ -584,6 +616,9 @@ class MainWindow(QMainWindow):
         self.navbar.show()
         self._meta_bar.show()
         self._meta_celebrado = False
+        _logros = _leer_config_logros()
+        self._META = _logros["meta"]
+        self._bar_meta.setMaximum(self._META)
         if not hasattr(self, '_timer_meta'):
             self._timer_meta = QTimer()
             self._timer_meta.timeout.connect(self._actualizar_meta)
@@ -830,38 +865,38 @@ class MainWindow(QMainWindow):
     def _actualizar_meta(self):
         def _fetch():
             try:
-                META = self._META
-                usuario_id = (self.cajero_actual or {}).get("id", 1)
-                # Obtener apertura real del turno
-                apertura = None
-                try:
-                    rt = requests.get(f"{API_URL}/caja/turno-actual/{usuario_id}", timeout=3)
-                    if rt.status_code == 200 and rt.json().get("abierto"):
-                        apertura = rt.json().get("apertura")
-                except Exception:
-                    pass
-                params = {}
-                if apertura:
-                    params["desde"] = str(apertura).replace(" ", "T")
-                r = requests.get(f"{API_URL}/reportes/hoy", params=params, timeout=4)
-                if r.status_code != 200:
+                r = requests.get(f"{API_URL}/reportes/hoy", timeout=5)
+                if not r.ok:
                     return
                 total = float(r.json().get("total_vendido", 0))
-
-                def _upd():
-                    pct = min(100, int(total / META * 100))
-                    self._bar_meta.setValue(int(min(total, META)))
-                    col = "#10b981" if total >= META else "#f59e0b"
-                    self._lbl_meta_pct.setText(f"{pct}%")
-                    self._lbl_meta_pct.setStyleSheet(f"color:{col if total>=META else '#64748b'};font-size:11px;font-weight:bold;background:transparent;min-width:36px;")
-                    if total >= META and not getattr(self, '_meta_celebrado', False):
-                        self._meta_celebrado = True
-                        turno = (self.cajero_actual or {}).get("turno", "")
-                        FuegosArtificiales(self, turno[:25] if turno else "")
-
-                QTimer.singleShot(0, _upd)
             except Exception:
-                pass
+                return
+
+            META    = self._META
+            pct     = min(100, int(total / META * 100))
+            val     = int(min(total, META))
+            cumplir = (total >= META) and not getattr(self, '_meta_celebrado', False)
+            col     = "#10b981" if total >= META else ("#f59e0b" if pct >= 50 else "#64748b")
+
+            def _upd():
+                if not self.isVisible():
+                    return
+                self._bar_meta.setValue(val)
+                self._lbl_meta_pct.setText(f"{pct}%")
+                self._lbl_meta_pct.setStyleSheet(
+                    f"color:{col};font-size:11px;font-weight:bold;"
+                    f"background:transparent;min-width:36px;"
+                )
+                if cumplir:
+                    _cfg = _leer_config_logros()
+                    self._meta_celebrado = True
+                    nombre = (self.cajero_actual or {}).get("nombre", "")
+                    fw = FuegosArtificiales(self, nombre, _cfg["titulo"], _cfg["mensaje"])
+                    fw.setGeometry(0, 0, self.width(), self.height())
+                    fw.raise_()
+
+            QTimer.singleShot(0, _upd)
+
         import threading
         threading.Thread(target=_fetch, daemon=True).start()
 
