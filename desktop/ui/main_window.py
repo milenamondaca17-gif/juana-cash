@@ -292,51 +292,15 @@ class MainWindow(QMainWindow):
             ("👤 Usuarios",   "usuarios"),
         ]
 
-        ESTILO_BTN = f"""
-            QPushButton {{
-                background: transparent;
-                color: {_T['navbar_text']};
-                font-size: 12px;
-                font-weight: 600;
-                border: none;
-                padding: 6px 13px;
-                border-radius: 8px;
-                margin: 6px 1px;
-            }}
-            QPushButton:hover {{
-                color: {_T['text_main']};
-                background: {_T['bg_hover']};
-            }}
-            QPushButton:checked {{
-                color: {_T['navbar_active']};
-                background: {_T['navbar_active_bg']};
-                font-weight: bold;
-                border-bottom: 2px solid {_T['navbar_border']};
-                border-radius: 6px;
-            }}
-        """
-        ESTILO_CONFIG = f"""
-            QPushButton {{
-                background: {_T['bg_hover']};
-                color: {_T['navbar_text']};
-                font-size: 11px;
-                font-weight: 600;
-                border: none;
-                border-left: 2px solid {_T['border']};
-                padding: 5px 10px;
-                border-radius: 0px;
-                margin: 8px 0px;
-            }}
-            QPushButton:hover {{
-                color: {_T['text_main']};
-                background: {_T['bg_selected']};
-            }}
-            QPushButton:checked {{
-                color: {_T['navbar_active']};
-                background: {_T['navbar_active_bg']};
-                border-left: 2px solid {_T['navbar_border']};
-            }}
-        """
+        _ORO = "#D4A017"
+        ESTILO_BTN = (
+            f"QPushButton {{ background: {_T['bg_navbar']}; color: {_ORO}; font-size: 12px; font-weight: bold;"
+            f" border-top: 1.5px solid {_ORO}; border-left: 1.5px solid {_ORO}; border-right: 1.5px solid {_ORO};"
+            f" border-bottom: 3px solid {_ORO}; border-radius: 7px; padding: 4px 12px; margin: 9px 2px; }}"
+            f"QPushButton:hover {{ background: {_T['bg_hover']}; color: #F5C842; border-color: #F5C842; }}"
+            f"QPushButton:checked {{ background: {_T['bg_selected']}; color: #FFD700; border-top: 1.5px solid #FFD700;"
+            f" border-left: 1.5px solid #FFD700; border-right: 1.5px solid #FFD700; border-bottom: 4px solid #FFD700; }}"
+        )
 
         for texto, key in menus_principales:
             btn = QPushButton(texto)
@@ -363,7 +327,7 @@ class MainWindow(QMainWindow):
         # Separador visual antes del submenú config
         _sep_config = QFrame()
         _sep_config.setFixedSize(1, 32)
-        _sep_config.setStyleSheet(f"background: {_T['border']}; border: none;")
+        _sep_config.setStyleSheet(f"background: {_ORO}; border: none;")
         _sep_config.setVisible(False)
         navbar_layout.addWidget(_sep_config)
         self._sep_config_widget = _sep_config
@@ -374,7 +338,7 @@ class MainWindow(QMainWindow):
             btn.setFixedHeight(56)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet(ESTILO_CONFIG)
+            btn.setStyleSheet(ESTILO_BTN)
             btn.setVisible(False)
             btn.clicked.connect(lambda _, k=key: self.cambiar_pantalla(k))
             navbar_layout.addWidget(btn)
@@ -397,7 +361,7 @@ class MainWindow(QMainWindow):
         # Separador derecho
         _sep_der = QFrame()
         _sep_der.setFixedSize(1, 28)
-        _sep_der.setStyleSheet(f"background: {_T['border']}; border: none;")
+        _sep_der.setStyleSheet("background: #D4A017; border: none;")
         navbar_layout.addWidget(_sep_der)
         navbar_layout.addSpacing(10)
 
