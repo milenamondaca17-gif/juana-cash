@@ -247,22 +247,25 @@ class MainWindow(QMainWindow):
 
         # ── Navbar Horizontal Superior ───────────────
         self.navbar = QFrame()
-        self.navbar.setFixedHeight(60)
+        self.navbar.setFixedHeight(56)
         self.navbar.setStyleSheet(
             f"background-color: {_T['bg_navbar']}; border-bottom: 2px solid {_T['border']};"
         )
         self.navbar.hide()
-        
-        navbar_layout = QHBoxLayout(self.navbar)
-        navbar_layout.setContentsMargins(15, 0, 15, 0)
-        navbar_layout.setSpacing(5)
 
-        logo = QLabel("JUANA CASH")
-        logo.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        logo.setStyleSheet(f"color: {_T['logo_color']}; border: none; font-weight: bold; letter-spacing: 1px;")
+        navbar_layout = QHBoxLayout(self.navbar)
+        navbar_layout.setContentsMargins(16, 0, 16, 0)
+        navbar_layout.setSpacing(2)
+
+        logo = QLabel(
+            f"<span style='color:{_T['logo_color']};font-weight:900;font-size:17px;letter-spacing:2px;'>JUANA</span>"
+            f"<span style='color:{_T['text_muted']};font-weight:900;font-size:17px;letter-spacing:2px;'> CASH</span>"
+            f"<span style='color:{_T['logo_color']};font-weight:900;font-size:15px;'>$</span>"
+        )
+        logo.setStyleSheet("border: none; background: transparent;")
         navbar_layout.addWidget(logo)
 
-        navbar_layout.addSpacing(30)
+        navbar_layout.addSpacing(20)
 
         self.btns_menu = {}
         self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador", "etiquetas", "ofertas", "alertas"]
@@ -290,19 +293,54 @@ class MainWindow(QMainWindow):
         ]
 
         ESTILO_BTN = f"""
-            QPushButton {{ background: transparent; color: {_T['navbar_text']}; font-size: 13px; font-weight: bold; border: none; padding: 0 12px; border-bottom: 3px solid transparent; border-radius: 0px; }}
-            QPushButton:hover {{ color: {_T['text_main']}; background: {_T['bg_hover']}; border-bottom: 3px solid {_T['border']}; }}
-            QPushButton:checked {{ color: {_T['navbar_active']}; background: {_T['navbar_active_bg']}; border-bottom: 3px solid {_T['navbar_border']}; }}
+            QPushButton {{
+                background: transparent;
+                color: {_T['navbar_text']};
+                font-size: 12px;
+                font-weight: 600;
+                border: none;
+                padding: 6px 13px;
+                border-radius: 8px;
+                margin: 6px 1px;
+            }}
+            QPushButton:hover {{
+                color: {_T['text_main']};
+                background: {_T['bg_hover']};
+            }}
+            QPushButton:checked {{
+                color: {_T['navbar_active']};
+                background: {_T['navbar_active_bg']};
+                font-weight: bold;
+                border-bottom: 2px solid {_T['navbar_border']};
+                border-radius: 6px;
+            }}
         """
         ESTILO_CONFIG = f"""
-            QPushButton {{ background: {_T['bg_hover']}; color: {_T['navbar_text']}; font-size: 12px; font-weight: bold; border: none; padding: 0 10px; border-bottom: 3px solid transparent; border-left: 3px solid {_T['border']}; border-radius: 0px; }}
-            QPushButton:hover {{ color: {_T['text_main']}; background: {_T['bg_selected']}; border-bottom: 3px solid {_T['border']}; }}
-            QPushButton:checked {{ color: {_T['navbar_active']}; background: {_T['navbar_active_bg']}; border-bottom: 3px solid {_T['navbar_border']}; }}
+            QPushButton {{
+                background: {_T['bg_hover']};
+                color: {_T['navbar_text']};
+                font-size: 11px;
+                font-weight: 600;
+                border: none;
+                border-left: 2px solid {_T['border']};
+                padding: 5px 10px;
+                border-radius: 0px;
+                margin: 8px 0px;
+            }}
+            QPushButton:hover {{
+                color: {_T['text_main']};
+                background: {_T['bg_selected']};
+            }}
+            QPushButton:checked {{
+                color: {_T['navbar_active']};
+                background: {_T['navbar_active_bg']};
+                border-left: 2px solid {_T['navbar_border']};
+            }}
         """
 
         for texto, key in menus_principales:
             btn = QPushButton(texto)
-            btn.setFixedHeight(60)
+            btn.setFixedHeight(56)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(ESTILO_BTN)
@@ -314,18 +352,26 @@ class MainWindow(QMainWindow):
         self._config_expandido = False
         self._btns_config_ocultos = []
 
-        btn_config_toggle = QPushButton("⚙️ Config  ▾")
-        btn_config_toggle.setFixedHeight(60)
+        btn_config_toggle = QPushButton("⚙ Config ▾")
+        btn_config_toggle.setFixedHeight(56)
         btn_config_toggle.setCheckable(True)
         btn_config_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_config_toggle.setStyleSheet(ESTILO_BTN)
         navbar_layout.addWidget(btn_config_toggle)
         self.btns_menu["config"] = btn_config_toggle
 
+        # Separador visual antes del submenú config
+        _sep_config = QFrame()
+        _sep_config.setFixedSize(1, 32)
+        _sep_config.setStyleSheet(f"background: {_T['border']}; border: none;")
+        _sep_config.setVisible(False)
+        navbar_layout.addWidget(_sep_config)
+        self._sep_config_widget = _sep_config
+
         # Crear botones ocultos de config
         for texto, key in menus_config:
             btn = QPushButton(texto)
-            btn.setFixedHeight(52)
+            btn.setFixedHeight(56)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(ESTILO_CONFIG)
@@ -339,13 +385,21 @@ class MainWindow(QMainWindow):
             self._config_expandido = not self._config_expandido
             for b in self._btns_config_ocultos:
                 b.setVisible(self._config_expandido)
-            btn_config_toggle.setText("⚙️ Config  ▴" if self._config_expandido else "⚙️ Config  ▾")
+            self._sep_config_widget.setVisible(self._config_expandido)
+            btn_config_toggle.setText("⚙ Config ▴" if self._config_expandido else "⚙ Config ▾")
             if checked:
                 self.cambiar_pantalla("config")
 
         btn_config_toggle.clicked.connect(_toggle_config)
 
         navbar_layout.addStretch()
+
+        # Separador derecho
+        _sep_der = QFrame()
+        _sep_der.setFixedSize(1, 28)
+        _sep_der.setStyleSheet(f"background: {_T['border']}; border: none;")
+        navbar_layout.addWidget(_sep_der)
+        navbar_layout.addSpacing(10)
 
         try:
             import json, sys
@@ -363,18 +417,21 @@ class MainWindow(QMainWindow):
             _ver = ""
         if _ver:
             lbl_ver = QLabel(f"v{_ver}")
-            lbl_ver.setStyleSheet(f"color: {_T['text_muted']}; font-size: 11px; border: none; margin-right: 10px;")
+            lbl_ver.setStyleSheet(f"color: {_T['text_muted']}; font-size: 10px; border: none; margin-right: 6px; letter-spacing: 1px;")
             navbar_layout.addWidget(lbl_ver)
 
         self.lbl_cajero_navbar = QLabel("")
-        self.lbl_cajero_navbar.setStyleSheet(f"color: {_T['text_main']}; font-size: 13px; border: none; margin-right: 15px; font-weight: bold;")
+        self.lbl_cajero_navbar.setStyleSheet(
+            f"color: {_T['navbar_active']}; font-size: 12px; font-weight: bold; border: 1.5px solid {_T['border']};"
+            f" background: {_T['navbar_active_bg']}; border-radius: 12px; padding: 3px 12px; margin-right: 6px;"
+        )
         navbar_layout.addWidget(self.lbl_cajero_navbar)
 
-        btn_salir = QPushButton("Salir")
-        btn_salir.setFixedHeight(34)
+        btn_salir = QPushButton("✕ Salir")
+        btn_salir.setFixedHeight(32)
         btn_salir.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_salir.setStyleSheet(f"""
-            QPushButton {{ background: transparent; color: {_T['text_muted']}; font-size: 13px; font-weight: bold; border: 1.5px solid {_T['border']}; border-radius: 8px; padding: 0 15px; }}
+            QPushButton {{ background: transparent; color: {_T['text_muted']}; font-size: 12px; font-weight: bold; border: 1.5px solid {_T['border']}; border-radius: 10px; padding: 0 14px; }}
             QPushButton:hover {{ background: {_T['danger']}; color: white; border-color: {_T['danger']}; }}
         """)
         btn_salir.clicked.connect(self.on_logout)
