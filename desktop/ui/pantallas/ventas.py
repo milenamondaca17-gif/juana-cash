@@ -681,21 +681,32 @@ class VentasScreen(QWidget):
         self.input_buscar.installEventFilter(self)
 
         atajos_frame = QFrame()
-        atajos_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; }}")
+        atajos_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 10px; border: 1px solid {BORDER}; }}")
         atajos_lay = QHBoxLayout(atajos_frame)
-        atajos_lay.setContentsMargins(12, 6, 12, 6)
-        atajos_lay.setSpacing(0)
-        # NUEVO: Agregamos "F5 Pausar" a la lista visual de atajos
-        for texto, color in [
-            ("F2 Rápido",    "#e67e22"),
-            ("F3 Precios",   "#1abc9c"),
-            ("F5 Pausar",    "#F59E0B"),
-            ("F6 Buscar",    ACCENT_BOTON),
-            ("F9 Cobrar",    ACCENT_TOTAL),
+        atajos_lay.setContentsMargins(10, 6, 10, 6)
+        atajos_lay.setSpacing(8)
+        for tecla, desc, color in [
+            ("F2", "Rápido",  "#e67e22"),
+            ("F3", "Precios", "#1abc9c"),
+            ("F5", "Pausar",  "#F59E0B"),
+            ("F6", "Buscar",  ACCENT_BOTON),
+            ("F9", "Cobrar",  ACCENT_TOTAL),
         ]:
-            lbl = QLabel(f"<b style='color:{color}'>{texto.split()[0]}</b><span style='color:{TEXT_MUTED}'> {texto.split()[1]}</span>")
-            lbl.setStyleSheet("font-size: 13px; padding: 0 10px;")
-            atajos_lay.addWidget(lbl)
+            key_frame = QFrame()
+            key_frame.setFixedHeight(30)
+            key_frame.setStyleSheet(
+                f"QFrame {{ background: {BG_MAIN}; border-top: 1px solid {color}; border-left: 1px solid {color}; border-right: 1px solid {color}; border-bottom: 3px solid {color}; border-radius: 6px; }}"
+            )
+            kl = QHBoxLayout(key_frame)
+            kl.setContentsMargins(8, 0, 8, 0)
+            kl.setSpacing(4)
+            lbl_k = QLabel(tecla)
+            lbl_k.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: bold; border: none; background: transparent;")
+            lbl_d = QLabel(desc)
+            lbl_d.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; border: none; background: transparent;")
+            kl.addWidget(lbl_k)
+            kl.addWidget(lbl_d)
+            atajos_lay.addWidget(key_frame)
         atajos_lay.addStretch()
         btn_precios = QPushButton("🔎 Verificar precio")
         btn_precios.setFixedHeight(30)
@@ -715,13 +726,14 @@ class VentasScreen(QWidget):
         self.tabla.setColumnWidth(5, 50)
         self.tabla.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
-        self.tabla.verticalHeader().setDefaultSectionSize(60) 
+        self.tabla.verticalHeader().setDefaultSectionSize(60)
         self.tabla.setShowGrid(False)
+        self.tabla.setAlternatingRowColors(True)
         self.tabla.setStyleSheet(f"""
-            QTableWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 12px; gridline-color: transparent; outline: none; font-size: 18px; font-weight: bold; }}
-            QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 10px; border: none; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: bold; }}
+            QTableWidget {{ background: {BG_PANEL}; alternate-background-color: {BG_MAIN}; border: 1px solid {BORDER}; border-radius: 12px; gridline-color: transparent; outline: none; font-size: 18px; font-weight: bold; }}
+            QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 10px; border: none; border-bottom: 2px solid {BORDER}; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: bold; }}
             QTableWidget::item {{ color: {TEXT_MAIN}; padding: 6px 8px; border-bottom: 1px solid {BORDER}; }}
-            QTableWidget::item:selected {{ background: {BORDER}; }}
+            QTableWidget::item:selected {{ background: rgba(55,130,255,0.15); }}
         """)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -748,22 +760,28 @@ class VentasScreen(QWidget):
 
         self.lbl_total = QLabel("$0")
         self.lbl_total.setFont(QFont("Arial", 44, QFont.Weight.Bold))
-        self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px; margin-top: -8px; margin-bottom: 8px;")
+        self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px; margin-top: -8px; margin-bottom: 0px;")
         self.lbl_total.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.lbl_total.setMinimumWidth(260)
         self.lbl_total.setWordWrap(False)
         total_layout.addWidget(self.lbl_total)
+
+        self.lbl_items_count = QLabel("Sin productos")
+        self.lbl_items_count.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; letter-spacing: 1px; margin-bottom: 6px;")
+        self.lbl_items_count.setAlignment(Qt.AlignmentFlag.AlignRight)
+        total_layout.addWidget(self.lbl_items_count)
 
         sep0 = QFrame(); sep0.setFixedHeight(1)
         sep0.setStyleSheet(f"background: {BORDER}; border: none;")
         total_layout.addWidget(sep0)
 
         btn_cobrar = QPushButton("  💳  COBRAR")
-        btn_cobrar.setFixedHeight(65)
+        btn_cobrar.setFixedHeight(68)
         btn_cobrar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_cobrar.setStyleSheet(f"""
-            QPushButton {{ background: {ACCENT_TOTAL}; color: {BG_MAIN}; border-radius: 12px; font-size: 20px; font-weight: bold; letter-spacing: 2px; border: none; }}
-            QPushButton:hover {{ background: #45D4A0; }}
+            QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3EE9A0, stop:1 {ACCENT_TOTAL}); color: #0a0a0a; border-radius: 14px; font-size: 22px; font-weight: bold; letter-spacing: 3px; border: none; }}
+            QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4DFAAF, stop:1 #45D4A0); }}
+            QPushButton:pressed {{ background: {ACCENT_TOTAL}; }}
         """)
         btn_cobrar.clicked.connect(self.cobrar)
         total_layout.addWidget(btn_cobrar)
@@ -1481,6 +1499,10 @@ class VentasScreen(QWidget):
 
         self.tabla.setUpdatesEnabled(True)
         self.lbl_total.setText(_p(total))
+        n_items = len(self.items_venta)
+        self.lbl_items_count.setText(
+            f"{n_items} {'producto' if n_items == 1 else 'productos'}" if n_items > 0 else "Sin productos"
+        )
 
     def eliminar_item(self, idx):
         if idx >= len(self.items_venta): return

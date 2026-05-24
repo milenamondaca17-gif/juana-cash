@@ -1,8 +1,8 @@
 {
-  "version": "4.4.5",
-  "desktop_version": "4.4.5",
+  "version": "4.4.6",
+  "desktop_version": "4.4.6",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.5/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.5/JuanaCash.apk",
-  "notas": "v4.4.5 - Cobros fiado: muestra quien pago, monto, si cancelo deuda, y separa cajón vs banco"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.6/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.6/JuanaCash.apk",
+  "notas": "v4.4.6 - Pantalla de ventas renovada: teclas estilizadas, contador de productos, boton COBRAR con gradiente"
 }
