@@ -278,6 +278,15 @@ def dashboard_tiempo_real(db: Session = Depends(get_db)):
     if total_ayer > 0:
         variacion_pct = ((total_hoy - total_ayer) / total_ayer) * 100
 
+    top_hoy = db.query(
+        Producto.nombre,
+        func.sum(ItemVenta.cantidad).label("qty"),
+        func.sum(ItemVenta.subtotal).label("total")
+    ).join(ItemVenta).join(Venta)\
+     .filter(func.date(Venta.fecha) == hoy, Venta.estado == "completada",
+             ItemVenta.producto_id != 0)\
+     .group_by(Producto.id).order_by(func.sum(ItemVenta.subtotal).desc()).limit(10).all()
+
     return {
         "total_hoy": round(total_hoy, 2),
         "total_ayer": round(total_ayer, 2),
@@ -285,7 +294,8 @@ def dashboard_tiempo_real(db: Session = Depends(get_db)):
         "tickets_hoy": tickets_hoy,
         "ticket_promedio": round(promedio, 2),
         "desglose_metodos": desglose,
-        "top_productos": [{"nombre": r.nombre, "cantidad": float(r.qty), "total": float(r.total)} for r in top_productos]
+        "top_productos": [{"nombre": r.nombre, "cantidad": float(r.qty), "total": float(r.total)} for r in top_productos],
+        "top_hoy": [{"nombre": r.nombre, "cantidad": float(r.qty), "total": float(r.total)} for r in top_hoy],
     }
 
 @router.get("/por-categoria")

@@ -1,8 +1,8 @@
 {
-  "version": "4.5.2",
-  "desktop_version": "4.5.2",
+  "version": "4.5.3",
+  "desktop_version": "4.5.3",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.2/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.2/JuanaCash.apk",
-  "notas": "v4.5.2 - IA con resumen inteligente del dia + horario pico corregido"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.3/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.3/JuanaCash.apk",
+  "notas": "v4.5.3 - Dashboard completo: tendencia 7 dias, turnos del dia, top hoy vs anio, proyeccion"
 }
