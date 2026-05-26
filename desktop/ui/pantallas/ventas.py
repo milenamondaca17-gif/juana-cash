@@ -751,25 +751,27 @@ class VentasScreen(QWidget):
         total_frame.setMinimumWidth(350) 
         total_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 16px; border: 1px solid {BORDER}; }}")
         total_layout = QVBoxLayout(total_frame)
-        total_layout.setContentsMargins(18, 18, 18, 18)
-        total_layout.setSpacing(10)
+        total_layout.setContentsMargins(18, 14, 18, 14)
+        total_layout.setSpacing(6)
 
+        # Fila título + contador en la misma línea
+        fila_titulo = QHBoxLayout()
         lbl_total_titulo = QLabel("TOTAL A COBRAR")
         lbl_total_titulo.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; letter-spacing: 2px; font-weight: bold;")
-        total_layout.addWidget(lbl_total_titulo)
+        fila_titulo.addWidget(lbl_total_titulo)
+        fila_titulo.addStretch()
+        self.lbl_items_count = QLabel("")
+        self.lbl_items_count.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; letter-spacing: 0.5px;")
+        fila_titulo.addWidget(self.lbl_items_count)
+        total_layout.addLayout(fila_titulo)
 
         self.lbl_total = QLabel("$0")
         self.lbl_total.setFont(QFont("Arial", 44, QFont.Weight.Bold))
-        self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px; margin-top: -8px; margin-bottom: 0px;")
+        self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px; margin-top: -4px;")
         self.lbl_total.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.lbl_total.setMinimumWidth(260)
         self.lbl_total.setWordWrap(False)
         total_layout.addWidget(self.lbl_total)
-
-        self.lbl_items_count = QLabel("Sin productos")
-        self.lbl_items_count.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; letter-spacing: 1px; margin-bottom: 6px;")
-        self.lbl_items_count.setAlignment(Qt.AlignmentFlag.AlignRight)
-        total_layout.addWidget(self.lbl_items_count)
 
         sep0 = QFrame(); sep0.setFixedHeight(1)
         sep0.setStyleSheet(f"background: {BORDER}; border: none;")
@@ -1513,7 +1515,7 @@ class VentasScreen(QWidget):
         self.lbl_total.setText(_p(total))
         n_items = len(self.items_venta)
         self.lbl_items_count.setText(
-            f"{n_items} {'producto' if n_items == 1 else 'productos'}" if n_items > 0 else "Sin productos"
+            f"{n_items} {'ítem' if n_items == 1 else 'ítems'}" if n_items > 0 else ""
         )
 
     def eliminar_item(self, idx):

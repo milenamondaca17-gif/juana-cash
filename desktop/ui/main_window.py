@@ -648,13 +648,18 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Juana Cash — {nombre} | {rol} | {turno[:5]}")
 
     def _pedir_monto_inicial_si_necesario(self, cajero):
+        from datetime import date as _date
         usuario_id = cajero.get("id", 1)
         try:
             r = requests.get(f"{API_URL}/caja/turno-actual/{usuario_id}", timeout=4)
             if r.status_code == 200 and r.json().get("abierto"):
-                return  # Ya hay turno abierto, no hace falta pedir monto
+                apertura = r.json().get("apertura", "")
+                # Solo saltar el diálogo si el turno abierto es de HOY
+                if apertura and apertura[:10] == str(_date.today()):
+                    return
+                # Turno de otro día quedó abierto — igual pedir monto nuevo
         except Exception:
-            return
+            pass  # Si no hay conexión, igual mostrar el diálogo
 
         # No hay turno abierto — mostrar diálogo obligatorio para ingresar monto inicial
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
