@@ -1,10 +1,11 @@
 import requests
+import threading
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
                               QDialog, QFormLayout, QDoubleSpinBox, QSpinBox,
                               QComboBox)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
 
 API_URL = "http://127.0.0.1:8000"
@@ -241,10 +242,19 @@ class ProductoDialog(QDialog):
 
 
 class ProductosScreen(QWidget):
+    _productos_listos = pyqtSignal(list)
+    _busqueda_lista   = pyqtSignal(list)
+
     def __init__(self):
         super().__init__()
         self.productos = []
+        self._debounce = QTimer()
+        self._debounce.setSingleShot(True)
+        self._debounce.timeout.connect(self._buscar_debounced)
+        self._ultimo_q = ""
         self.setup_ui()
+        self._productos_listos.connect(lambda ps: self._mostrar_async(ps, False))
+        self._busqueda_lista.connect(lambda ps: self._mostrar_async(ps, True))
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -273,7 +283,7 @@ class ProductosScreen(QWidget):
         self.input_buscar.setPlaceholderText("🔍 Buscar producto...")
         self.input_buscar.setFixedWidth(220)
         self.input_buscar.setFixedHeight(36)
-        self.input_buscar.textChanged.connect(self.filtrar)
+        self.input_buscar.textChanged.connect(self._on_buscar_changed)
         header.addWidget(self.input_buscar)
 
         btn_stock_bajo = QPushButton("⚠️ Stock bajo")
@@ -341,17 +351,28 @@ class ProductosScreen(QWidget):
         except Exception:
             pass
 
+    def _on_buscar_changed(self, texto):
+        self._ultimo_q = texto
+        self._debounce.start(300)
+
+    def _buscar_debounced(self):
+        self.filtrar(self._ultimo_q)
+
     def cargar_productos(self):
-        try:
-            r = requests.get(f"{API_URL}/productos/", timeout=30)
-            if r.status_code == 200:
-                self.productos = r.json()
-                self.mostrar_productos(self.productos)
-                self.actualizar_resumen()
-        except requests.exceptions.ConnectionError:
-            QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error al cargar productos:\n{str(e)}")
+        def _fetch():
+            try:
+                r = requests.get(f"{API_URL}/productos/", timeout=30)
+                if r.status_code == 200:
+                    self._productos_listos.emit(r.json())
+            except Exception:
+                pass
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _mostrar_async(self, productos, es_filtro):
+        self.productos = productos
+        self.mostrar_productos(productos, es_filtro=es_filtro)
+        if not es_filtro:
+            self.actualizar_resumen()
 
     def actualizar_resumen(self):
         total = len(self.productos)
@@ -376,13 +397,15 @@ class ProductosScreen(QWidget):
             self.tabla.setSpan(0, 0, 1, 9)
             self.productos = []
             return
-        try:
-            r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
-            if r.status_code == 200:
-                self.productos = r.json()
-                self.mostrar_productos(self.productos, es_filtro=True)
-        except Exception:
-            pass
+        q = texto
+        def _fetch():
+            try:
+                r = requests.get(f"{API_URL}/productos/buscar", params={"q": q}, timeout=5)
+                if r.status_code == 200:
+                    self._busqueda_lista.emit(r.json())
+            except Exception:
+                pass
+        threading.Thread(target=_fetch, daemon=True).start()
 
     def mostrar_productos(self, productos, es_filtro=False):
         MAX_MOSTRAR = 50
@@ -460,7 +483,7 @@ class ProductosScreen(QWidget):
             try:
                 r = requests.post(f"{API_URL}/productos/", json=datos, timeout=5)
                 if r.status_code == 200:
-                    self.cargar_productos()
+                    self.input_buscar.setText(datos["nombre"])
                     QMessageBox.information(self, "✅", "Producto creado correctamente")
                 else:
                     QMessageBox.critical(self, "Error", f"No se pudo crear: {r.text}")
@@ -478,7 +501,7 @@ class ProductosScreen(QWidget):
             try:
                 r = requests.put(f"{API_URL}/productos/{producto['id']}", json=datos, timeout=5)
                 if r.status_code == 200:
-                    self.cargar_productos()
+                    self.input_buscar.setText(datos["nombre"])
                 else:
                     QMessageBox.critical(self, "Error", "No se pudo actualizar")
             except Exception:
@@ -549,7 +572,7 @@ class ProductosScreen(QWidget):
             try:
                 r = requests.put(f"{API_URL}/productos/{p['id']}", json=datos, timeout=5)
                 if r.status_code == 200:
-                    self.cargar_productos()
+                    self.input_buscar.setText(p["nombre"])
                     dialog.accept()
                     QMessageBox.information(self, "✅",
                         f"Stock actualizado a {nuevo_stock}\nMotivo: {motivo}")
@@ -575,7 +598,9 @@ class ProductosScreen(QWidget):
         try:
             r = requests.delete(f"{API_URL}/productos/{p['id']}", timeout=10)
             if r.status_code == 200:
-                self.cargar_productos()
+                self.productos = [x for x in self.productos if x["id"] != p["id"]]
+                self.mostrar_productos(self.productos, es_filtro=len(self.input_buscar.text()) >= 2)
+                self._cargar_resumen()
                 QMessageBox.information(self, "✅", f"'{p['nombre']}' eliminado")
             else:
                 QMessageBox.critical(self, "Error", f"No se pudo eliminar: {r.text}")
