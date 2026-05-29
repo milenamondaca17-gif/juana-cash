@@ -76,14 +76,16 @@ def _fmt_fecha(f):
         return str(f)[:19]
 
 @router.get("/hoy")
-def reporte_hoy(desde: str = None, db: Session = Depends(get_db)):
+def reporte_hoy(desde: str = None, hasta: str = None, db: Session = Depends(get_db)):
+    from datetime import datetime as _dt
     hoy = date.today()
     if desde:
-        from datetime import datetime as _dt
         dt_desde = _dt.fromisoformat(desde.replace("T", " "))
-        ventas = db.query(Venta).filter(
-            Venta.fecha >= dt_desde
-        ).order_by(Venta.fecha.desc()).all()
+        q = db.query(Venta).filter(Venta.fecha >= dt_desde)
+        if hasta:
+            dt_hasta = _dt.fromisoformat(hasta.replace("T", " "))
+            q = q.filter(Venta.fecha <= dt_hasta)
+        ventas = q.order_by(Venta.fecha.desc()).all()
     else:
         ventas = db.query(Venta).filter(
             func.date(Venta.fecha) == hoy

@@ -337,8 +337,8 @@ class CajaScreen(QWidget):
         layout.addWidget(lbl_resumen)
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(8)
-        self.tabla.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Estado", "Hora", "Anular", "🖨"])
+        self.tabla.setColumnCount(9)
+        self.tabla.setHorizontalHeaderLabels(["Ticket", "Total", "Método", "Origen", "Estado", "Hora", "Anular", "🖨", "📱"])
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tabla.setColumnWidth(1, 110)
         self.tabla.setColumnWidth(2, 100)
@@ -868,11 +868,101 @@ class CajaScreen(QWidget):
              ("+" if diff >= 0 else "") + _p(diff),
              "#16a34a" if abs(diff) < 500 else "#dc2626")
 
+        btns_row = QHBoxLayout()
+        btn_ventas = QPushButton("🧾 Ver ventas del turno")
+        btn_ventas.setFixedHeight(40)
+        btn_ventas.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; padding: 0 14px; }}")
+        btn_ventas.clicked.connect(lambda: self._ver_ventas_turno(c, dlg))
+        btns_row.addWidget(btn_ventas)
+
         btn_c = QPushButton("Cerrar")
         btn_c.setFixedHeight(40)
         btn_c.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
         btn_c.clicked.connect(dlg.accept)
-        lay.addWidget(btn_c)
+        btns_row.addWidget(btn_c)
+        lay.addLayout(btns_row)
+        dlg.exec()
+
+    def _ver_ventas_turno(self, cierre, parent=None):
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout
+        ventana = parent or self
+
+        apertura = cierre.get("apertura", "")
+        cierre_dt = cierre.get("cierre", "")
+        cajero = cierre.get("cajero", "")
+
+        try:
+            params = {}
+            if apertura:
+                params["desde"] = apertura.replace(" ", "T")
+            if cierre_dt:
+                params["hasta"] = cierre_dt.replace(" ", "T")
+            r = requests.get(f"{API_URL}/reportes/hoy", params=params, timeout=5)
+            ventas = r.json().get("ventas", []) if r.status_code == 200 else []
+        except Exception as e:
+            QMessageBox.critical(ventana, "Error", str(e))
+            return
+
+        dlg = QDialog(ventana)
+        dlg.setWindowTitle(f"🧾 Ventas — {cajero}  {apertura[:10] if apertura else ''}")
+        dlg.setMinimumWidth(560)
+        dlg.setMinimumHeight(480)
+        dlg.setStyleSheet(f"background: {BG_CARD}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(16, 14, 16, 14)
+        lay.setSpacing(8)
+
+        titulo = QLabel(f"🧾 {len(ventas)} ventas — {cajero}  {apertura[:16] if apertura else ''}")
+        titulo.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {TEXT_MAIN}; background: transparent;")
+        lay.addWidget(titulo)
+
+        if not ventas:
+            lay.addWidget(QLabel("Sin ventas registradas para este turno."))
+        else:
+            tabla_v = QTableWidget()
+            tabla_v.setColumnCount(6)
+            tabla_v.setHorizontalHeaderLabels(["#", "Total", "Método", "Estado", "Hora", "📱"])
+            tabla_v.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            tabla_v.setColumnWidth(0, 60)
+            tabla_v.setColumnWidth(2, 100)
+            tabla_v.setColumnWidth(3, 80)
+            tabla_v.setColumnWidth(4, 60)
+            tabla_v.setColumnWidth(5, 44)
+            tabla_v.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            tabla_v.setAlternatingRowColors(True)
+            tabla_v.setStyleSheet(f"QTableWidget {{ background: {BG_MAIN}; border: 1px solid {BORDER}; border-radius: 6px; gridline-color: {BORDER}; }} QHeaderView::section {{ background: {BG_CARD}; color: {TEXT_MUTED}; padding: 4px; border: none; }}")
+            tabla_v.setRowCount(len(ventas))
+
+            nombres_m = {
+                "efectivo": "💵 Efectivo", "debito": "🏧 Débito",
+                "tarjeta": "💳 Tarjeta", "mercadopago_qr": "📱 QR/MP",
+                "transferencia": "🏦 Transf.", "fiado": "💸 Fiado",
+            }
+            for i, v in enumerate(ventas):
+                tabla_v.setItem(i, 0, QTableWidgetItem(str(v["numero"])))
+                tabla_v.setItem(i, 1, QTableWidgetItem(_p(v["total"])))
+                tabla_v.setItem(i, 2, QTableWidgetItem(nombres_m.get(v.get("metodo_pago", ""), v.get("metodo_pago", ""))))
+                estado = v.get("estado", "completada")
+                item_e = QTableWidgetItem("✅" if estado == "completada" else "🚫")
+                item_e.setForeground(Qt.GlobalColor.green if estado == "completada" else Qt.GlobalColor.red)
+                tabla_v.setItem(i, 3, item_e)
+                tabla_v.setItem(i, 4, QTableWidgetItem(v.get("fecha", "")[-8:-3] if v.get("fecha") else ""))
+
+                btn_wa = QPushButton("📱")
+                btn_wa.setFixedSize(38, 26)
+                btn_wa.setToolTip("Reenviar por WhatsApp")
+                btn_wa.setStyleSheet("QPushButton { background: #25D366; color: white; border-radius: 4px; font-size: 12px; }")
+                btn_wa.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.reenviar_whatsapp_ticket(vid, num, dlg))
+                tabla_v.setCellWidget(i, 5, btn_wa)
+
+            lay.addWidget(tabla_v)
+
+        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar.setFixedHeight(38)
+        btn_cerrar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_cerrar.clicked.connect(dlg.accept)
+        lay.addWidget(btn_cerrar)
         dlg.exec()
 
     def abrir_caja(self):
@@ -1917,6 +2007,92 @@ class CajaScreen(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
+    def reenviar_whatsapp_ticket(self, venta_id, numero, parent=None):
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit
+        ventana = parent or self
+        try:
+            r = requests.get(f"{API_URL}/ventas/{venta_id}/detalle", timeout=5)
+            if r.status_code != 200:
+                QMessageBox.warning(ventana, "Error", "No se pudo obtener la venta")
+                return
+            data = r.json()
+        except Exception as e:
+            QMessageBox.critical(ventana, "Error", str(e))
+            return
+
+        from ui.pantallas.whatsapp_ticket import servidor_activo, formatear_ticket_whatsapp, enviar_ticket_whatsapp
+        if not servidor_activo():
+            QMessageBox.warning(ventana, "WhatsApp", "❌ Servidor WhatsApp no activo")
+            return
+
+        dlg = QDialog(ventana)
+        dlg.setWindowTitle(f"📱 Reenviar ticket #{numero} por WhatsApp")
+        dlg.setMinimumWidth(360)
+        dlg.setStyleSheet(f"background: {BG_CARD}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dlg)
+        lay.setSpacing(10)
+        lay.setContentsMargins(20, 18, 20, 18)
+
+        lbl_info = QLabel(f"Ticket #{numero}  •  Total: {_p(data['total'])}  •  {data['fecha'][:16]}")
+        lbl_info.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; background: transparent;")
+        lay.addWidget(lbl_info)
+
+        lbl_tel = QLabel("Número de WhatsApp (con código de país, sin +):")
+        lbl_tel.setStyleSheet(f"color: {TEXT_MAIN}; font-size: 13px; background: transparent;")
+        lay.addWidget(lbl_tel)
+
+        input_tel = QLineEdit()
+        input_tel.setPlaceholderText("5492634000000")
+        input_tel.setFixedHeight(40)
+        input_tel.setStyleSheet(f"background: {BG_MAIN}; border: 1.5px solid {BORDER}; border-radius: 8px; padding: 8px; color: {TEXT_MAIN}; font-size: 14px;")
+        lay.addWidget(input_tel)
+
+        lbl_status = QLabel("")
+        lbl_status.setStyleSheet("font-size: 12px; background: transparent;")
+        lay.addWidget(lbl_status)
+
+        btns = QHBoxLayout()
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.setFixedHeight(38)
+        btn_cancel.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_cancel.clicked.connect(dlg.reject)
+        btns.addWidget(btn_cancel)
+
+        btn_send = QPushButton("📤 Enviar")
+        btn_send.setFixedHeight(38)
+        btn_send.setStyleSheet("QPushButton { background: #25D366; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }")
+        btns.addWidget(btn_send)
+        lay.addLayout(btns)
+
+        def _enviar():
+            tel = input_tel.text().strip().replace("+", "").replace(" ", "").replace("-", "")
+            if not tel or len(tel) < 8:
+                lbl_status.setText("❌ Ingresá un número válido")
+                lbl_status.setStyleSheet("color: #e94560; font-size: 12px; background: transparent;")
+                return
+            btn_send.setEnabled(False)
+            lbl_status.setText("Enviando...")
+            lbl_status.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; background: transparent;")
+            texto = formatear_ticket_whatsapp(
+                {"numero": data["numero"], "total": data["total"]},
+                data["items"],
+                metodo_pago=data.get("metodo_pago", ""),
+                descuento=data.get("descuento", 0),
+                recargo=data.get("recargo", 0),
+            )
+            ok, resp = enviar_ticket_whatsapp(tel, texto)
+            if ok:
+                lbl_status.setText("✅ Ticket enviado correctamente")
+                lbl_status.setStyleSheet("color: #27ae60; font-size: 12px; background: transparent;")
+                btn_send.setEnabled(False)
+            else:
+                lbl_status.setText(f"❌ {resp}")
+                lbl_status.setStyleSheet("color: #e94560; font-size: 12px; background: transparent;")
+                btn_send.setEnabled(True)
+
+        btn_send.clicked.connect(_enviar)
+        dlg.exec()
+
     def _apertura_iso(self):
         """Retorna la hora de apertura del turno en ISO (hora local).
         El backend ya guarda apertura en hora local con datetime.now()."""
@@ -1990,6 +2166,13 @@ class CajaScreen(QWidget):
                     btn_reimp.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; font-size: 13px; border: 1px solid {BORDER}; }}")
                     btn_reimp.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.reimprimir_ticket(vid, num))
                     self.tabla.setCellWidget(i, 7, btn_reimp)
+
+                    btn_wa = QPushButton("📱")
+                    btn_wa.setFixedHeight(26)
+                    btn_wa.setToolTip("Reenviar ticket por WhatsApp")
+                    btn_wa.setStyleSheet(f"QPushButton {{ background: #25D366; color: white; border-radius: 4px; font-size: 13px; }}")
+                    btn_wa.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.reenviar_whatsapp_ticket(vid, num))
+                    self.tabla.setCellWidget(i, 8, btn_wa)
                 # Cards por método — usa desglose del server (correcto con cobros mixtos)
                 for key, lbl in self.cards_metodo.items():
                     lbl.setText(f"${float(desglose.get(key, 0)):,.0f}".replace(",", "."))
