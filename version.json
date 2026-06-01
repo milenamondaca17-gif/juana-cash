@@ -1,8 +1,8 @@
 {
-  "version": "4.5.7",
-  "desktop_version": "4.5.7",
+  "version": "4.5.8",
+  "desktop_version": "4.5.8",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.7/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.7/JuanaCash.apk",
-  "notas": "v4.5.7 - Fix pantallas que congelaban la UI + errores silenciados"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.8/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.8/JuanaCash.apk",
+  "notas": "v4.5.8 - Fix codigos extra, verificar precio y cache instantaneo al guardar productos"
 }

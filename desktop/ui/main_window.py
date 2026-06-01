@@ -1,4 +1,4 @@
-import os, math, random
+import os, math, random, threading
 import requests
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QStackedWidget, QWidget, QHBoxLayout,
@@ -485,6 +485,13 @@ class MainWindow(QMainWindow):
         self.importador_screen = ImportadorScreen()
         self.etiquetas_screen = GeneradorEtiquetasScreen()
         self.ofertas_screen = OfertasScreen()
+
+        # Cuando se guarda un producto, actualizar el caché de ventas inmediatamente
+        self.productos_screen.producto_guardado.connect(
+            lambda: threading.Thread(
+                target=self.ventas_screen._cargar_cache_productos, daemon=True
+            ).start()
+        )
 
         # Cuando se agrega/borra una oferta, el rotador se actualiza automáticamente
         self.ofertas_screen.oferta_cambiada.connect(

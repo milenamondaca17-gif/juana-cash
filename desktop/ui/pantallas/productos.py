@@ -244,6 +244,7 @@ class ProductoDialog(QDialog):
 class ProductosScreen(QWidget):
     _productos_listos = pyqtSignal(list)
     _busqueda_lista   = pyqtSignal(list)
+    producto_guardado = pyqtSignal()   # se emite cada vez que se crea, edita o ajusta un producto
 
     def __init__(self):
         super().__init__()
@@ -483,6 +484,7 @@ class ProductosScreen(QWidget):
             try:
                 r = requests.post(f"{API_URL}/productos/", json=datos, timeout=5)
                 if r.status_code == 200:
+                    self.producto_guardado.emit()
                     self.input_buscar.setText(datos["nombre"])
                     QMessageBox.information(self, "✅", "Producto creado correctamente")
                 else:
@@ -501,6 +503,7 @@ class ProductosScreen(QWidget):
             try:
                 r = requests.put(f"{API_URL}/productos/{producto['id']}", json=datos, timeout=5)
                 if r.status_code == 200:
+                    self.producto_guardado.emit()
                     self.input_buscar.setText(datos["nombre"])
                 else:
                     QMessageBox.critical(self, "Error", "No se pudo actualizar")
@@ -572,6 +575,7 @@ class ProductosScreen(QWidget):
             try:
                 r = requests.put(f"{API_URL}/productos/{p['id']}", json=datos, timeout=5)
                 if r.status_code == 200:
+                    self.producto_guardado.emit()
                     self.input_buscar.setText(p["nombre"])
                     dialog.accept()
                     QMessageBox.information(self, "✅",

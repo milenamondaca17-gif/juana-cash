@@ -594,11 +594,14 @@ class VentasScreen(QWidget):
             if r.status_code == 200:
                 productos = r.json()
                 self.productos_cache = productos
-                self.productos_codigo = {
-                    str(p["codigo_barra"]): p
-                    for p in productos
-                    if p.get("codigo_barra")
-                }
+                codigos = {}
+                for p in productos:
+                    if p.get("codigo_barra"):
+                        codigos[str(p["codigo_barra"])] = p
+                    for extra in p.get("codigos_extra", []):
+                        if extra.get("codigo"):
+                            codigos[str(extra["codigo"])] = p
+                self.productos_codigo = codigos
         except Exception:
             pass
 
@@ -1069,13 +1072,19 @@ class VentasScreen(QWidget):
                 lbl_codigo.setText("")
                 resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid #e74c3c; }}")
 
-        timer_scan = QTimer()
+        # Timer con padre para evitar que Python lo recolecte antes de disparar
+        timer_scan = QTimer(dialog)
         timer_scan.setSingleShot(True)
         timer_scan.timeout.connect(buscar)
 
-        def on_text_changed():
-            if input_b.text().strip():
-                timer_scan.start(300)
+        def on_text_changed(texto):
+            t = texto.strip()
+            if not t:
+                return
+            # Si parece código de barras (solo dígitos y largo suficiente),
+            # esperar poco — el scanner manda todo rápido
+            delay = 120 if (t.isdigit() and len(t) >= 6) else 350
+            timer_scan.start(delay)
 
         input_b.textChanged.connect(on_text_changed)
         input_b.returnPressed.connect(buscar)
@@ -1158,6 +1167,24 @@ class VentasScreen(QWidget):
         precio_balanza = self._parsear_codigo_balanza(texto)
         if precio_balanza:
             self.input_buscar.clear()
+            # La balanza Coura solo codifica 5 dígitos de precio (máx $99.999).
+            # Si el precio real supera ese límite el código se trunca (overflow).
+            # Cuando el monto leído supera $90.000 es probable que sea overflow
+            # (ej: $195.000 → se lee $95.000), así que pedimos confirmación.
+            if precio_balanza >= 90000:
+                from PyQt6.QtWidgets import QInputDialog
+                precio_fmt = f"${precio_balanza:,.0f}".replace(",", ".")
+                nuevo_precio, ok = QInputDialog.getDouble(
+                    self, "⚠️ Verificar precio balanza",
+                    f"Precio leído: {precio_fmt}\n\n"
+                    "La balanza tiene un máximo de $99.999 por ticket.\n"
+                    "Si el monto real es mayor, corregilo acá:",
+                    precio_balanza, 0.01, 9999999, 0
+                )
+                if not ok:
+                    self.input_buscar.setFocus()
+                    return
+                precio_balanza = nuevo_precio
             self.items_venta.append({
                 "producto_id":     3,
                 "nombre":          "Carnicería (balanza)",
@@ -1177,12 +1204,40 @@ class VentasScreen(QWidget):
             self.abrir_ingreso_departamento(depto)
             return
 
+        es_codigo = texto.isdigit() and len(texto) >= 4
+
         # 1. Buscar en cache local — sin red, instantáneo
         if self.productos_cache:
-            # Coincidencia exacta por código de barras primero
+            # Coincidencia exacta por código de barras (incluye extras)
             if texto in self.productos_codigo:
                 self.agregar_item(self.productos_codigo[texto])
                 self.input_buscar.clear()
+                return
+
+            # Si parece un código de barras, ir directo a la API antes de decir "no encontrado"
+            # (puede ser un producto nuevo o un código extra que el caché no tiene aún)
+            if es_codigo:
+                try:
+                    r = requests.get(f"{API_URL}/productos/buscar", params={"q": texto}, timeout=5)
+                    if r.status_code == 200 and r.json():
+                        productos = r.json()
+                        if len(productos) == 1:
+                            self.agregar_item(productos[0])
+                            # Actualizar caché con el nuevo código para la próxima vez
+                            p = productos[0]
+                            if p.get("codigo_barra"):
+                                self.productos_codigo[str(p["codigo_barra"])] = p
+                            for extra in p.get("codigos_extra", []):
+                                if extra.get("codigo"):
+                                    self.productos_codigo[str(extra["codigo"])] = p
+                            self.input_buscar.clear()
+                            return
+                        elif len(productos) > 1:
+                            self._mostrar_selector_rapido(productos)
+                            return
+                except Exception:
+                    pass
+                QMessageBox.warning(self, "No encontrado", f"No se encontró: {texto}")
                 return
 
             # Búsqueda por nombre (contiene, sin distinción de mayúsculas)
