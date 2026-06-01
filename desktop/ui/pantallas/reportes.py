@@ -1,9 +1,9 @@
-import requests, os
+import requests, os, threading
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QFrame, QPushButton, QTableWidget,
                              QTableWidgetItem, QHeaderView, QMessageBox,
                              QDateEdit, QLineEdit, QFileDialog, QTabWidget)
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import Qt, QDate, QTimer
 from PyQt6.QtGui import QFont, QColor, QBrush
 
 API_URL = "http://127.0.0.1:8000"
@@ -322,55 +322,57 @@ class ReportesScreen(QWidget):
     def _cargar_dep_diario(self):
         desde = self.dep_desde.date().toString("yyyy-MM-dd")
         hasta = self.dep_hasta.date().toString("yyyy-MM-dd")
-        try:
-            r = requests.get(f"{API_URL}/reportes/departamentos-diario",
-                             params={"desde": f"{desde}T00:00:00", "hasta": f"{hasta}T23:59:59"},
-                             timeout=8)
-            if r.status_code != 200:
-                self.dep_tabla.setRowCount(0)
-                return
-            rows = r.json()
+        def _fetch():
+            try:
+                r = requests.get(f"{API_URL}/reportes/departamentos-diario",
+                                 params={"desde": f"{desde}T00:00:00", "hasta": f"{hasta}T23:59:59"},
+                                 timeout=8)
+                if r.status_code == 200:
+                    QTimer.singleShot(0, lambda d=r.json(): self._aplicar_dep_diario(d))
+                else:
+                    QTimer.singleShot(0, lambda: self.dep_tabla.setRowCount(0))
+            except Exception as e:
+                print(f"Error dep diario: {e}")
+        threading.Thread(target=_fetch, daemon=True).start()
 
-            total_carne = sum(float(x["carniceria"]) for x in rows)
-            total_fiamb = sum(float(x["fiambreria"]) for x in rows)
-            self.dep_lbl_carne_tot.setText(_p(total_carne))
-            self.dep_lbl_fiamb_tot.setText(_p(total_fiamb))
-            self.dep_lbl_total.setText(_p(total_carne + total_fiamb))
+    def _aplicar_dep_diario(self, rows):
+        total_carne = sum(float(x["carniceria"]) for x in rows)
+        total_fiamb = sum(float(x["fiambreria"]) for x in rows)
+        self.dep_lbl_carne_tot.setText(_p(total_carne))
+        self.dep_lbl_fiamb_tot.setText(_p(total_fiamb))
+        self.dep_lbl_total.setText(_p(total_carne + total_fiamb))
 
-            self.dep_tabla.setRowCount(len(rows))
-            for i, row in enumerate(rows):
-                fecha_txt = row["fecha"]
-                try:
-                    from datetime import date as _d
-                    fecha_txt = _d.fromisoformat(row["fecha"]).strftime("%d/%m/%Y")
-                except Exception:
-                    pass
-                carne_v = float(row["carniceria"])
-                fiamb_v = float(row["fiambreria"])
-                total_v = carne_v + fiamb_v
+        self.dep_tabla.setRowCount(len(rows))
+        for i, row in enumerate(rows):
+            fecha_txt = row["fecha"]
+            try:
+                from datetime import date as _d
+                fecha_txt = _d.fromisoformat(row["fecha"]).strftime("%d/%m/%Y")
+            except Exception:
+                pass
+            carne_v = float(row["carniceria"])
+            fiamb_v = float(row["fiambreria"])
+            total_v = carne_v + fiamb_v
 
-                self.dep_tabla.setItem(i, 0, QTableWidgetItem(fecha_txt))
-                item_c = QTableWidgetItem(_p(carne_v))
-                item_c.setForeground(QBrush(QColor("#e74c3c")))
-                item_c.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                self.dep_tabla.setItem(i, 1, item_c)
-                item_f = QTableWidgetItem(_p(fiamb_v))
-                item_f.setForeground(QBrush(QColor("#f39c12")))
-                item_f.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                self.dep_tabla.setItem(i, 2, item_f)
-                item_t = QTableWidgetItem(_p(total_v))
-                item_t.setForeground(QBrush(QColor("#27ae60")))
-                item_t.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                self.dep_tabla.setItem(i, 3, item_t)
+            self.dep_tabla.setItem(i, 0, QTableWidgetItem(fecha_txt))
+            item_c = QTableWidgetItem(_p(carne_v))
+            item_c.setForeground(QBrush(QColor("#e74c3c")))
+            item_c.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.dep_tabla.setItem(i, 1, item_c)
+            item_f = QTableWidgetItem(_p(fiamb_v))
+            item_f.setForeground(QBrush(QColor("#f39c12")))
+            item_f.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.dep_tabla.setItem(i, 2, item_f)
+            item_t = QTableWidgetItem(_p(total_v))
+            item_t.setForeground(QBrush(QColor("#27ae60")))
+            item_t.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.dep_tabla.setItem(i, 3, item_t)
 
-            dias_con_datos = len(rows)
-            self.dep_lbl_info.setText(
-                f"{dias_con_datos} días con ventas de departamentos  ·  "
-                f"Prom. diario: {_p((total_carne + total_fiamb) / dias_con_datos) if dias_con_datos else '$0'}"
-            )
-        except Exception as e:
-            self.dep_tabla.setRowCount(0)
-            self.dep_lbl_info.setText(f"Error al cargar datos: {e}")
+        dias_con_datos = len(rows)
+        self.dep_lbl_info.setText(
+            f"{dias_con_datos} días con ventas de departamentos  ·  "
+            f"Prom. diario: {_p((total_carne + total_fiamb) / dias_con_datos) if dias_con_datos else '$0'}"
+        )
 
     # ── LÓGICA TAB VENTAS ────────────────────────────────────────────────────
     def crear_mini_card(self, titulo, valor, color):
@@ -392,83 +394,84 @@ class ReportesScreen(QWidget):
             self.tabla_ventas.setRowHidden(i, busqueda not in num_ticket)
 
     def cargar_datos(self):
-        try:
-            url = f"{API_URL}/reportes/{self.periodo_actual}"
-            if self.periodo_actual == "rango":
-                params = {
-                    "desde": self.fecha_desde.date().toString("yyyy-MM-dd"),
-                    "hasta": self.fecha_hasta.date().toString("yyyy-MM-dd")
-                }
+        url = f"{API_URL}/reportes/{self.periodo_actual}"
+        params = {}
+        if self.periodo_actual == "rango":
+            params = {
+                "desde": self.fecha_desde.date().toString("yyyy-MM-dd"),
+                "hasta": self.fecha_hasta.date().toString("yyyy-MM-dd")
+            }
+        def _fetch():
+            try:
                 r = requests.get(url, params=params, timeout=5)
+                if r.status_code == 200:
+                    d = r.json()
+                    QTimer.singleShot(0, lambda: self._aplicar_datos(d))
+            except Exception as e:
+                print(f"Error en reportes: {e}")
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _aplicar_datos(self, d):
+        ventas = d.get("ventas", [])
+        total_periodo = 0.0; total_pc = 0.0; total_celular = 0.0
+        for v in ventas:
+            monto = float(v.get("total", 0))
+            total_periodo += monto
+            if str(v.get("origen", "mostrador")).lower() == "celular":
+                total_celular += monto
             else:
-                r = requests.get(url, timeout=5)
+                total_pc += monto
 
-            if r.status_code == 200:
-                d = r.json()
-                ventas = d.get("ventas", [])
+        self.card_total[1].setText(_p(total_periodo))
+        self.card_pc[1].setText(_p(total_pc))
+        self.card_celular[1].setText(_p(total_celular))
+        self.card_tickets[1].setText(str(len(ventas)))
+        self.card_promedio[1].setText(_p(total_periodo / len(ventas) if ventas else 0))
 
-                total_periodo = 0.0; total_pc = 0.0; total_celular = 0.0
-                for v in ventas:
-                    monto = float(v.get("total", 0))
-                    total_periodo += monto
-                    if str(v.get("origen", "mostrador")).lower() == "celular":
-                        total_celular += monto
-                    else:
-                        total_pc += monto
+        totales_metodo = {k: 0.0 for k in self.cards_metodo.keys()}
+        self.tabla_ventas.setRowCount(len(ventas))
+        for i, v in enumerate(ventas):
+            self.tabla_ventas.setItem(i, 0, QTableWidgetItem(str(v["numero"])))
+            self.tabla_ventas.setItem(i, 1, QTableWidgetItem(_p(float(v['total']))))
+            m1 = v.get("metodo_pago", "efectivo")
+            m2 = v.get("metodo_secundario")
+            txt_metodo = m1.upper()
+            if m2:
+                txt_metodo = "MIXTO"
+                monto2 = float(v.get("monto_secundario", 0))
+                monto1 = float(v["total"]) - monto2
+                if m1 in totales_metodo: totales_metodo[m1] += monto1
+                if m2 in totales_metodo: totales_metodo[m2] += monto2
+            else:
+                if m1 in totales_metodo: totales_metodo[m1] += float(v["total"])
+            self.tabla_ventas.setItem(i, 2, QTableWidgetItem(txt_metodo))
+            origen = str(v.get("origen", "mostrador")).lower()
+            if origen == "celular":
+                item_o = QTableWidgetItem("📱 Celular")
+                item_o.setForeground(QBrush(QColor("#F59E0B")))
+            else:
+                item_o = QTableWidgetItem("💻 Mostrador")
+                item_o.setForeground(QBrush(QColor("#3B82F6")))
+            self.tabla_ventas.setItem(i, 3, item_o)
+            hora = v["fecha"].split("T")[1][:5] if "T" in v["fecha"] else v["fecha"][-8:-3]
+            self.tabla_ventas.setItem(i, 4, QTableWidgetItem(hora))
 
-                self.card_total[1].setText(_p(total_periodo))
-                self.card_pc[1].setText(_p(total_pc))
-                self.card_celular[1].setText(_p(total_celular))
-                self.card_tickets[1].setText(str(len(ventas)))
-                self.card_promedio[1].setText(_p(total_periodo / len(ventas) if ventas else 0))
+        for k, lbl in self.cards_metodo.items():
+            lbl.setText(_p(totales_metodo[k]))
 
-                totales_metodo = {k: 0.0 for k in self.cards_metodo.keys()}
-                self.tabla_ventas.setRowCount(len(ventas))
-                for i, v in enumerate(ventas):
-                    self.tabla_ventas.setItem(i, 0, QTableWidgetItem(str(v["numero"])))
-                    self.tabla_ventas.setItem(i, 1, QTableWidgetItem(_p(float(v['total']))))
-                    m1 = v.get("metodo_pago", "efectivo")
-                    m2 = v.get("metodo_secundario")
-                    txt_metodo = m1.upper()
-                    if m2:
-                        txt_metodo = "MIXTO"
-                        monto2 = float(v.get("monto_secundario", 0))
-                        monto1 = float(v["total"]) - monto2
-                        if m1 in totales_metodo: totales_metodo[m1] += monto1
-                        if m2 in totales_metodo: totales_metodo[m2] += monto2
-                    else:
-                        if m1 in totales_metodo: totales_metodo[m1] += float(v["total"])
-                    self.tabla_ventas.setItem(i, 2, QTableWidgetItem(txt_metodo))
-                    origen = str(v.get("origen", "mostrador")).lower()
-                    if origen == "celular":
-                        item_o = QTableWidgetItem("📱 Celular")
-                        item_o.setForeground(QBrush(QColor("#F59E0B")))
-                    else:
-                        item_o = QTableWidgetItem("💻 Mostrador")
-                        item_o.setForeground(QBrush(QColor("#3B82F6")))
-                    self.tabla_ventas.setItem(i, 3, item_o)
-                    hora = v["fecha"].split("T")[1][:5] if "T" in v["fecha"] else v["fecha"][-8:-3]
-                    self.tabla_ventas.setItem(i, 4, QTableWidgetItem(hora))
-
-                for k, lbl in self.cards_metodo.items():
-                    lbl.setText(_p(totales_metodo[k]))
-
-                if self.periodo_actual == "hoy":
-                    hoy = QDate.currentDate()
-                    self.prod_desde.setDate(hoy); self.prod_hasta.setDate(hoy)
-                elif self.periodo_actual == "semana":
-                    self.prod_desde.setDate(QDate.currentDate().addDays(-7)); self.prod_hasta.setDate(QDate.currentDate())
-                elif self.periodo_actual == "mes":
-                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), QDate.currentDate().month(), 1)); self.prod_hasta.setDate(QDate.currentDate())
-                elif self.periodo_actual == "anio":
-                    self.prod_desde.setDate(QDate(QDate.currentDate().year(), 1, 1)); self.prod_hasta.setDate(QDate.currentDate())
-                elif self.periodo_actual == "rango":
-                    self.prod_desde.setDate(self.fecha_desde.date()); self.prod_hasta.setDate(self.fecha_hasta.date())
-                self.cargar_productos_por_fecha()
-                self._cargar_departamentos()
-
-        except Exception as e:
-            print(f"Error en reportes: {e}")
+        if self.periodo_actual == "hoy":
+            hoy = QDate.currentDate()
+            self.prod_desde.setDate(hoy); self.prod_hasta.setDate(hoy)
+        elif self.periodo_actual == "semana":
+            self.prod_desde.setDate(QDate.currentDate().addDays(-7)); self.prod_hasta.setDate(QDate.currentDate())
+        elif self.periodo_actual == "mes":
+            self.prod_desde.setDate(QDate(QDate.currentDate().year(), QDate.currentDate().month(), 1)); self.prod_hasta.setDate(QDate.currentDate())
+        elif self.periodo_actual == "anio":
+            self.prod_desde.setDate(QDate(QDate.currentDate().year(), 1, 1)); self.prod_hasta.setDate(QDate.currentDate())
+        elif self.periodo_actual == "rango":
+            self.prod_desde.setDate(self.fecha_desde.date()); self.prod_hasta.setDate(self.fecha_hasta.date())
+        self.cargar_productos_por_fecha()
+        self._cargar_departamentos()
 
     def _cargar_departamentos(self):
         import calendar as _cal
@@ -506,57 +509,70 @@ class ReportesScreen(QWidget):
             label_prv = "vs período ant."
         else:
             return
-        try:
-            r_act = requests.get(f"{API_URL}/reportes/departamentos",
-                params={"desde": f"{d_act}T00:00:00", "hasta": f"{h_act}T23:59:59"}, timeout=5)
-            r_prv = requests.get(f"{API_URL}/reportes/departamentos",
-                params={"desde": f"{d_prv}T00:00:00", "hasta": f"{h_prv}T23:59:59"}, timeout=5)
-            act = r_act.json() if r_act.status_code == 200 else {}
-            prv = r_prv.json() if r_prv.status_code == 200 else {}
-            carne_a = float(act.get("carniceria", 0)); carne_p = float(prv.get("carniceria", 0))
-            fiamb_a = float(act.get("fiambreria", 0)); fiamb_p = float(prv.get("fiambreria", 0))
-            self.lbl_carne_val.setText(_p(carne_a))
-            self.lbl_fiamb_val.setText(_p(fiamb_a))
-            def _cmp(a, p):
-                if p == 0: return "", "#a0a0b0"
-                pct = ((a - p) / p) * 100
-                return (f"↑ {pct:.1f}% {label_prv}", "#27ae60") if pct >= 0 else (f"↓ {abs(pct):.1f}% {label_prv}", "#e74c3c")
-            txt_c, col_c = _cmp(carne_a, carne_p)
-            txt_f, col_f = _cmp(fiamb_a, fiamb_p)
-            self.lbl_carne_comp.setText(txt_c)
-            self.lbl_carne_comp.setStyleSheet(f"color: {col_c}; font-size: 10px; background: transparent;")
-            self.lbl_fiamb_comp.setText(txt_f)
-            self.lbl_fiamb_comp.setStyleSheet(f"color: {col_f}; font-size: 10px; background: transparent;")
-        except Exception as e:
-            print(f"Error departamentos: {e}")
+        p_act = {"desde": f"{d_act}T00:00:00", "hasta": f"{h_act}T23:59:59"}
+        p_prv = {"desde": f"{d_prv}T00:00:00", "hasta": f"{h_prv}T23:59:59"}
+        lbl = label_prv
+        def _fetch():
+            try:
+                r_act = requests.get(f"{API_URL}/reportes/departamentos", params=p_act, timeout=5)
+                r_prv = requests.get(f"{API_URL}/reportes/departamentos", params=p_prv, timeout=5)
+                act = r_act.json() if r_act.status_code == 200 else {}
+                prv = r_prv.json() if r_prv.status_code == 200 else {}
+                QTimer.singleShot(0, lambda a=act, p=prv: self._aplicar_departamentos(a, p, lbl))
+            except Exception as e:
+                print(f"Error departamentos: {e}")
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _aplicar_departamentos(self, act, prv, label_prv):
+        carne_a = float(act.get("carniceria", 0)); carne_p = float(prv.get("carniceria", 0))
+        fiamb_a = float(act.get("fiambreria", 0)); fiamb_p = float(prv.get("fiambreria", 0))
+        self.lbl_carne_val.setText(_p(carne_a))
+        self.lbl_fiamb_val.setText(_p(fiamb_a))
+        def _cmp(a, p):
+            if p == 0: return "", "#a0a0b0"
+            pct = ((a - p) / p) * 100
+            return (f"↑ {pct:.1f}% {label_prv}", "#27ae60") if pct >= 0 else (f"↓ {abs(pct):.1f}% {label_prv}", "#e74c3c")
+        txt_c, col_c = _cmp(carne_a, carne_p)
+        txt_f, col_f = _cmp(fiamb_a, fiamb_p)
+        self.lbl_carne_comp.setText(txt_c)
+        self.lbl_carne_comp.setStyleSheet(f"color: {col_c}; font-size: 10px; background: transparent;")
+        self.lbl_fiamb_comp.setText(txt_f)
+        self.lbl_fiamb_comp.setStyleSheet(f"color: {col_f}; font-size: 10px; background: transparent;")
 
     def cargar_productos_por_fecha(self):
         desde = self.prod_desde.date().toString("yyyy-MM-dd")
         hasta = self.prod_hasta.date().toString("yyyy-MM-dd")
-        try:
-            r = requests.get(f"{API_URL}/reportes/productos-por-fecha",
-                params={"desde": desde, "hasta": hasta}, timeout=8)
-            if r.status_code == 200:
-                productos = r.json()
-                self.tabla_top.setRowCount(len(productos))
-                total_monto = 0.0; total_cant = 0.0
-                for i, p in enumerate(productos):
-                    self.tabla_top.setItem(i, 0, QTableWidgetItem(p["nombre"]))
-                    item_cant = QTableWidgetItem(f"{float(p['cantidad']):g}")
-                    item_cant.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                    self.tabla_top.setItem(i, 1, item_cant)
-                    item_tick = QTableWidgetItem(str(p["tickets"]))
-                    item_tick.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                    self.tabla_top.setItem(i, 2, item_tick)
-                    self.tabla_top.setItem(i, 3, QTableWidgetItem(_p(float(p['facturado']))))
-                    total_cant  += float(p["cantidad"])
-                    total_monto += float(p["facturado"])
-                self.lbl_prod_total.setText(
-                    f"{len(productos)} productos · {total_cant:,.0f} unid. · {_p(total_monto)} total")
-            else:
-                self.tabla_top.setRowCount(0); self.lbl_prod_total.setText("Sin datos")
-        except Exception as e:
-            print(f"Error productos: {e}")
+        def _fetch():
+            try:
+                r = requests.get(f"{API_URL}/reportes/productos-por-fecha",
+                    params={"desde": desde, "hasta": hasta}, timeout=8)
+                if r.status_code == 200:
+                    QTimer.singleShot(0, lambda d=r.json(): self._aplicar_productos(d))
+                else:
+                    QTimer.singleShot(0, lambda: (
+                        self.tabla_top.setRowCount(0),
+                        self.lbl_prod_total.setText("Sin datos")
+                    ))
+            except Exception as e:
+                print(f"Error productos: {e}")
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _aplicar_productos(self, productos):
+        self.tabla_top.setRowCount(len(productos))
+        total_monto = 0.0; total_cant = 0.0
+        for i, p in enumerate(productos):
+            self.tabla_top.setItem(i, 0, QTableWidgetItem(p["nombre"]))
+            item_cant = QTableWidgetItem(f"{float(p['cantidad']):g}")
+            item_cant.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tabla_top.setItem(i, 1, item_cant)
+            item_tick = QTableWidgetItem(str(p["tickets"]))
+            item_tick.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tabla_top.setItem(i, 2, item_tick)
+            self.tabla_top.setItem(i, 3, QTableWidgetItem(_p(float(p['facturado']))))
+            total_cant  += float(p["cantidad"])
+            total_monto += float(p["facturado"])
+        self.lbl_prod_total.setText(
+            f"{len(productos)} productos · {total_cant:,.0f} unid. · {_p(total_monto)} total")
 
     def _exportar_pdf(self):
         from datetime import date as _date
