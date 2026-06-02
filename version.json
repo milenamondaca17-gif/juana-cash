@@ -1,8 +1,8 @@
 {
-  "version": "4.5.8",
-  "desktop_version": "4.5.8",
+  "version": "4.5.9",
+  "desktop_version": "4.5.9",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.8/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.8/JuanaCash.apk",
-  "notas": "v4.5.8 - Fix codigos extra, verificar precio y cache instantaneo al guardar productos"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.9/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.9/JuanaCash.apk",
+  "notas": "v4.5.9 - Nuevo diseño: tema Oscuro Esmeralda moderno"
 }

@@ -153,10 +153,45 @@ TEMAS = {
         "navbar_border":    "#e63946",
         "logo_color":       "#e63946",
     },
+    "oscuro_esmeralda": {
+        "nombre": "🟢 Oscuro Esmeralda",
+        "text_input":  "#E6EDF3",
+        "bg_app":      "#0D1117",
+        "bg_card":     "#161B22",
+        "bg_navbar":   "#161B22",
+        "bg_input":    "#0D1117",
+        "bg_hover":    "#1C2128",
+        "bg_selected": "#1F3A2F",
+        "primary":        "#10B981",
+        "primary_hover":  "#059669",
+        "primary_light":  "#064E3B",
+        "primary_text":   "#FFFFFF",
+        "accent_green":   "#3FB950",
+        "accent_orange":  "#F97316",
+        "accent_rose":    "#F85149",
+        "accent_yellow":  "#D29922",
+        "text_main":   "#E6EDF3",
+        "text_muted":  "#8B949E",
+        "border":      "#21262D",
+        "border_card": "#21262D",
+        "success":     "#3FB950",
+        "warning":     "#D29922",
+        "danger":      "#F85149",
+        "navbar_text":      "#8B949E",
+        "navbar_active":    "#10B981",
+        "navbar_active_bg": "#0D2818",
+        "navbar_border":    "#10B981",
+        "logo_color":       "#10B981",
+    },
 }
 
 _CONFIG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
 
+
+TEMA_DEFAULT = "oscuro_esmeralda"
+
+# Temas que se migran automáticamente al nuevo default en v4.5.9+
+_TEMAS_LEGACY = {"violeta_calido", "lila_sol", "rosa_sage", "naranja_cielo"}
 
 def get_tema_key() -> str:
     env_key = os.environ.get('JUANA_CASH_TEMA', '')
@@ -165,10 +200,15 @@ def get_tema_key() -> str:
     try:
         if os.path.exists(_CONFIG_PATH):
             with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
-                return json.load(f).get("tema", "violeta_calido")
+                key = json.load(f).get("tema", TEMA_DEFAULT)
+            # Migrar temas viejos al nuevo default
+            if key in _TEMAS_LEGACY:
+                guardar_tema(TEMA_DEFAULT)
+                return TEMA_DEFAULT
+            return key
     except Exception:
         pass
-    return "violeta_calido"
+    return TEMA_DEFAULT
 
 
 def guardar_tema(key: str):
