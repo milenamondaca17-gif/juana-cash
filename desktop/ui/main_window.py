@@ -300,9 +300,8 @@ class MainWindow(QMainWindow):
         navbar_layout.addSpacing(20)
 
         self.btns_menu = {}
-        self.menus_admin = ["usuarios", "sesiones", "dashboard", "stock", "precios", "ia", "importador", "etiquetas", "ofertas", "alertas"]
+        self.menus_admin = ["usuarios", "sesiones", "dashboard", "ofertas", "alertas"]
 
-        # Pestañas siempre visibles
         menus_principales = [
             ("🛒 Ventas",    "ventas"),
             ("🧾 Caja",      "caja"),
@@ -312,16 +311,7 @@ class MainWindow(QMainWindow):
             ("🔔 Alertas",   "alertas"),
             ("📊 Reportes",  "reportes"),
             ("🏷️ Ofertas",   "ofertas"),
-        ]
-
-        # Pestañas dentro de Config (ocultas por defecto)
-        menus_config = [
-            ("🖨️ Etiquetas",  "etiquetas"),
-            ("📋 Stock",      "stock"),
-            ("💰 Precios",    "precios"),
-            ("📥 Importar",   "importador"),
-            ("🤖 IA",         "ia"),
-            ("👤 Usuarios",   "usuarios"),
+            ("⚙ Config",     "config"),
         ]
 
         _ORO = "#D4A017"
@@ -343,50 +333,6 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(lambda _, k=key: self.cambiar_pantalla(k))
             navbar_layout.addWidget(btn)
             self.btns_menu[key] = btn
-
-        # Botón Config toggle
-        self._config_expandido = False
-        self._btns_config_ocultos = []
-
-        btn_config_toggle = QPushButton("⚙ Config ▾")
-        btn_config_toggle.setFixedHeight(56)
-        btn_config_toggle.setCheckable(True)
-        btn_config_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_config_toggle.setStyleSheet(ESTILO_BTN)
-        navbar_layout.addWidget(btn_config_toggle)
-        self.btns_menu["config"] = btn_config_toggle
-
-        # Separador visual antes del submenú config
-        _sep_config = QFrame()
-        _sep_config.setFixedSize(1, 32)
-        _sep_config.setStyleSheet(f"background: {_ORO}; border: none;")
-        _sep_config.setVisible(False)
-        navbar_layout.addWidget(_sep_config)
-        self._sep_config_widget = _sep_config
-
-        # Crear botones ocultos de config
-        for texto, key in menus_config:
-            btn = QPushButton(texto)
-            btn.setFixedHeight(56)
-            btn.setCheckable(True)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet(ESTILO_BTN)
-            btn.setVisible(False)
-            btn.clicked.connect(lambda _, k=key: self.cambiar_pantalla(k))
-            navbar_layout.addWidget(btn)
-            self.btns_menu[key] = btn
-            self._btns_config_ocultos.append(btn)
-
-        def _toggle_config(checked):
-            self._config_expandido = not self._config_expandido
-            for b in self._btns_config_ocultos:
-                b.setVisible(self._config_expandido)
-            self._sep_config_widget.setVisible(self._config_expandido)
-            btn_config_toggle.setText("⚙ Config ▴" if self._config_expandido else "⚙ Config ▾")
-            if checked:
-                self.cambiar_pantalla("config")
-
-        btn_config_toggle.clicked.connect(_toggle_config)
 
         navbar_layout.addStretch()
 
@@ -500,6 +446,14 @@ class MainWindow(QMainWindow):
         )
 
         self.alertas_screen = AlertasPrecioScreen()
+
+        # Agregar pantallas de admin como pestañas dentro de Config
+        self.config_screen.agregar_tab(self.etiquetas_screen,  "🖨️ Etiquetas")
+        self.config_screen.agregar_tab(self.stock_screen,      "📋 Stock")
+        self.config_screen.agregar_tab(self.precios_screen,    "💰 Precios")
+        self.config_screen.agregar_tab(self.importador_screen, "📥 Importar")
+        self.config_screen.agregar_tab(self.ia_screen,         "🤖 IA")
+        self.config_screen.agregar_tab(self.usuarios_screen,   "👤 Usuarios")
 
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
@@ -1014,16 +968,8 @@ class MainWindow(QMainWindow):
             QPushButton:hover {{ color: {new_t['text_main']}; background: {new_t['bg_hover']}; border-bottom: 3px solid {new_t['border']}; }}
             QPushButton:checked {{ color: {new_t['navbar_active']}; background: {new_t['navbar_active_bg']}; border-bottom: 3px solid {new_t['navbar_border']}; }}
         """
-        ESTILO_CONFIG = f"""
-            QPushButton {{ background: {new_t['bg_hover']}; color: {new_t['navbar_text']}; font-size: 12px; font-weight: bold; border: none; padding: 0 10px; border-bottom: 3px solid transparent; border-left: 3px solid {new_t['border']}; border-radius: 0px; }}
-            QPushButton:hover {{ color: {new_t['text_main']}; background: {new_t['bg_selected']}; border-bottom: 3px solid {new_t['border']}; }}
-            QPushButton:checked {{ color: {new_t['navbar_active']}; background: {new_t['navbar_active_bg']}; border-bottom: 3px solid {new_t['navbar_border']}; }}
-        """
         for _, btn in self.btns_menu.items():
-            if btn in self._btns_config_ocultos:
-                btn.setStyleSheet(ESTILO_CONFIG)
-            else:
-                btn.setStyleSheet(ESTILO_BTN)
+            btn.setStyleSheet(ESTILO_BTN)
 
         if cajero:
             self.on_turno_seleccionado(cajero)

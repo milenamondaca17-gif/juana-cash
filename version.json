@@ -1,8 +1,8 @@
 {
-  "version": "4.5.9",
-  "desktop_version": "4.5.9",
+  "version": "4.6.0",
+  "desktop_version": "4.6.0",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.9/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.5.9/JuanaCash.apk",
-  "notas": "v4.5.9 - Nuevo diseño: tema Oscuro Esmeralda moderno"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.0/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.0/JuanaCash.apk",
+  "notas": "v4.6.0 - Etiquetas, Stock, Precios, Importar, IA y Usuarios ahora son pestanas dentro de Config"
 }

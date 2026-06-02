@@ -677,6 +677,11 @@ class ConfigScreen(QWidget):
         tabs.addTab(tab_logros, "🏆 Logros")
 
         layout.addWidget(tabs)
+        self._tabs = tabs  # guardamos referencia para agregar tabs externas
+
+    def agregar_tab(self, widget, nombre: str):
+        """Agrega una pantalla externa como pestaña dentro de Config."""
+        self._tabs.addTab(widget, nombre)
 
     def ejecutar_borrado_ventas(self):
         PIN_ADMIN = "1722"
