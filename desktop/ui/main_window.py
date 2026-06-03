@@ -458,16 +458,8 @@ class MainWindow(QMainWindow):
         for screen in [
             self.login_screen, self.turno_screen, self.ventas_screen,
             self.productos_screen, self.reportes_screen, self.clientes_screen,
-            self.caja_screen, self.sesiones_screen, self.usuarios_screen,
-            self.dashboard_screen,
-            self.stock_screen,
-            self.precios_screen,
-            self.ia_screen,
-            self.config_screen,
-            self.importador_screen,
-            self.etiquetas_screen,
-            self.ofertas_screen,
-            self.alertas_screen,
+            self.caja_screen, self.sesiones_screen, self.dashboard_screen,
+            self.config_screen, self.ofertas_screen, self.alertas_screen,
         ]:
             self.stack.addWidget(screen)
 
@@ -495,14 +487,8 @@ class MainWindow(QMainWindow):
             "clientes":  self.clientes_screen,
             "caja":      self.caja_screen,
             "sesiones":  self.sesiones_screen,
-            "usuarios":  self.usuarios_screen,
             "dashboard": self.dashboard_screen,
-            "stock":     self.stock_screen,
-            "precios":   self.precios_screen,
-            "ia":        self.ia_screen,
             "config":    self.config_screen,
-            "importador": self.importador_screen,
-            "etiquetas": self.etiquetas_screen,
             "ofertas":   self.ofertas_screen,
             "alertas":   self.alertas_screen,
         }
