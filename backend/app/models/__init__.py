@@ -10,3 +10,4 @@ from .auditoria import RegistroBorrados
 from .alerta_precio import AlertaPrecio
 from .cupon import Cupon
 from .caja_aporte import CajaAporte
+from .proveedor import Proveedor, CompraProveedor, PagoProveedor

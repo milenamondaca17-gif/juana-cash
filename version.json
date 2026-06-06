@@ -1,8 +1,8 @@
 {
-  "version": "4.6.1",
-  "desktop_version": "4.6.1",
+  "version": "4.6.2",
+  "desktop_version": "4.6.2",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.1/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.1/JuanaCash.apk",
-  "notas": "v4.6.1 - Fix pestanas de Config: Etiquetas, Stock, Precios, Importar, IA y Usuarios ahora aparecen correctamente"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.2/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.2/JuanaCash.apk",
+  "notas": "v4.6.2 - Registro de proveedores: contactos, compras, pagos y deuda"
 }

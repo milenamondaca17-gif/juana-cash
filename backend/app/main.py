@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 # CambiÃ¡ la lÃ­nea de los modelos por esta:
 from .models import Usuario, Producto, Venta, Cliente, Fiado, CajaTurno, SesionLog, Gasto, CajaAporte
+from .models import Proveedor, CompraProveedor, PagoProveedor
 from .models import sesion_log, gasto
 from .routers import (auth, productos, ventas, clientes, stock, ia, config_sistema,
-                      reportes, caja, fiados, sesiones, gastos)
+                      reportes, caja, fiados, sesiones, gastos, proveedores as proveedores_router)
 from .routers import ofertas_api
 from .routers import alertas
 from .routers import cupones as cupones_router
@@ -32,6 +33,7 @@ with engine.connect() as _conn:
         ("fiados",       "descripcion",      "TEXT"),
         ("caja_aportes", "metodo",           "TEXT DEFAULT 'efectivo'"),
         ("pagos_fiado",  "metodo",           "TEXT DEFAULT 'efectivo'"),
+        ("productos",    "proveedor_id",     "INTEGER"),
     ]:
         try:
             tablas = _inspector.get_table_names()
@@ -168,6 +170,7 @@ app.include_router(config_sistema.router)
 app.include_router(ofertas_api.router)
 app.include_router(alertas.router)
 app.include_router(cupones_router.router)
+app.include_router(proveedores_router.router)
 
 @app.get("/")
 def root():

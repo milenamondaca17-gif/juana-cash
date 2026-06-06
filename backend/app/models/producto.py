@@ -38,8 +38,10 @@ class Producto(Base):
     created_at   = Column(DateTime, server_default=func.now())
     updated_at   = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
+    proveedor_id  = Column(Integer, ForeignKey("proveedores.id"), nullable=True)
+
     # Relaciones
     categoria     = relationship("Categoria", back_populates="productos")
     items_venta   = relationship("ItemVenta", back_populates="producto")
-    # Relación con los códigos extra
     codigos_extra = relationship("CodigoBarra", back_populates="producto", cascade="all, delete-orphan")
+    proveedor     = relationship("Proveedor", back_populates="productos")

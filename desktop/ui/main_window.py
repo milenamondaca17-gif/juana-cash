@@ -151,6 +151,7 @@ from ui.pantallas.clientes import ClientesScreen
 from ui.pantallas.caja import CajaScreen
 from ui.pantallas.sesiones import SesionesScreen
 from ui.pantallas.usuarios import UsuariosScreen
+from ui.pantallas.proveedores import ProveedoresScreen
 from ui.pantallas.dashboard import DashboardScreen
 from ui.pantallas.stock_avanzado import StockAvanzadoScreen
 from ui.pantallas.precios_masivos import PreciosMasivosScreen
@@ -303,15 +304,16 @@ class MainWindow(QMainWindow):
         self.menus_admin = ["usuarios", "sesiones", "dashboard", "ofertas", "alertas"]
 
         menus_principales = [
-            ("🛒 Ventas",    "ventas"),
-            ("🧾 Caja",      "caja"),
-            ("📦 Productos", "productos"),
-            ("👥 Clientes",  "clientes"),
-            ("📈 Dashboard", "dashboard"),
-            ("🔔 Alertas",   "alertas"),
-            ("📊 Reportes",  "reportes"),
-            ("🏷️ Ofertas",   "ofertas"),
-            ("⚙ Config",     "config"),
+            ("🛒 Ventas",       "ventas"),
+            ("🧾 Caja",         "caja"),
+            ("📦 Productos",    "productos"),
+            ("👥 Clientes",     "clientes"),
+            ("🏭 Proveedores",  "proveedores"),
+            ("📈 Dashboard",    "dashboard"),
+            ("🔔 Alertas",      "alertas"),
+            ("📊 Reportes",     "reportes"),
+            ("🏷️ Ofertas",      "ofertas"),
+            ("⚙ Config",        "config"),
         ]
 
         _ORO = "#D4A017"
@@ -422,8 +424,9 @@ class MainWindow(QMainWindow):
         self.clientes_screen = ClientesScreen()
         self.caja_screen     = CajaScreen()
         self.sesiones_screen = SesionesScreen()
-        self.usuarios_screen = UsuariosScreen()
-        self.dashboard_screen = DashboardScreen()
+        self.usuarios_screen    = UsuariosScreen()
+        self.proveedores_screen = ProveedoresScreen()
+        self.dashboard_screen   = DashboardScreen()
         self.stock_screen = StockAvanzadoScreen()
         self.precios_screen = PreciosMasivosScreen()
         self.ia_screen = IAScreen()
@@ -459,6 +462,7 @@ class MainWindow(QMainWindow):
             self.login_screen, self.turno_screen, self.ventas_screen,
             self.productos_screen, self.reportes_screen, self.clientes_screen,
             self.caja_screen, self.sesiones_screen, self.dashboard_screen,
+            self.proveedores_screen,
             self.config_screen, self.ofertas_screen, self.alertas_screen,
         ]:
             self.stack.addWidget(screen)
@@ -481,16 +485,17 @@ class MainWindow(QMainWindow):
             btn.setProperty("activo", es_activo)
 
         pantallas = {
-            "ventas":    self.ventas_screen,
-            "productos": self.productos_screen,
-            "reportes":  self.reportes_screen,
-            "clientes":  self.clientes_screen,
-            "caja":      self.caja_screen,
-            "sesiones":  self.sesiones_screen,
-            "dashboard": self.dashboard_screen,
-            "config":    self.config_screen,
-            "ofertas":   self.ofertas_screen,
-            "alertas":   self.alertas_screen,
+            "ventas":       self.ventas_screen,
+            "productos":    self.productos_screen,
+            "reportes":     self.reportes_screen,
+            "clientes":     self.clientes_screen,
+            "caja":         self.caja_screen,
+            "sesiones":     self.sesiones_screen,
+            "dashboard":    self.dashboard_screen,
+            "proveedores":  self.proveedores_screen,
+            "config":       self.config_screen,
+            "ofertas":      self.ofertas_screen,
+            "alertas":      self.alertas_screen,
         }
         if key not in pantallas:
             return
