@@ -137,6 +137,10 @@ class CompraDialog(QDialog):
         lay = QVBoxLayout(self); lay.setSpacing(12); lay.setContentsMargins(24, 20, 24, 20)
         est = f"QLineEdit {{ {_estilo_inp()} }}"
         cest = f"QComboBox {{ {_estilo_inp()} }} QComboBox QAbstractItemView {{ background:{_CARD}; color:{_TXT}; }}"
+        dbl = f"QDoubleSpinBox {{ {_estilo_inp()} }}"
+
+        # ── Sección factura ──
+        lay.addWidget(QLabel("📋 Datos de la factura", styleSheet=f"color:{_PRI}; font-weight:bold; font-size:13px;"))
         form = QFormLayout(); form.setSpacing(10)
 
         self.inp_factura = QLineEdit(); self.inp_factura.setFixedHeight(38)
@@ -145,40 +149,93 @@ class CompraDialog(QDialog):
 
         self.spin_monto = QDoubleSpinBox(); self.spin_monto.setRange(0.01, 99999999)
         self.spin_monto.setPrefix("$"); self.spin_monto.setFixedHeight(38)
-        self.spin_monto.setStyleSheet(f"QDoubleSpinBox {{ {_estilo_inp()} }}")
-        form.addRow("Monto total *:", self.spin_monto)
+        self.spin_monto.setDecimals(0)
+        self.spin_monto.setStyleSheet(dbl)
+        self.spin_monto.valueChanged.connect(self._sync_pago)
+        form.addRow("Monto total factura *:", self.spin_monto)
 
         self.combo_cond = QComboBox()
         self.combo_cond.addItems(["Contado", "Crédito"])
         self.combo_cond.setFixedHeight(38); self.combo_cond.setStyleSheet(cest)
+        self.combo_cond.currentIndexChanged.connect(self._toggle_venc)
         form.addRow("Condición:", self.combo_cond)
 
         self.inp_venc = QLineEdit(); self.inp_venc.setFixedHeight(38)
-        self.inp_venc.setStyleSheet(est); self.inp_venc.setPlaceholderText("YYYY-MM-DD (solo si es crédito)")
-        form.addRow("Vencimiento:", self.inp_venc)
+        self.inp_venc.setStyleSheet(est); self.inp_venc.setPlaceholderText("YYYY-MM-DD")
+        self.inp_venc.setVisible(False)
+        self.lbl_venc = QLabel("Fecha vencimiento:")
+        self.lbl_venc.setVisible(False)
+        form.addRow(self.lbl_venc, self.inp_venc)
 
         self.inp_notas = QLineEdit(); self.inp_notas.setFixedHeight(38)
         self.inp_notas.setStyleSheet(est)
         form.addRow("Notas:", self.inp_notas)
-
         lay.addLayout(form)
+
+        # ── Separador ──
+        sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet(f"background:{_BOR}; max-height:1px; margin:4px 0;")
+        lay.addWidget(sep)
+
+        # ── Sección pago ──
+        lay.addWidget(QLabel("💵 Pago", styleSheet=f"color:{_OK}; font-weight:bold; font-size:13px;"))
+        form2 = QFormLayout(); form2.setSpacing(10)
+
+        self.spin_pago = QDoubleSpinBox(); self.spin_pago.setRange(0, 99999999)
+        self.spin_pago.setPrefix("$"); self.spin_pago.setFixedHeight(38)
+        self.spin_pago.setDecimals(0)
+        self.spin_pago.setStyleSheet(dbl)
+        form2.addRow("Importe a pagar ahora *:", self.spin_pago)
+
+        self.combo_metodo = QComboBox()
+        self.combo_metodo.addItems([METODOS_LABEL[m] for m in METODOS_PAGO])
+        self.combo_metodo.setFixedHeight(38); self.combo_metodo.setStyleSheet(cest)
+        form2.addRow("Método de pago *:", self.combo_metodo)
+
+        self.inp_ref = QLineEdit(); self.inp_ref.setFixedHeight(38)
+        self.inp_ref.setStyleSheet(est); self.inp_ref.setPlaceholderText("Nro. transferencia, cheque, etc.")
+        form2.addRow("Referencia:", self.inp_ref)
+        lay.addLayout(form2)
+
         btns = QHBoxLayout()
-        b_c = QPushButton("Cancelar"); b_c.setFixedHeight(40)
+        b_c = QPushButton("Cancelar"); b_c.setFixedHeight(42)
         b_c.setStyleSheet(f"background:transparent; color:{_MUT}; border:1.5px solid {_BOR}; border-radius:8px;")
         b_c.clicked.connect(self.reject)
-        b_ok = QPushButton("📥 Registrar compra"); b_ok.setFixedHeight(40)
-        b_ok.setStyleSheet(f"background:{_PRI}; color:white; border-radius:8px; font-weight:bold;")
+        b_ok = QPushButton("📥 Registrar"); b_ok.setFixedHeight(42)
+        b_ok.setStyleSheet(f"background:{_PRI}; color:white; border-radius:8px; font-weight:bold; font-size:14px;")
         b_ok.clicked.connect(self.accept)
         btns.addWidget(b_c); btns.addWidget(b_ok)
         lay.addLayout(btns)
 
+    def _toggle_venc(self, idx):
+        es_credito = (idx == 1)
+        self.inp_venc.setVisible(es_credito)
+        self.lbl_venc.setVisible(es_credito)
+        # Si es crédito, el pago puede ser 0 (no paga ahora)
+        if es_credito:
+            self.spin_pago.setValue(0)
+        else:
+            self.spin_pago.setValue(self.spin_monto.value())
+
+    def _sync_pago(self, valor):
+        # Solo sincronizar si es contado
+        if self.combo_cond.currentIndex() == 0:
+            self.spin_pago.setValue(valor)
+
     def get_datos(self):
         return {
-            "nro_factura": self.inp_factura.text().strip() or None,
-            "monto_total": self.spin_monto.value(),
-            "condicion": "credito" if self.combo_cond.currentIndex() == 1 else "contado",
-            "fecha_vencimiento": self.inp_venc.text().strip() or None,
-            "notas": self.inp_notas.text().strip() or None,
+            "factura": {
+                "nro_factura": self.inp_factura.text().strip() or None,
+                "monto_total": self.spin_monto.value(),
+                "condicion": "credito" if self.combo_cond.currentIndex() == 1 else "contado",
+                "fecha_vencimiento": self.inp_venc.text().strip() or None,
+                "notas": self.inp_notas.text().strip() or None,
+            },
+            "pago": {
+                "monto": self.spin_pago.value(),
+                "metodo_pago": METODOS_PAGO[self.combo_metodo.currentIndex()],
+                "referencia": self.inp_ref.text().strip() or None,
+            } if self.spin_pago.value() > 0 else None,
         }
 
 
@@ -407,10 +464,20 @@ class DetalleProveedorDialog(QDialog):
         if dlg.exec():
             datos = dlg.get_datos()
             try:
-                r = requests.post(f"{API_URL}/proveedores/{self.pid}/compras", json=datos, timeout=5)
+                r = requests.post(f"{API_URL}/proveedores/{self.pid}/compras",
+                                  json=datos["factura"], timeout=5)
                 if r.status_code == 200:
+                    compra_id = r.json().get("id")
+                    # Registrar el pago si el usuario ingresó importe
+                    if datos["pago"] and datos["pago"]["monto"] > 0:
+                        pago_data = {**datos["pago"], "compra_id": compra_id}
+                        requests.post(f"{API_URL}/proveedores/{self.pid}/pagos",
+                                      json=pago_data, timeout=5)
                     self._cargar_todo()
-                    QMessageBox.information(self, "✅", "Compra registrada")
+                    msg = "Compra registrada"
+                    if datos["pago"] and datos["pago"]["monto"] > 0:
+                        msg += f"\nPago de ${datos['pago']['monto']:,.0f} registrado".replace(",", ".")
+                    QMessageBox.information(self, "✅", msg)
                 else:
                     QMessageBox.critical(self, "Error", r.text)
             except Exception:

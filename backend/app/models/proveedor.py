@@ -35,6 +35,20 @@ class CompraProveedor(Base):
 
     proveedor           = relationship("Proveedor", back_populates="compras")
     pagos               = relationship("PagoProveedor", back_populates="compra")
+    items               = relationship("ItemCompraProveedor", back_populates="compra", cascade="all, delete-orphan")
+
+
+class ItemCompraProveedor(Base):
+    __tablename__ = "items_compra_proveedor"
+    id              = Column(Integer, primary_key=True, index=True)
+    compra_id       = Column(Integer, ForeignKey("compras_proveedor.id"), nullable=False)
+    producto_id     = Column(Integer, ForeignKey("productos.id"), nullable=True)
+    descripcion     = Column(String(200))   # nombre libre si no hay producto en sistema
+    cantidad        = Column(Numeric(12, 3), default=1)
+    precio_unitario = Column(Numeric(12, 2), default=0)
+    subtotal        = Column(Numeric(12, 2), default=0)
+
+    compra          = relationship("CompraProveedor", back_populates="items")
 
 
 class PagoProveedor(Base):
