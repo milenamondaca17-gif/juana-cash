@@ -1,8 +1,8 @@
 {
-  "version": "4.6.3",
-  "desktop_version": "4.6.3",
+  "version": "4.6.4",
+  "desktop_version": "4.6.4",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.3/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.3/JuanaCash.apk",
-  "notas": "v4.6.3 - Proveedores: importe y metodo de pago al registrar factura"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.4/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.4/JuanaCash.apk",
+  "notas": "v4.6.4 - Estabilidad general"
 }
