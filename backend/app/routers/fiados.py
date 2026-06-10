@@ -73,6 +73,7 @@ def todos_fiados(db: Session = Depends(get_db)):
     return [
         {
             "id": f.id,
+            "venta_id": f.venta_id,
             "fecha": str(f.created_at)[:10] if f.created_at else None,
             "cliente": c.nombre,
             "telefono": c.telefono or "",

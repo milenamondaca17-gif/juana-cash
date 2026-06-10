@@ -469,7 +469,7 @@ class ClientesScreen(QWidget):
             pass
 
     def _enviar_whatsapp_fiado(self, idx):
-        from ui.pantallas.whatsapp_ticket import servidor_activo, enviar_ticket_whatsapp
+        from ui.pantallas.whatsapp_ticket import servidor_activo, enviar_ticket_whatsapp, formatear_ticket_whatsapp
         if not hasattr(self, "_fiados_data") or idx >= len(self._fiados_data):
             return
         f = self._fiados_data[idx]
@@ -482,20 +482,41 @@ class ClientesScreen(QWidget):
             QMessageBox.warning(self, "WhatsApp inactivo",
                 "El servidor de WhatsApp no está corriendo.")
             return
-        saldo = float(f.get("saldo", f.get("monto", 0)))
-        mensaje = (
-            f"*AUTOSERVICIO SAN VALENTIN*\n"
-            f"📋 Recordatorio de fiado\n\n"
-            f"Estimado/a {f.get('cliente', '')}:\n"
-            f"El {f.get('fecha', '')} registramos un fiado de {_p(f['monto'])}\n"
-        )
-        if f.get("descripcion"):
-            mensaje += f"Detalle: {f['descripcion']}\n"
-        if saldo > 0 and saldo != float(f["monto"]):
-            mensaje += f"Saldo pendiente: *{_p(saldo)}*\n"
-        else:
-            mensaje += f"Monto: *{_p(f['monto'])}*\n"
-        mensaje += "\n_Gracias por su confianza — Juana Cash_"
+
+        venta_id = f.get("venta_id")
+        if venta_id:
+            try:
+                r = requests.get(f"{API_URL}/ventas/{venta_id}/detalle", timeout=5)
+                if r.status_code == 200:
+                    det = r.json()
+                    mensaje = formatear_ticket_whatsapp(
+                        {"numero": det.get("numero", ""), "total": det.get("total", 0)},
+                        det.get("items", []),
+                        metodo_pago="fiado",
+                        descuento=det.get("descuento", 0),
+                        recargo=det.get("recargo", 0),
+                        cliente=f.get("cliente", ""),
+                    )
+                else:
+                    venta_id = None
+            except Exception:
+                venta_id = None
+
+        if not venta_id:
+            saldo = float(f.get("saldo", f.get("monto", 0)))
+            mensaje = (
+                f"*AUTOSERVICIO SAN VALENTIN*\n"
+                f"📋 Recordatorio de fiado\n\n"
+                f"Estimado/a {f.get('cliente', '')}:\n"
+                f"El {f.get('fecha', '')} registramos un fiado de {_p(f['monto'])}\n"
+            )
+            if f.get("descripcion"):
+                mensaje += f"Detalle: {f['descripcion']}\n"
+            if saldo > 0 and saldo != float(f["monto"]):
+                mensaje += f"Saldo pendiente: *{_p(saldo)}*\n"
+            else:
+                mensaje += f"Monto: *{_p(f['monto'])}*\n"
+            mensaje += "\n_Gracias por su confianza — Juana Cash_"
 
         ok, respuesta = enviar_ticket_whatsapp(tel, mensaje)
         if ok:
