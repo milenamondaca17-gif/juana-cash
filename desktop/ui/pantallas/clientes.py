@@ -2,7 +2,8 @@ import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
-                              QDialog, QFormLayout, QDoubleSpinBox, QMenu, QComboBox)
+                              QDialog, QFormLayout, QDoubleSpinBox, QMenu, QComboBox,
+                              QTabWidget)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -252,7 +253,35 @@ class ClientesScreen(QWidget):
 
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {_BG}; color: {_TXT};")
-        layout = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet(f"""
+            QTabWidget::pane {{ border: none; background: {_BG}; }}
+            QTabBar::tab {{ background: {_BG}; color: {_MUT}; padding: 12px 24px;
+                            border: none; font-size: 13px; font-weight: bold;
+                            border-bottom: 2px solid transparent; }}
+            QTabBar::tab:selected {{ color: {_PRI}; border-bottom: 2px solid {_PRI}; }}
+            QTabBar::tab:hover {{ color: {_TXT}; }}
+        """)
+
+        tab1 = QWidget()
+        tab1.setStyleSheet(f"background: {_BG};")
+        self._build_tab_clientes(tab1)
+        self.tabs.addTab(tab1, "👥 Clientes")
+
+        tab2 = QWidget()
+        tab2.setStyleSheet(f"background: {_BG};")
+        self._build_tab_fiados(tab2)
+        self.tabs.addTab(tab2, "📅 Fiados por día")
+
+        self.tabs.currentChanged.connect(self._on_tab_changed)
+        outer.addWidget(self.tabs)
+
+    def _build_tab_clientes(self, widget):
+        layout = QVBoxLayout(widget)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
@@ -309,6 +338,116 @@ class ClientesScreen(QWidget):
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         layout.addWidget(self.tabla)
+
+    def _build_tab_fiados(self, widget):
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
+
+        header = QHBoxLayout()
+        titulo = QLabel("📅 Fiados por día")
+        titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        header.addWidget(titulo)
+        header.addStretch()
+
+        self.combo_periodo = QComboBox()
+        self.combo_periodo.addItems(["Hoy", "Esta semana", "Este mes", "Todo"])
+        self.combo_periodo.setFixedHeight(36)
+        self.combo_periodo.setStyleSheet(f"""
+            QComboBox {{ background: {_CARD}; border: 1.5px solid {_BOR}; border-radius: 8px;
+                         padding: 0 12px; color: {_TXT}; font-size: 13px; min-width: 130px; }}
+            QComboBox::drop-down {{ border: none; }}
+            QComboBox QAbstractItemView {{ background: {_CARD}; color: {_TXT}; border: 1px solid {_BOR}; }}
+        """)
+        self.combo_periodo.currentIndexChanged.connect(self.cargar_fiados_por_dia)
+        header.addWidget(self.combo_periodo)
+
+        btn_ref = QPushButton("🔄")
+        btn_ref.setFixedSize(36, 36)
+        btn_ref.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
+        btn_ref.clicked.connect(self.cargar_fiados_por_dia)
+        header.addWidget(btn_ref)
+        layout.addLayout(header)
+
+        resumen = QHBoxLayout()
+        self.card_fiado_total     = self.crear_card("💸 Total fiado",  "$0", "#dc2626")
+        self.card_fiado_pendiente = self.crear_card("⏳ Pendiente",    "$0", "#d97706")
+        self.card_fiado_pagado    = self.crear_card("✅ Cobrado",      "$0", "#16a34a")
+        for c in [self.card_fiado_total, self.card_fiado_pendiente, self.card_fiado_pagado]:
+            resumen.addWidget(c[0])
+        layout.addLayout(resumen)
+
+        self.tabla_fiados = QTableWidget()
+        self.tabla_fiados.setColumnCount(5)
+        self.tabla_fiados.setHorizontalHeaderLabels(["Fecha", "Cliente", "Monto", "Descripción", "Estado"])
+        self.tabla_fiados.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabla_fiados.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.tabla_fiados.setColumnWidth(0, 100)
+        self.tabla_fiados.setColumnWidth(2, 110)
+        self.tabla_fiados.setColumnWidth(4, 90)
+        self.tabla_fiados.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla_fiados.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabla_fiados.setStyleSheet(f"""
+            QTableWidget {{ background: {_CARD}; border: 1.5px solid {_BOR}; border-radius: 8px; gridline-color: {_BOR}; }}
+            QHeaderView::section {{ background: {_BG}; color: {_MUT}; padding: 8px; border: none; font-weight: bold; }}
+            QTableWidget::item {{ color: {_TXT}; padding: 6px; }}
+            QTableWidget::item:selected {{ background: {_T['bg_hover']}; }}
+        """)
+        layout.addWidget(self.tabla_fiados)
+
+    def _on_tab_changed(self, idx):
+        if idx == 1:
+            self.cargar_fiados_por_dia()
+
+    def cargar_fiados_por_dia(self):
+        from datetime import date, timedelta
+        try:
+            r = requests.get(f"{API_URL}/fiados/todos", timeout=5)
+            if r.status_code != 200:
+                return
+            fiados = r.json()
+
+            periodo = self.combo_periodo.currentText()
+            hoy = date.today()
+            if periodo == "Hoy":
+                fiados = [f for f in fiados if f.get("fecha") == str(hoy)]
+            elif periodo == "Esta semana":
+                inicio = str(hoy - timedelta(days=hoy.weekday()))
+                fiados = [f for f in fiados if (f.get("fecha") or "") >= inicio]
+            elif periodo == "Este mes":
+                inicio = str(hoy.replace(day=1))
+                fiados = [f for f in fiados if (f.get("fecha") or "") >= inicio]
+
+            total     = sum(f["monto"] for f in fiados)
+            pendiente = sum(f["monto"] for f in fiados if f["estado"] in ("pendiente", "parcial"))
+            pagado    = sum(f["monto"] for f in fiados if f["estado"] == "pagado")
+            self.card_fiado_total[1].setText(_p(total))
+            self.card_fiado_pendiente[1].setText(_p(pendiente))
+            self.card_fiado_pagado[1].setText(_p(pagado))
+
+            self.tabla_fiados.setRowCount(len(fiados))
+            for i, f in enumerate(fiados):
+                self.tabla_fiados.setItem(i, 0, QTableWidgetItem(f.get("fecha") or ""))
+                self.tabla_fiados.setItem(i, 1, QTableWidgetItem(f.get("cliente") or ""))
+
+                item_monto = QTableWidgetItem(_p(f["monto"]))
+                item_monto.setForeground(Qt.GlobalColor.red)
+                self.tabla_fiados.setItem(i, 2, item_monto)
+
+                self.tabla_fiados.setItem(i, 3, QTableWidgetItem(f.get("descripcion") or ""))
+
+                estado = f.get("estado", "pendiente")
+                item_est = QTableWidgetItem(estado.capitalize())
+                if estado == "pagado":
+                    item_est.setForeground(Qt.GlobalColor.green)
+                elif estado == "parcial":
+                    item_est.setForeground(Qt.GlobalColor.yellow)
+                else:
+                    item_est.setForeground(Qt.GlobalColor.red)
+                self.tabla_fiados.setItem(i, 4, item_est)
+        except Exception:
+            pass
 
     def crear_card(self, titulo, valor, color):
         card = QFrame()

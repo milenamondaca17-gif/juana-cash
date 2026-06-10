@@ -64,6 +64,25 @@ def cobros_turno(desde: str, hasta: str, db: Session = Depends(get_db)):
         "total":          total_efectivo + total_otros,
     }
 
+@router.get("/todos")
+def todos_fiados(db: Session = Depends(get_db)):
+    rows = (db.query(Fiado, Cliente)
+            .join(Cliente, Fiado.cliente_id == Cliente.id)
+            .order_by(Fiado.created_at.desc())
+            .all())
+    return [
+        {
+            "id": f.id,
+            "fecha": str(f.created_at)[:10] if f.created_at else None,
+            "cliente": c.nombre,
+            "monto": float(f.monto or 0),
+            "saldo": float(f.saldo or 0),
+            "descripcion": f.descripcion or "",
+            "estado": f.estado or "pendiente",
+        }
+        for f, c in rows
+    ]
+
 @router.get("/")
 def listar_fiados(db: Session = Depends(get_db)):
     return db.query(Fiado).filter(Fiado.estado != "pagado").all()

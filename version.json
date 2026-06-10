@@ -1,8 +1,8 @@
 {
-  "version": "4.6.4",
-  "desktop_version": "4.6.4",
+  "version": "4.6.5",
+  "desktop_version": "4.6.5",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.4/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.4/JuanaCash.apk",
-  "notas": "v4.6.4 - Estabilidad general"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.5/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.5/JuanaCash.apk",
+  "notas": "v4.6.5 - Clientes: nueva pestaña Fiados por día con filtro por período"
 }
