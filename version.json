@@ -1,8 +1,8 @@
 {
-  "version": "4.6.5",
-  "desktop_version": "4.6.5",
+  "version": "4.6.6",
+  "desktop_version": "4.6.6",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.5/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.5/JuanaCash.apk",
-  "notas": "v4.6.5 - Clientes: nueva pestaña Fiados por día con filtro por período"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.6/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.6/JuanaCash.apk",
+  "notas": "v4.6.6 - Fiados por dia: filtro Desde/Hasta + boton WhatsApp por fiado"
 }

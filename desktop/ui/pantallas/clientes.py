@@ -3,7 +3,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
                               QDialog, QFormLayout, QDoubleSpinBox, QMenu, QComboBox,
-                              QTabWidget)
+                              QTabWidget, QDateEdit)
+from PyQt6.QtCore import QDate
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -351,17 +352,33 @@ class ClientesScreen(QWidget):
         header.addWidget(titulo)
         header.addStretch()
 
-        self.combo_periodo = QComboBox()
-        self.combo_periodo.addItems(["Hoy", "Esta semana", "Este mes", "Todo"])
-        self.combo_periodo.setFixedHeight(36)
-        self.combo_periodo.setStyleSheet(f"""
-            QComboBox {{ background: {_CARD}; border: 1.5px solid {_BOR}; border-radius: 8px;
-                         padding: 0 12px; color: {_TXT}; font-size: 13px; min-width: 130px; }}
-            QComboBox::drop-down {{ border: none; }}
-            QComboBox QAbstractItemView {{ background: {_CARD}; color: {_TXT}; border: 1px solid {_BOR}; }}
-        """)
-        self.combo_periodo.currentIndexChanged.connect(self.cargar_fiados_por_dia)
-        header.addWidget(self.combo_periodo)
+        estilo_fecha = f"""
+            QDateEdit {{ background: {_CARD}; border: 1.5px solid {_BOR}; border-radius: 8px;
+                         padding: 0 10px; color: {_TXT}; font-size: 13px; min-width: 120px; height: 36px; }}
+            QDateEdit::drop-down {{ border: none; width: 20px; }}
+            QDateEdit::up-button, QDateEdit::down-button {{ width: 0; }}
+        """
+        lbl_desde = QLabel("Desde:")
+        lbl_desde.setStyleSheet(f"color: {_MUT}; font-size: 13px; background: transparent;")
+        header.addWidget(lbl_desde)
+        self.date_desde = QDateEdit()
+        self.date_desde.setCalendarPopup(True)
+        self.date_desde.setDate(QDate.currentDate().addMonths(-1))
+        self.date_desde.setDisplayFormat("dd/MM/yyyy")
+        self.date_desde.setStyleSheet(estilo_fecha)
+        self.date_desde.dateChanged.connect(self.cargar_fiados_por_dia)
+        header.addWidget(self.date_desde)
+
+        lbl_hasta = QLabel("Hasta:")
+        lbl_hasta.setStyleSheet(f"color: {_MUT}; font-size: 13px; background: transparent;")
+        header.addWidget(lbl_hasta)
+        self.date_hasta = QDateEdit()
+        self.date_hasta.setCalendarPopup(True)
+        self.date_hasta.setDate(QDate.currentDate())
+        self.date_hasta.setDisplayFormat("dd/MM/yyyy")
+        self.date_hasta.setStyleSheet(estilo_fecha)
+        self.date_hasta.dateChanged.connect(self.cargar_fiados_por_dia)
+        header.addWidget(self.date_hasta)
 
         btn_ref = QPushButton("🔄")
         btn_ref.setFixedSize(36, 36)
@@ -379,13 +396,14 @@ class ClientesScreen(QWidget):
         layout.addLayout(resumen)
 
         self.tabla_fiados = QTableWidget()
-        self.tabla_fiados.setColumnCount(5)
-        self.tabla_fiados.setHorizontalHeaderLabels(["Fecha", "Cliente", "Monto", "Descripción", "Estado"])
+        self.tabla_fiados.setColumnCount(6)
+        self.tabla_fiados.setHorizontalHeaderLabels(["Fecha", "Cliente", "Monto", "Descripción", "Estado", "📱"])
         self.tabla_fiados.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_fiados.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.tabla_fiados.setColumnWidth(0, 100)
         self.tabla_fiados.setColumnWidth(2, 110)
         self.tabla_fiados.setColumnWidth(4, 90)
+        self.tabla_fiados.setColumnWidth(5, 40)
         self.tabla_fiados.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla_fiados.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tabla_fiados.setStyleSheet(f"""
@@ -401,23 +419,16 @@ class ClientesScreen(QWidget):
             self.cargar_fiados_por_dia()
 
     def cargar_fiados_por_dia(self):
-        from datetime import date, timedelta
         try:
             r = requests.get(f"{API_URL}/fiados/todos", timeout=5)
             if r.status_code != 200:
                 return
             fiados = r.json()
 
-            periodo = self.combo_periodo.currentText()
-            hoy = date.today()
-            if periodo == "Hoy":
-                fiados = [f for f in fiados if f.get("fecha") == str(hoy)]
-            elif periodo == "Esta semana":
-                inicio = str(hoy - timedelta(days=hoy.weekday()))
-                fiados = [f for f in fiados if (f.get("fecha") or "") >= inicio]
-            elif periodo == "Este mes":
-                inicio = str(hoy.replace(day=1))
-                fiados = [f for f in fiados if (f.get("fecha") or "") >= inicio]
+            desde = self.date_desde.date().toString("yyyy-MM-dd")
+            hasta = self.date_hasta.date().toString("yyyy-MM-dd")
+            fiados = [f for f in fiados
+                      if desde <= (f.get("fecha") or "") <= hasta]
 
             total     = sum(f["monto"] for f in fiados)
             pendiente = sum(f["monto"] for f in fiados if f["estado"] in ("pendiente", "parcial"))
@@ -426,6 +437,7 @@ class ClientesScreen(QWidget):
             self.card_fiado_pendiente[1].setText(_p(pendiente))
             self.card_fiado_pagado[1].setText(_p(pagado))
 
+            self._fiados_data = fiados
             self.tabla_fiados.setRowCount(len(fiados))
             for i, f in enumerate(fiados):
                 self.tabla_fiados.setItem(i, 0, QTableWidgetItem(f.get("fecha") or ""))
@@ -446,8 +458,51 @@ class ClientesScreen(QWidget):
                 else:
                     item_est.setForeground(Qt.GlobalColor.red)
                 self.tabla_fiados.setItem(i, 4, item_est)
+
+                btn_wa = QPushButton("📲")
+                btn_wa.setFixedSize(32, 28)
+                btn_wa.setToolTip("Enviar ticket por WhatsApp")
+                btn_wa.setStyleSheet("QPushButton { background: #25D366; color: white; border-radius: 4px; font-size: 13px; } QPushButton:hover { background: #128C7E; }")
+                btn_wa.clicked.connect(lambda _, idx=i: self._enviar_whatsapp_fiado(idx))
+                self.tabla_fiados.setCellWidget(i, 5, btn_wa)
         except Exception:
             pass
+
+    def _enviar_whatsapp_fiado(self, idx):
+        from ui.pantallas.whatsapp_ticket import servidor_activo, enviar_ticket_whatsapp
+        if not hasattr(self, "_fiados_data") or idx >= len(self._fiados_data):
+            return
+        f = self._fiados_data[idx]
+        tel = f.get("telefono", "")
+        if not tel:
+            QMessageBox.warning(self, "Sin teléfono",
+                f"{f.get('cliente', 'El cliente')} no tiene teléfono registrado.")
+            return
+        if not servidor_activo():
+            QMessageBox.warning(self, "WhatsApp inactivo",
+                "El servidor de WhatsApp no está corriendo.")
+            return
+        saldo = float(f.get("saldo", f.get("monto", 0)))
+        mensaje = (
+            f"*AUTOSERVICIO SAN VALENTIN*\n"
+            f"📋 Recordatorio de fiado\n\n"
+            f"Estimado/a {f.get('cliente', '')}:\n"
+            f"El {f.get('fecha', '')} registramos un fiado de {_p(f['monto'])}\n"
+        )
+        if f.get("descripcion"):
+            mensaje += f"Detalle: {f['descripcion']}\n"
+        if saldo > 0 and saldo != float(f["monto"]):
+            mensaje += f"Saldo pendiente: *{_p(saldo)}*\n"
+        else:
+            mensaje += f"Monto: *{_p(f['monto'])}*\n"
+        mensaje += "\n_Gracias por su confianza — Juana Cash_"
+
+        ok, respuesta = enviar_ticket_whatsapp(tel, mensaje)
+        if ok:
+            QMessageBox.information(self, "✅ Enviado",
+                f"Ticket enviado a {f.get('cliente')} ({tel})")
+        else:
+            QMessageBox.warning(self, "Error al enviar", respuesta)
 
     def crear_card(self, titulo, valor, color):
         card = QFrame()
