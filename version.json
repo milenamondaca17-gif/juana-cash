@@ -1,8 +1,8 @@
 {
-  "version": "4.6.8",
-  "desktop_version": "4.6.8",
+  "version": "4.6.9",
+  "desktop_version": "4.6.9",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.8/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.8/JuanaCash.apk",
-  "notas": "v4.6.8 - Updater: barra verde de progreso durante descarga + app abre sola al terminar"
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.9/JuanaCash_Setup.exe",
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.6.9/JuanaCash.apk",
+  "notas": "v4.6.9 - Cobro: descuento y cupon abajo del importe, foco automatico en campo de entrega"
 }
