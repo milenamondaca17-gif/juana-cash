@@ -114,16 +114,27 @@ def version_mayor(v_nueva, v_actual):
 # ── Descarga e instalación ────────────────────────────────────────────────────
 def descargar_e_instalar(installer_url, version_nueva,
                          callback_ok=None, callback_error=None,
-                         callback_cerrar_app=None):
+                         callback_cerrar_app=None, callback_progreso=None):
     import urllib.request
     try:
         tmp = tempfile.mktemp(suffix=".exe", prefix="JuanaCash_Update_")
         _log(f"Iniciando descarga de {installer_url} -> {tmp}")
 
         with urllib.request.urlopen(installer_url, context=_ssl_context()) as r:
+            total = int(r.headers.get("Content-Length") or 0)
+            descargado = 0
             with open(tmp, "wb") as f:
-                f.write(r.read())
+                while True:
+                    chunk = r.read(65536)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    descargado += len(chunk)
+                    if total > 0 and callback_progreso:
+                        callback_progreso(int(descargado / total * 95))
 
+        if callback_progreso:
+            callback_progreso(100)
         _log(f"Descarga completada. Tamanio: {os.path.getsize(tmp)} bytes")
 
         # Guardar en caché de usuario ANTES de lanzar el instalador
@@ -186,7 +197,8 @@ class Updater:
                   on_actualizado=None,
                   on_sin_internet=None,
                   on_no_hay_update=None,
-                  on_cerrar_app=None):
+                  on_cerrar_app=None,
+                  on_progreso=None):
 
         global _ya_verificando
         if _ya_verificando:
@@ -231,6 +243,7 @@ class Updater:
                         callback_ok=on_actualizado,
                         callback_error=lambda e: _log(f"callback_error: {e}"),
                         callback_cerrar_app=on_cerrar_app,
+                        callback_progreso=on_progreso,
                     )
                 else:
                     _log("Sin installer_url en version.json de GitHub")

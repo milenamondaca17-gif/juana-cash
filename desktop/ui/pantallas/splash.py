@@ -200,14 +200,24 @@ class SplashScreen(QWidget):
             from updater import Updater
             u = Updater()
 
+            _progreso = [0]  # compartido entre hilo de descarga y Qt
+
+            def _on_progreso(pct):
+                _progreso[0] = pct
+                QTimer.singleShot(0, lambda: self._set_update_msg(
+                    f"⬇️ Descargando actualización... {pct}%"
+                ))
+
             def _cerrar_app_qt():
                 def _show_overlay():
-                    from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
+                    from PyQt6.QtWidgets import (QApplication, QWidget, QLabel,
+                                                 QVBoxLayout, QProgressBar)
                     from PyQt6.QtCore import QTimer, Qt
                     from PyQt6.QtGui import QFont
                     app_inst = QApplication.instance()
                     if not app_inst:
                         return
+
                     ov = QWidget()
                     ov.setWindowFlags(
                         Qt.WindowType.FramelessWindowHint |
@@ -215,22 +225,62 @@ class SplashScreen(QWidget):
                     )
                     ov.setStyleSheet("background-color: #0d1117;")
                     ov.showFullScreen()
+
                     lay = QVBoxLayout(ov)
                     lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    lay.setSpacing(14)
+
                     for txt, size, color in [
                         ("⚙️", 52, "white"),
                         ("ACTUALIZANDO JUANA CASH", 26, "#F59E0B"),
-                        ("Por favor esperá unos momentos", 15, "white"),
-                        ("NO abrir la aplicación hasta que reaparezca sola", 13, "#9ca3af"),
                     ]:
                         lbl = QLabel(txt)
-                        lbl.setFont(QFont("Arial", size,
-                                         QFont.Weight.Bold if size > 20 else QFont.Weight.Normal))
+                        lbl.setFont(QFont("Arial", size, QFont.Weight.Bold))
                         lbl.setStyleSheet(f"color: {color}; background: transparent;")
                         lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                         lay.addWidget(lbl)
-                        lay.addSpacing(8)
-                    QTimer.singleShot(50000, app_inst.quit)
+
+                    prog = QProgressBar()
+                    prog.setRange(0, 100)
+                    prog.setValue(_progreso[0])
+                    prog.setFixedWidth(520)
+                    prog.setFixedHeight(30)
+                    prog.setTextVisible(True)
+                    prog.setFormat("%p%")
+                    prog.setStyleSheet("""
+                        QProgressBar {
+                            background-color: #1f2937;
+                            border-radius: 10px;
+                            color: white;
+                            font-size: 13px;
+                            font-weight: bold;
+                            border: none;
+                            text-align: center;
+                        }
+                        QProgressBar::chunk {
+                            background-color: #16a34a;
+                            border-radius: 10px;
+                        }
+                    """)
+                    lay.addWidget(prog, 0, Qt.AlignmentFlag.AlignCenter)
+
+                    for txt, size, color in [
+                        ("Instalando... por favor esperá unos momentos", 14, "white"),
+                        ("La app va a abrirse sola cuando termine", 12, "#9ca3af"),
+                        ("❌  NO la abras antes", 13, "#ef4444"),
+                    ]:
+                        lbl = QLabel(txt)
+                        lbl.setFont(QFont("Arial", size))
+                        lbl.setStyleSheet(f"color: {color}; background: transparent;")
+                        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                        lay.addWidget(lbl)
+
+                    timer_poll = QTimer(ov)
+                    timer_poll.timeout.connect(lambda: prog.setValue(_progreso[0]))
+                    timer_poll.start(200)
+
+                    QTimer.singleShot(90000, app_inst.quit)
+
                 from PyQt6.QtCore import QTimer
                 QTimer.singleShot(0, _show_overlay)
 
@@ -238,6 +288,7 @@ class SplashScreen(QWidget):
                 on_preguntar=lambda v: True,
                 on_descargando=lambda v: self._set_update_msg(f"⬇️ Descargando v{v}..."),
                 on_actualizado=lambda v: self._set_update_msg(f"✅ v{v} descargada — instalando..."),
+                on_progreso=_on_progreso,
                 on_sin_internet=lambda: None,
                 on_no_hay_update=lambda: None,
                 on_cerrar_app=_cerrar_app_qt,
