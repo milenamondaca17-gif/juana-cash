@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
                               QDialog, QFormLayout, QDoubleSpinBox, QSpinBox,
-                              QComboBox)
+                              QComboBox, QScrollArea)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
 
@@ -33,18 +33,34 @@ class ProductoDialog(QDialog):
         self.setup_ui()
 
     def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setSpacing(12)
+        outer = QVBoxLayout(self)
+        outer.setSpacing(10)
+        outer.setContentsMargins(16, 16, 16, 16)
 
         titulo = QLabel("📦 Datos del producto")
         titulo.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         titulo.setStyleSheet(f"color: {_PRI}; background: transparent;")
-        layout.addWidget(titulo)
+        outer.addWidget(titulo)
 
         estilo = f"background: {_BG}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 14px;"
 
-        self.form = QFormLayout() # Lo hacemos self para acceder desde otros métodos
+        _content = QWidget()
+        _content.setStyleSheet(f"background: {_CARD};")
+        self.form = QFormLayout(_content)
         self.form.setSpacing(10)
+        self.form.setContentsMargins(0, 4, 4, 4)
+
+        _scroll = QScrollArea()
+        _scroll.setWidgetResizable(True)
+        _scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        _scroll.setStyleSheet(f"""
+            QScrollArea {{ background: {_CARD}; border: none; }}
+            QScrollBar:vertical {{ background: {_BG}; width: 8px; border-radius: 4px; }}
+            QScrollBar::handle:vertical {{ background: {_BOR}; border-radius: 4px; min-height: 30px; }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+        """)
+        _scroll.setWidget(_content)
+        outer.addWidget(_scroll, 1)
 
         self.input_nombre = QLineEdit()
         self.input_nombre.setStyleSheet(f"QLineEdit {{ {estilo} }}")
@@ -122,8 +138,6 @@ class ProductoDialog(QDialog):
         self.input_unidad.setFixedHeight(40)
         self.form.addRow("Unidad:", self.input_unidad)
 
-        layout.addLayout(self.form)
-
         # Llenar datos si es edición
         if self.producto:
             self.input_nombre.setText(self.producto.get("nombre", ""))
@@ -155,7 +169,7 @@ class ProductoDialog(QDialog):
         btn_guardar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_guardar.clicked.connect(self.guardar)
         btns.addWidget(btn_guardar)
-        layout.addLayout(btns)
+        outer.addLayout(btns)
 
     def agregar_campo_codigo(self, texto=""):
         fila = QHBoxLayout()
@@ -323,6 +337,12 @@ class ProductosScreen(QWidget):
         ])
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla.setStyleSheet(f"""
+            QTableWidget {{ background: {_CARD}; color: {_TXT}; gridline-color: {_BOR}; border: none; }}
+            QHeaderView::section {{ background: {_BG}; color: {_MUT}; padding: 6px; border: none; font-weight: bold; font-size: 12px; }}
+            QTableWidget::item {{ color: {_TXT}; padding: 4px; }}
+            QTableWidget::item:selected {{ background: {_T['bg_hover']}; color: {_TXT}; }}
+        """)
         layout.addWidget(self.tabla)
 
     def crear_card(self, titulo, valor, color):

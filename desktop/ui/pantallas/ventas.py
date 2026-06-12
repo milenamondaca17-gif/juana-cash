@@ -2004,8 +2004,11 @@ class VentasScreen(QWidget):
         btn_ok = QPushButton("OK")
         btn_ok.setFixedHeight(40)
         btn_ok.setStyleSheet(f"QPushButton {{ background:{ACCENT_BOTON}; color:white; border-radius:8px; font-size:14px; font-weight:bold; }} QPushButton:hover {{ background:#2563eb; }}")
+        btn_ok.setDefault(True)
+        btn_ok.setAutoDefault(True)
         btn_ok.clicked.connect(dlg.accept)
         lay.addWidget(btn_ok)
+        in_tel.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
         dlg.exec()
 
