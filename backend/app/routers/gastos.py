@@ -89,6 +89,22 @@ def gastos_mes(db: Session = Depends(get_db)):
         "por_categoria": por_categoria
     }
 
+@router.get("/rango")
+def gastos_rango(desde: str, hasta: str, db: Session = Depends(get_db)):
+    try:
+        dt_desde = datetime.fromisoformat(desde)
+        dt_hasta = datetime.fromisoformat(hasta)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+    gastos = db.query(Gasto).filter(
+        Gasto.fecha >= dt_desde, Gasto.fecha <= dt_hasta
+    ).order_by(Gasto.fecha.asc()).all()
+    total = sum(g.monto for g in gastos)
+    return {
+        "gastos": [{"descripcion": g.descripcion, "monto": g.monto, "fecha": g.fecha.strftime("%d/%m")} for g in gastos],
+        "total": total
+    }
+
 @router.delete("/{gasto_id}")
 def eliminar_gasto(gasto_id: int, db: Session = Depends(get_db)):
     gasto = db.query(Gasto).filter(Gasto.id == gasto_id).first()

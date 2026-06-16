@@ -64,6 +64,28 @@ def cobros_turno(desde: str, hasta: str, db: Session = Depends(get_db)):
         "total":          total_efectivo + total_otros,
     }
 
+@router.get("/turno")
+def fiados_turno(desde: str, hasta: str, db: Session = Depends(get_db)):
+    """Fiados CREADOS en un rango de tiempo (para mostrar al cierre de caja)."""
+    try:
+        dt_desde = datetime.fromisoformat(desde)
+        dt_hasta = datetime.fromisoformat(hasta)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+    rows = (db.query(Fiado, Cliente)
+            .join(Cliente, Fiado.cliente_id == Cliente.id)
+            .filter(Fiado.created_at >= dt_desde, Fiado.created_at <= dt_hasta)
+            .order_by(Fiado.created_at.asc())
+            .all())
+    return [
+        {
+            "cliente": c.nombre,
+            "monto": float(f.monto or 0),
+            "descripcion": f.descripcion or "",
+        }
+        for f, c in rows
+    ]
+
 @router.get("/todos")
 def todos_fiados(db: Session = Depends(get_db)):
     rows = (db.query(Fiado, Cliente)

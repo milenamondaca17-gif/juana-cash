@@ -151,7 +151,17 @@ from ui.pantallas.clientes import ClientesScreen
 from ui.pantallas.caja import CajaScreen
 from ui.pantallas.sesiones import SesionesScreen
 from ui.pantallas.usuarios import UsuariosScreen
-from ui.pantallas.proveedores import ProveedoresScreen
+try:
+    from ui.pantallas.proveedores import ProveedoresScreen
+    _PROVEEDORES_OK = True
+except Exception:
+    from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+    class ProveedoresScreen(QWidget):
+        def __init__(self):
+            super().__init__()
+            lay = QVBoxLayout(self)
+            lay.addWidget(QLabel("Módulo Proveedores no disponible. Reinstalá la app."))
+    _PROVEEDORES_OK = False
 from ui.pantallas.dashboard import DashboardScreen
 from ui.pantallas.stock_avanzado import StockAvanzadoScreen
 from ui.pantallas.precios_masivos import PreciosMasivosScreen
@@ -280,25 +290,25 @@ class MainWindow(QMainWindow):
 
         # ── Navbar Horizontal Superior ───────────────
         self.navbar = QFrame()
-        self.navbar.setFixedHeight(56)
+        self.navbar.setFixedHeight(62)
         self.navbar.setStyleSheet(
-            f"background-color: {_T['bg_navbar']}; border-bottom: 2px solid {_T['border']};"
+            f"QFrame {{ background: {_T['bg_navbar']}; border-radius: 0px; border-bottom: 1.5px solid {_T['border']}; }}"
         )
         self.navbar.hide()
 
         navbar_layout = QHBoxLayout(self.navbar)
-        navbar_layout.setContentsMargins(16, 0, 16, 0)
+        navbar_layout.setContentsMargins(20, 0, 16, 0)
         navbar_layout.setSpacing(2)
 
         logo = QLabel(
-            f"<span style='color:{_T['logo_color']};font-weight:900;font-size:17px;letter-spacing:2px;'>JUANA</span>"
-            f"<span style='color:{_T['text_muted']};font-weight:900;font-size:17px;letter-spacing:2px;'> CASH</span>"
-            f"<span style='color:{_T['logo_color']};font-weight:900;font-size:15px;'>$</span>"
+            f"<span style='color:{_T['primary']};font-weight:900;font-size:17px;letter-spacing:1px;'>JUANA</span>"
+            f"<span style='color:{_T['text_main']};font-weight:300;font-size:17px;letter-spacing:1px;'> CASH</span>"
+            f"<span style='color:{_T['primary']};font-weight:900;font-size:15px;'>$</span>"
         )
         logo.setStyleSheet("border: none; background: transparent;")
         navbar_layout.addWidget(logo)
 
-        navbar_layout.addSpacing(20)
+        navbar_layout.addSpacing(24)
 
         self.btns_menu = {}
         self.menus_admin = ["usuarios", "sesiones", "dashboard", "ofertas", "alertas"]
@@ -316,19 +326,16 @@ class MainWindow(QMainWindow):
             ("⚙ Config",        "config"),
         ]
 
-        _ORO = "#D4A017"
         ESTILO_BTN = (
-            f"QPushButton {{ background: {_T['bg_navbar']}; color: {_ORO}; font-size: 12px; font-weight: bold;"
-            f" border-top: 1.5px solid {_ORO}; border-left: 1.5px solid {_ORO}; border-right: 1.5px solid {_ORO};"
-            f" border-bottom: 3px solid {_ORO}; border-radius: 7px; padding: 4px 12px; margin: 9px 2px; }}"
-            f"QPushButton:hover {{ background: {_T['bg_hover']}; color: #F5C842; border-color: #F5C842; }}"
-            f"QPushButton:checked {{ background: {_T['bg_selected']}; color: #FFD700; border-top: 1.5px solid #FFD700;"
-            f" border-left: 1.5px solid #FFD700; border-right: 1.5px solid #FFD700; border-bottom: 4px solid #FFD700; }}"
+            f"QPushButton {{ background: transparent; color: {_T['navbar_text']}; font-size: 12px; font-weight: 600;"
+            f" border: none; border-radius: 8px; padding: 5px 13px; margin: 10px 2px; }}"
+            f"QPushButton:hover {{ background: {_T['bg_hover']}; color: {_T['text_main']}; }}"
+            f"QPushButton:checked {{ background: {_T['navbar_active_bg']}; color: {_T['navbar_active']}; font-weight: 700; }}"
         )
 
         for texto, key in menus_principales:
             btn = QPushButton(texto)
-            btn.setFixedHeight(56)
+            btn.setFixedHeight(62)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(ESTILO_BTN)
@@ -341,7 +348,7 @@ class MainWindow(QMainWindow):
         # Separador derecho
         _sep_der = QFrame()
         _sep_der.setFixedSize(1, 28)
-        _sep_der.setStyleSheet("background: #D4A017; border: none;")
+        _sep_der.setStyleSheet(f"background: {_T['border']}; border: none; border-radius: 0;")
         navbar_layout.addWidget(_sep_der)
         navbar_layout.addSpacing(10)
 
@@ -366,8 +373,9 @@ class MainWindow(QMainWindow):
 
         self.lbl_cajero_navbar = QLabel("")
         self.lbl_cajero_navbar.setStyleSheet(
-            f"color: {_T['navbar_active']}; font-size: 12px; font-weight: bold; border: 1.5px solid {_T['border']};"
-            f" background: {_T['navbar_active_bg']}; border-radius: 12px; padding: 3px 12px; margin-right: 6px;"
+            f"color: {_T['navbar_active']}; font-size: 11px; font-weight: 700;"
+            f" border: 1px solid {_T['border']}; background: {_T['navbar_active_bg']};"
+            f" border-radius: 14px; padding: 4px 14px; margin-right: 4px;"
         )
         navbar_layout.addWidget(self.lbl_cajero_navbar)
 
@@ -375,7 +383,7 @@ class MainWindow(QMainWindow):
         btn_salir.setFixedHeight(32)
         btn_salir.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_salir.setStyleSheet(f"""
-            QPushButton {{ background: transparent; color: {_T['text_muted']}; font-size: 12px; font-weight: bold; border: 1.5px solid {_T['border']}; border-radius: 10px; padding: 0 14px; }}
+            QPushButton {{ background: transparent; color: {_T['text_muted']}; font-size: 12px; font-weight: 600; border: 1px solid {_T['border']}; border-radius: 10px; padding: 0 14px; }}
             QPushButton:hover {{ background: {_T['danger']}; color: white; border-color: {_T['danger']}; }}
         """)
         btn_salir.clicked.connect(self.on_logout)

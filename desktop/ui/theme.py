@@ -183,6 +183,36 @@ TEMAS = {
         "navbar_border":    "#059669",
         "logo_color":       "#059669",
     },
+    "indigo_pro": {
+        "nombre": "🔵 Índigo Pro",
+        "text_input":  "#E2E8F0",
+        "bg_app":      "#0F172A",
+        "bg_card":     "#1E293B",
+        "bg_navbar":   "#1E293B",
+        "bg_input":    "#0F172A",
+        "bg_hover":    "#334155",
+        "bg_selected": "#1E1B4B",
+        "primary":        "#818CF8",
+        "primary_hover":  "#6366F1",
+        "primary_light":  "#1E1B4B",
+        "primary_text":   "#FFFFFF",
+        "accent_green":   "#34D399",
+        "accent_orange":  "#F59E0B",
+        "accent_rose":    "#FB7185",
+        "accent_yellow":  "#FBBF24",
+        "text_main":   "#E2E8F0",
+        "text_muted":  "#94A3B8",
+        "border":      "#2D3F55",
+        "border_card": "#2D3F55",
+        "success":     "#34D399",
+        "warning":     "#FBBF24",
+        "danger":      "#F87171",
+        "navbar_text":      "#94A3B8",
+        "navbar_active":    "#A5B4FC",
+        "navbar_active_bg": "#1E1B4B",
+        "navbar_border":    "#818CF8",
+        "logo_color":       "#818CF8",
+    },
     "oscuro_esmeralda": {
         "nombre": "🟢 Oscuro Esmeralda",
         "text_input":  "#E6EDF3",
@@ -218,10 +248,10 @@ TEMAS = {
 _CONFIG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
 
 
-TEMA_DEFAULT = "oscuro_esmeralda"
+TEMA_DEFAULT = "indigo_pro"
 
-# Temas que se migran automáticamente al nuevo default en v4.5.9+
-_TEMAS_LEGACY = {"violeta_calido", "lila_sol", "rosa_sage", "naranja_cielo"}
+# Temas que se migran automáticamente al nuevo default
+_TEMAS_LEGACY = {"violeta_calido", "lila_sol", "rosa_sage", "naranja_cielo", "oscuro_esmeralda"}
 
 def get_tema_key() -> str:
     env_key = os.environ.get('JUANA_CASH_TEMA', '')
@@ -274,6 +304,7 @@ QMainWindow, QDialog, QWidget {{
 QFrame {{
     background-color: {t['bg_card']};
     border: none;
+    border-radius: 12px;
 }}
 
 /* ── Inputs ── */
@@ -350,16 +381,19 @@ QPushButton {{
     background: {t['primary']};
     color: {t['primary_text']};
     border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: 10px;
+    padding: 8px 18px;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }}
 QPushButton:hover {{
     background: {t['primary_hover']};
 }}
 QPushButton:pressed {{
     background: {t['primary_hover']};
+    padding-top: 9px;
+    padding-bottom: 7px;
 }}
 QPushButton:disabled {{
     background: {t['border']};

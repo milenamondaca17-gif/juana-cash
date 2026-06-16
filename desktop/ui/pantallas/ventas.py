@@ -1958,6 +1958,8 @@ class VentasScreen(QWidget):
         btn_wa = QPushButton("📱 Enviar")
         btn_wa.setFixedHeight(36)
         btn_wa.setStyleSheet("QPushButton { background:#25D366; color:white; border-radius:8px; font-size:13px; font-weight:bold; padding:0 14px; } QPushButton:hover { background:#1ebe57; }")
+        btn_wa.setAutoDefault(False)
+        btn_wa.setDefault(False)
         row_tel.addWidget(btn_wa)
         lay.addLayout(row_tel)
 

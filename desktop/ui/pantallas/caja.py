@@ -1051,6 +1051,7 @@ class CajaScreen(QWidget):
 
         cobros_fiado = []
         total_cobros_fiado_ef = 0.0
+        fiados_nuevos_turno = []
         try:
             from datetime import datetime as _dtnow
             _hasta = _dtnow.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -1062,6 +1063,10 @@ class CajaScreen(QWidget):
                     cf_data = r_cf.json()
                     cobros_fiado = cf_data.get("cobros", [])
                     total_cobros_fiado_ef = float(cf_data.get("total_efectivo", 0))
+                r_fn = requests.get(f"{API_URL}/fiados/turno",
+                                    params={"desde": _desde, "hasta": _hasta}, timeout=3)
+                if r_fn.status_code == 200:
+                    fiados_nuevos_turno = r_fn.json()
         except Exception:
             pass
 
@@ -1506,6 +1511,16 @@ class CajaScreen(QWidget):
                                 linea_cobros += f"\n  🏦 Subtotal banco: {_p(_waf_ot)} (verificar)"
                         else:
                             linea_cobros = ""
+                        linea_fiados_nuevos = ""
+                        if fiados_nuevos_turno:
+                            linea_fiados_nuevos = f"\n\n📝 *FIADOS ANOTADOS EN EL TURNO:*"
+                            for _fn in fiados_nuevos_turno:
+                                linea_fiados_nuevos += f"\n  • {_fn['cliente']}: {_p(_fn['monto'])}"
+                                if _fn.get("descripcion"):
+                                    linea_fiados_nuevos += f" ({_fn['descripcion']})"
+                            _total_fn = sum(float(_fn["monto"]) for _fn in fiados_nuevos_turno)
+                            linea_fiados_nuevos += f"\n  Total: {_p(_total_fn)}"
+
                         msg_wa = (
                             f"🏪 *CIERRE DE CAJA — JUANA CASH*\n"
                             f"📅 {ts}  |  👤 {getattr(self, 'nombre_cajero', '?')}\n"
@@ -1522,7 +1537,9 @@ class CajaScreen(QWidget):
                             f"\n{'─'*24}"
                             + linea_apertura
                             + linea_aportes
-                            + linea_cobros +
+                            + linea_cobros
+                            + linea_fiados_nuevos +
+                            f"\n{'─'*24}"
                             f"\n💵 Ef. esperado:  {_p(net_esperado)}"
                             f"\n💵 Ef. contado:   {_p(monto_declarado)}"
                             f"\n{faltante_txt}"

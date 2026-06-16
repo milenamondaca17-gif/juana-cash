@@ -351,7 +351,27 @@ def _reporte_semanal():
                 flecha = "↑" if variacion >= 0 else "↓"
                 color_var = f"({flecha} {abs(variacion):.1f}% vs sem. anterior)"
 
+                # Gastos de la semana
+                gastos_semana = []
+                total_gastos_sem = 0.0
+                try:
+                    r_g = _ur.urlopen(
+                        f"http://127.0.0.1:8000/gastos/rango?desde={lun_ant}T00:00:00&hasta={dom_ant}T23:59:59",
+                        timeout=5)
+                    datos_g = _json.loads(r_g.read().decode())
+                    gastos_semana = datos_g.get("gastos", [])
+                    total_gastos_sem = float(datos_g.get("total", 0))
+                except Exception:
+                    pass
+
                 def _p(v): return f"${float(v):,.0f}"
+
+                lineas_gastos_sem = ""
+                if gastos_semana:
+                    lineas_gastos_sem = f"\n{'─'*24}\n🧾 *Gastos de la semana:*"
+                    for g in gastos_semana:
+                        lineas_gastos_sem += f"\n  • {g['fecha']} {g['descripcion']}: {_p(g['monto'])}"
+                    lineas_gastos_sem += f"\n  Total gastos: {_p(total_gastos_sem)}"
 
                 msg = (
                     f"📅 *RESUMEN SEMANAL — JUANA CASH*\n"
@@ -367,6 +387,7 @@ def _reporte_semanal():
                     f"\n{'─'*24}"
                     f"\n📊 *Total semana: {_p(total)}*"
                     f"\n{color_var}"
+                    + lineas_gastos_sem
                 )
                 for num in NUMEROS:
                     try:
