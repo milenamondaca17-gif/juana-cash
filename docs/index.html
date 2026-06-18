@@ -3,434 +3,641 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JUANA CASH — Punto de Venta para Almacenes</title>
-  <meta name="description" content="Sistema de punto de venta para almacenes y despensas. Control de caja, fiados, reportes por WhatsApp y más." />
+  <title>JUANA CASH — Punto de Venta para Almacenes y Despensas</title>
+  <meta name="description" content="Sistema de punto de venta para almacenes y despensas argentinas. Ventas, fiados, control de caja, balanza, reportes WhatsApp y más. Sin internet, sin cuotas mensuales." />
+  <meta property="og:title" content="JUANA CASH — Punto de Venta para Almacenes" />
+  <meta property="og:description" content="El sistema más completo para almacenes y despensas argentinas. Ventas, fiados, caja, reportes WhatsApp." />
+  <meta property="og:type" content="website" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg:        #0F172A;
-      --card:      #1E293B;
-      --border:    #2D3F55;
-      --primary:   #818CF8;
-      --primary-h: #6366F1;
-      --green:     #34D399;
-      --orange:    #F59E0B;
-      --rose:      #FB7185;
-      --txt:       #E2E8F0;
-      --muted:     #94A3B8;
-      --wa:        #25D366;
-      --wa-h:      #1DAE57;
+      --bg:       #0F172A;
+      --card:     #1E293B;
+      --card2:    #162032;
+      --border:   #2D3F55;
+      --primary:  #818CF8;
+      --primary-h:#6366F1;
+      --green:    #34D399;
+      --orange:   #F59E0B;
+      --rose:     #FB7185;
+      --yellow:   #FBBF24;
+      --txt:      #E2E8F0;
+      --muted:    #94A3B8;
+      --wa:       #25D366;
+      --wa-h:     #1DAE57;
     }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--txt);
-      line-height: 1.6;
-    }
-
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); line-height: 1.6; }
     a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; }
 
-    /* ── NAV ── */
+    /* NAV */
     nav {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(15,23,42,0.9);
-      backdrop-filter: blur(12px);
+      background: rgba(15,23,42,0.92); backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border);
-      padding: 0 5%;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 60px;
+      padding: 0 6%; display: flex; align-items: center; justify-content: space-between; height: 62px;
     }
-    .nav-logo { font-size: 1.1rem; font-weight: 800; color: var(--primary); letter-spacing: 1px; }
+    .nav-logo { font-size: 1.15rem; font-weight: 900; color: var(--primary); letter-spacing: 1px; }
     .nav-logo span { color: var(--txt); }
-    .nav-cta {
-      background: var(--wa); color: #fff; font-weight: 700; font-size: 0.85rem;
-      padding: 8px 18px; border-radius: 8px; transition: background .2s;
-    }
+    .nav-logo .s { color: var(--green); }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { font-size: 0.85rem; color: var(--muted); transition: color .2s; }
+    .nav-links a:hover { color: var(--txt); }
+    .nav-cta { background: var(--wa); color: #fff; font-weight: 700; font-size: 0.85rem; padding: 8px 18px; border-radius: 8px; transition: background .2s; white-space: nowrap; }
     .nav-cta:hover { background: var(--wa-h); }
+    @media(max-width:640px){ .nav-links { display:none; } }
 
-    /* ── HERO ── */
+    /* HERO */
     .hero {
-      min-height: 88vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 60px 5% 80px;
-      background: radial-gradient(ellipse 80% 60% at 50% 0%, #1E1B4B 0%, transparent 70%);
+      min-height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 70px 6% 90px;
+      background: radial-gradient(ellipse 90% 70% at 50% 0%, #1E1B4B 0%, transparent 65%);
     }
-    .badge {
-      display: inline-block;
-      background: rgba(129,140,248,.15); color: var(--primary);
-      border: 1px solid rgba(129,140,248,.3);
-      font-size: 0.78rem; font-weight: 600; letter-spacing: 1px;
-      padding: 5px 14px; border-radius: 99px; margin-bottom: 24px;
-      text-transform: uppercase;
-    }
-    .hero h1 {
-      font-size: clamp(2.4rem, 6vw, 4.2rem);
-      font-weight: 900; line-height: 1.1;
-      letter-spacing: -1px;
-    }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(129,140,248,.12); color: var(--primary); border: 1px solid rgba(129,140,248,.25); font-size: 0.78rem; font-weight: 700; letter-spacing: 1.5px; padding: 5px 14px; border-radius: 99px; margin-bottom: 24px; text-transform: uppercase; }
+    .hero h1 { font-size: clamp(2.6rem, 7vw, 4.8rem); font-weight: 900; line-height: 1.05; letter-spacing: -2px; }
     .hero h1 .accent { color: var(--primary); }
     .hero h1 .dollar { color: var(--green); }
-    .hero p {
-      max-width: 560px; margin: 20px auto 0;
-      font-size: 1.15rem; color: var(--muted); line-height: 1.7;
-    }
-    .hero-btns {
-      display: flex; gap: 14px; flex-wrap: wrap;
-      justify-content: center; margin-top: 36px;
-    }
-    .btn-wa {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--wa); color: #fff; font-weight: 700; font-size: 1rem;
-      padding: 14px 28px; border-radius: 12px; transition: background .2s, transform .15s;
-      box-shadow: 0 4px 20px rgba(37,211,102,.3);
-    }
+    .hero h1 .bang { color: var(--orange); }
+    .hero-sub { font-size: clamp(1rem, 2.5vw, 1.25rem); color: var(--muted); max-width: 600px; margin: 20px auto 0; line-height: 1.7; }
+    .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 36px; }
+    .btn-wa { display: inline-flex; align-items: center; gap: 9px; background: var(--wa); color: #fff; font-weight: 700; font-size: 1rem; padding: 15px 30px; border-radius: 12px; transition: background .2s, transform .15s; box-shadow: 0 4px 24px rgba(37,211,102,.3); }
     .btn-wa:hover { background: var(--wa-h); transform: translateY(-2px); }
-    .btn-secondary {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: transparent; color: var(--txt); font-weight: 600; font-size: 1rem;
-      padding: 14px 28px; border-radius: 12px; border: 1px solid var(--border);
-      transition: border-color .2s, transform .15s;
-    }
-    .btn-secondary:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: var(--txt); font-weight: 600; font-size: 1rem; padding: 15px 30px; border-radius: 12px; border: 1px solid var(--border); transition: border-color .2s, transform .15s; }
+    .btn-ghost:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .hero-note { margin-top: 20px; font-size: 0.82rem; color: var(--muted); }
+    .hero-note span { color: var(--green); }
 
-    .hero-note { margin-top: 18px; font-size: 0.82rem; color: var(--muted); }
+    /* PILLS */
+    .pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 40px 6% 0; }
+    .pill { background: var(--card); border: 1px solid var(--border); border-radius: 99px; padding: 8px 18px; font-size: 0.83rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .pill b { color: var(--txt); }
 
-    /* ── STATS ── */
-    .stats {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 32px;
-      padding: 48px 5%;
-      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-    }
-    .stat { text-align: center; }
-    .stat-num { font-size: 2rem; font-weight: 900; color: var(--primary); }
-    .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+    /* DIVIDER */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
 
-    /* ── SECTIONS ── */
-    section { padding: 80px 5%; max-width: 1100px; margin: 0 auto; }
-    .section-tag {
-      font-size: 0.78rem; font-weight: 700; letter-spacing: 2px;
-      text-transform: uppercase; color: var(--primary); margin-bottom: 12px;
-    }
-    h2 {
-      font-size: clamp(1.7rem, 3.5vw, 2.4rem);
-      font-weight: 800; line-height: 1.2; margin-bottom: 12px;
-    }
-    .subtitle { color: var(--muted); font-size: 1.05rem; max-width: 540px; }
+    /* SECTION */
+    .section { padding: 80px 6%; max-width: 1140px; margin: 0 auto; }
+    .section-tag { font-size: 0.75rem; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: var(--primary); margin-bottom: 10px; }
+    h2 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 900; line-height: 1.15; margin-bottom: 10px; }
+    .sub { color: var(--muted); font-size: 1.05rem; max-width: 560px; margin-bottom: 48px; }
 
-    /* ── FEATURES GRID ── */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px; margin-top: 48px;
-    }
-    .feat-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 28px;
-      transition: border-color .2s, transform .2s;
-    }
-    .feat-card:hover { border-color: var(--primary); transform: translateY(-3px); }
-    .feat-icon {
-      width: 48px; height: 48px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem; margin-bottom: 16px;
-    }
-    .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .feat-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+    /* FEATURE BLOCKS */
+    .feat-big { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media(max-width:768px){ .feat-big { grid-template-columns: 1fr; } }
 
-    .icon-blue  { background: rgba(129,140,248,.15); }
-    .icon-green { background: rgba(52,211,153,.15); }
-    .icon-orange{ background: rgba(245,158,11,.15); }
-    .icon-rose  { background: rgba(251,113,133,.15); }
+    .feat-block { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 36px; transition: border-color .25s, transform .2s; }
+    .feat-block:hover { border-color: var(--primary); transform: translateY(-3px); }
+    .feat-block.wide { grid-column: span 2; }
+    @media(max-width:768px){ .feat-block.wide { grid-column: span 1; } }
 
-    /* ── FOR WHO ── */
-    .forwho { background: var(--card); border-radius: 24px; border: 1px solid var(--border); }
-    .forwho-inner { display: flex; flex-wrap: wrap; gap: 0; }
-    .forwho-left { flex: 1; min-width: 260px; padding: 48px; }
-    .forwho-list { list-style: none; margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
-    .forwho-list li { display: flex; align-items: flex-start; gap: 12px; }
-    .check { color: var(--green); font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
-    .forwho-list strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
-    .forwho-list span { font-size: 0.85rem; color: var(--muted); }
-    .forwho-right {
-      flex: 1; min-width: 260px; padding: 48px;
-      border-left: 1px solid var(--border);
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      text-align: center; gap: 20px;
-    }
-    .big-emoji { font-size: 4rem; }
-    .forwho-right p { color: var(--muted); font-size: 0.95rem; line-height: 1.7; }
+    .feat-icon-big { font-size: 2.2rem; margin-bottom: 16px; }
+    .feat-block h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 10px; }
+    .feat-block .feat-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.7; margin-bottom: 16px; }
+    .feat-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    .feat-list li { font-size: 0.87rem; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; }
+    .feat-list li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .feat-list li b { color: var(--txt); }
 
-    /* ── HOW IT WORKS ── */
-    .steps { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 48px; }
-    .step {
-      flex: 1; min-width: 200px;
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 28px;
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .tag { background: rgba(129,140,248,.1); color: var(--primary); border: 1px solid rgba(129,140,248,.2); font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+    .tag.g { background: rgba(52,211,153,.1); color: var(--green); border-color: rgba(52,211,153,.2); }
+    .tag.o { background: rgba(245,158,11,.1); color: var(--orange); border-color: rgba(245,158,11,.2); }
+    .tag.r { background: rgba(251,113,133,.1); color: var(--rose); border-color: rgba(251,113,133,.2); }
+
+    /* GRID 3 */
+    .grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+    .mini-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .mini-card .mi { font-size: 1.6rem; margin-bottom: 12px; }
+    .mini-card h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .mini-card p { font-size: 0.83rem; color: var(--muted); line-height: 1.6; }
+
+    /* CAJA HIGHLIGHT */
+    .caja-box {
+      background: linear-gradient(135deg, #1E1B4B 0%, #162032 100%);
+      border: 1px solid rgba(129,140,248,.35); border-radius: 24px; padding: 48px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
     }
-    .step-num {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: var(--primary); color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 900; font-size: 0.9rem; margin-bottom: 16px;
-    }
+    @media(max-width:700px){ .caja-box { grid-template-columns: 1fr; } }
+    .caja-box h3 { font-size: 1.4rem; font-weight: 900; margin-bottom: 12px; }
+    .formula-box { background: rgba(0,0,0,.35); border: 1px solid var(--border); border-radius: 12px; padding: 20px; font-family: monospace; font-size: 0.85rem; line-height: 2; color: var(--muted); margin-top: 20px; }
+    .formula-box .v { color: var(--green); font-weight: 700; }
+    .formula-box .op { color: var(--primary); }
+    .formula-box .res { color: var(--yellow); font-weight: 700; }
+    .caja-why { display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+    .caja-why-item { display: flex; align-items: flex-start; gap: 12px; }
+    .caja-why-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .caja-why-item strong { display: block; font-size: 0.95rem; margin-bottom: 3px; }
+    .caja-why-item span { font-size: 0.83rem; color: var(--muted); }
+
+    /* WA SECTION */
+    .wa-section { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+    @media(max-width:700px){ .wa-section { grid-template-columns: 1fr; } }
+    .wa-msgs { display: flex; flex-direction: column; gap: 14px; }
+    .wa-msg { background: #1a2e22; border: 1px solid #2d5a3a; border-radius: 16px 16px 16px 4px; padding: 16px 20px; font-size: 0.83rem; line-height: 1.7; color: #b7f5d0; font-family: monospace; white-space: pre-wrap; }
+    .wa-msg-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; font-family: sans-serif; }
+
+    /* FOR WHO */
+    .forwho-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .forwho-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; }
+    .forwho-card .fw-icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .forwho-card h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .forwho-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+    /* STEPS */
+    .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; counter-reset: step; }
+    .step { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; position: relative; }
+    .step-num { width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; margin-bottom: 14px; }
     .step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
-    .step p { font-size: 0.85rem; color: var(--muted); }
+    .step p { font-size: 0.83rem; color: var(--muted); }
 
-    /* ── CTA ── */
-    .cta-section {
-      text-align: center;
-      background: radial-gradient(ellipse 80% 100% at 50% 50%, #1E1B4B 0%, transparent 70%);
-      padding: 100px 5%;
-    }
-    .cta-section h2 { margin-bottom: 16px; }
-    .cta-section p { color: var(--muted); font-size: 1.05rem; margin-bottom: 36px; }
-    .cta-box {
-      display: inline-flex; flex-direction: column; align-items: center; gap: 16px;
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 24px; padding: 40px 48px; max-width: 480px;
-    }
-    .price-label {
-      font-size: 0.8rem; font-weight: 700; letter-spacing: 2px;
-      text-transform: uppercase; color: var(--muted);
-    }
-    .price-value { font-size: 2rem; font-weight: 900; color: var(--txt); }
-    .price-value small { font-size: 1rem; font-weight: 400; color: var(--muted); }
+    /* CTA */
+    .cta-wrap { text-align: center; padding: 100px 6%; background: radial-gradient(ellipse 80% 100% at 50% 50%, #1E1B4B 0%, transparent 70%); }
+    .cta-wrap h2 { margin-bottom: 14px; }
+    .cta-wrap > p { color: var(--muted); font-size: 1.05rem; margin-bottom: 36px; }
+    .cta-card { display: inline-flex; flex-direction: column; align-items: center; gap: 18px; background: var(--card); border: 1px solid rgba(129,140,248,.3); border-radius: 24px; padding: 44px 52px; max-width: 460px; width: 100%; }
+    .checkmarks { display: flex; flex-direction: column; gap: 8px; text-align: left; width: 100%; }
+    .checkmarks li { list-style: none; font-size: 0.87rem; color: var(--muted); display: flex; gap: 8px; }
+    .checkmarks li span { color: var(--green); }
 
-    /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 32px 5%;
-      display: flex; flex-wrap: wrap; gap: 12px;
-      align-items: center; justify-content: space-between;
-      color: var(--muted); font-size: 0.82rem;
-    }
-    .footer-logo { font-weight: 800; color: var(--primary); font-size: 0.95rem; }
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 32px 6%; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; color: var(--muted); font-size: 0.82rem; max-width: 100%; }
+    .footer-logo { font-weight: 900; color: var(--primary); font-size: 1rem; }
 
-    /* ── WA FLOAT ── */
-    .wa-float {
-      position: fixed; bottom: 24px; right: 24px; z-index: 999;
-      width: 56px; height: 56px; border-radius: 50%;
-      background: var(--wa);
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 24px rgba(37,211,102,.5);
-      transition: transform .2s, background .2s;
-    }
+    /* WA FLOAT */
+    .wa-float { position: fixed; bottom: 24px; right: 24px; z-index: 999; width: 58px; height: 58px; border-radius: 50%; background: var(--wa); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 24px rgba(37,211,102,.45); transition: transform .2s, background .2s; }
     .wa-float:hover { background: var(--wa-h); transform: scale(1.08); }
-    .wa-float svg { width: 30px; height: 30px; fill: #fff; }
+    .wa-float svg { width: 32px; height: 32px; fill: #fff; }
 
-    @media (max-width: 600px) {
-      .forwho-right { border-left: none; border-top: 1px solid var(--border); }
-      .hero h1 { font-size: 2.2rem; }
-      .cta-box { padding: 28px 20px; }
-    }
+    /* HIGHLIGHT COLOR BANDS */
+    .band-green { border-top: 2px solid var(--green); }
+    .band-orange { border-top: 2px solid var(--orange); }
+    .band-blue { border-top: 2px solid var(--primary); }
+    .band-rose { border-top: 2px solid var(--rose); }
   </style>
 </head>
 <body>
 
 <!-- NAV -->
 <nav>
-  <div class="nav-logo">JUANA <span>CASH</span> <span style="color:var(--green)">$</span></div>
+  <div class="nav-logo">JUANA <span>CASH</span><span class="s">$</span></div>
+  <div class="nav-links">
+    <a href="#ventas">Ventas</a>
+    <a href="#caja">Caja</a>
+    <a href="#fiados">Fiados</a>
+    <a href="#reportes">Reportes</a>
+    <a href="#precio">Precio</a>
+  </div>
   <a class="nav-cta" href="https://wa.me/5492634670678?text=Hola!%20quiero%20info%20sobre%20Juana%20Cash" target="_blank">
     Consultá por WhatsApp
   </a>
 </nav>
 
 <!-- HERO -->
-<section class="hero" style="max-width:100%">
+<div class="hero">
   <div class="badge">🇦🇷 Hecho para almacenes argentinos</div>
   <h1>
     <span class="accent">JUANA CASH</span><br>
-    PUNTO DE VENTA<span class="dollar">!</span>
+    PUNTO DE VENTA<span class="bang">!</span>
   </h1>
-  <p>
+  <p class="hero-sub">
     El sistema más completo para gestionar tu almacén o despensa.
-    Ventas, fiados, caja, reportes y mucho más — todo desde tu PC.
+    Ventas rápidas, fiados, control de caja, balanza y reportes en tu celular.
+    Todo en tu PC — sin internet, sin cuotas mensuales.
   </p>
   <div class="hero-btns">
     <a class="btn-wa" href="https://wa.me/5492634670678?text=Hola!%20quiero%20info%20sobre%20Juana%20Cash" target="_blank">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.118 1.529 5.845L0 24l6.335-1.521A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.372l-.36-.214-3.727.977.994-3.634-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
       Pedí una demo gratis
     </a>
-    <a class="btn-secondary" href="#caracteristicas">
-      Ver características ↓
-    </a>
+    <a class="btn-ghost" href="#ventas">Ver todo lo que hace ↓</a>
   </div>
-  <p class="hero-note">✅ Se instala en tu PC &nbsp;·&nbsp; ✅ Sin cuotas mensuales &nbsp;·&nbsp; ✅ Actualizaciones incluidas</p>
-</section>
-
-<!-- STATS -->
-<div class="stats" style="max-width:100%">
-  <div class="stat">
-    <div class="stat-num">⚡ Rápido</div>
-    <div class="stat-label">Registrá ventas en segundos</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">📲 WhatsApp</div>
-    <div class="stat-label">Reportes directo a tu celular</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">🔒 Local</div>
-    <div class="stat-label">Tus datos en tu PC, sin internet</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">🔄 Auto</div>
-    <div class="stat-label">Se actualiza solo, sin complicaciones</div>
-  </div>
+  <p class="hero-note">
+    <span>✅</span> Sin internet &nbsp;·&nbsp;
+    <span>✅</span> Sin cuotas &nbsp;·&nbsp;
+    <span>✅</span> Actualizaciones automáticas &nbsp;·&nbsp;
+    <span>✅</span> Soporte por WhatsApp
+  </p>
 </div>
 
-<!-- FEATURES -->
-<section id="caracteristicas">
-  <div class="section-tag">Características</div>
-  <h2>Todo lo que necesita tu almacén</h2>
-  <p class="subtitle">Diseñado para el día a día de un almacén o despensa familiar argentina.</p>
+<!-- PILLS -->
+<div class="pills">
+  <div class="pill">🛒 <b>Ventas con escáner</b></div>
+  <div class="pill">📒 <b>Fiados por cliente</b></div>
+  <div class="pill">💰 <b>Control de caja</b></div>
+  <div class="pill">📲 <b>Reportes WhatsApp</b></div>
+  <div class="pill">🥩 <b>Balanza Coura</b></div>
+  <div class="pill">🧾 <b>Ticket al cliente</b></div>
+  <div class="pill">📦 <b>Gestión de productos</b></div>
+  <div class="pill">🔄 <b>Auto-actualizable</b></div>
+  <div class="pill">💳 <b>Efectivo y tarjeta</b></div>
+  <div class="pill">🎫 <b>Cupones y descuentos</b></div>
+</div>
 
-  <div class="features-grid">
-    <div class="feat-card">
-      <div class="feat-icon icon-blue">🛒</div>
-      <h3>Ventas con código de barra</h3>
-      <p>Escaneá productos o buscalos por nombre. Cobro en efectivo, tarjeta o cuenta corriente. Ticket por WhatsApp al instante.</p>
+<hr class="divider" style="margin-top:48px" />
+
+<!-- VENTAS -->
+<section class="section" id="ventas">
+  <div class="section-tag">Módulo de ventas</div>
+  <h2>Registrá ventas en segundos</h2>
+  <p class="sub">Interface diseñada para que el cajero trabaje rápido, sin errores y sin necesidad de capacitación larga.</p>
+
+  <div class="feat-big">
+    <div class="feat-block band-blue">
+      <div class="feat-icon-big">🔍</div>
+      <h3>Tres formas de agregar productos</h3>
+      <p class="feat-desc">Se adapta a cualquier flujo de trabajo del negocio.</p>
+      <ul class="feat-list">
+        <li><b>Escáner de código de barras</b> — pistola USB o manual, reconocimiento instantáneo</li>
+        <li><b>Búsqueda por nombre</b> — escribís las primeras letras y aparece el producto</li>
+        <li><b>Calculadora manual</b> — para carnicería (código 930) y fiambrería (código 1003) con precio variable</li>
+        <li><b>Balanza Coura</b> — lee automáticamente el código EAN-13 que genera la balanza con el peso incluido</li>
+      </ul>
     </div>
-    <div class="feat-card">
-      <div class="feat-icon icon-orange">📒</div>
-      <h3>Fiados y cuentas corrientes</h3>
-      <p>Anotá fiados con nombre del cliente. Llevá el historial completo de lo que deben y recordá por WhatsApp cuando toca cobrar.</p>
+
+    <div class="feat-block band-green">
+      <div class="feat-icon-big">💳</div>
+      <h3>Múltiples formas de cobro</h3>
+      <p class="feat-desc">El cliente paga como quiere, el sistema registra todo correctamente.</p>
+      <ul class="feat-list">
+        <li><b>Efectivo</b> — calcula el vuelto automáticamente</li>
+        <li><b>Tarjeta / QR / transferencia</b> — registrado por separado para el cierre de caja</li>
+        <li><b>Cuenta corriente (fiado)</b> — se anota directo a la cuenta del cliente</li>
+        <li><b>Descuento en porcentaje</b> — aplicable por venta</li>
+        <li><b>Cupón de descuento</b> — monto fijo descontado del total</li>
+      </ul>
     </div>
-    <div class="feat-card">
-      <div class="feat-icon icon-green">💰</div>
-      <h3>Control de caja por turno</h3>
-      <p>Apertura y cierre de caja por turno. Diferencia entre lo esperado y lo declarado. Detectá errores o faltantes al instante.</p>
+
+    <div class="feat-block band-orange">
+      <div class="feat-icon-big">🧾</div>
+      <h3>Ticket por WhatsApp al cliente</h3>
+      <p class="feat-desc">Al terminar cada venta, podés enviar el detalle completo al celular del cliente.</p>
+      <ul class="feat-list">
+        <li>Lista de productos con cantidades y precios</li>
+        <li>Total, método de pago y vuelto</li>
+        <li>Descuentos aplicados</li>
+        <li>Se abre WhatsApp listo para enviar con un toque</li>
+        <li>El cajero elige si lo manda o no — no es obligatorio</li>
+      </ul>
     </div>
-    <div class="feat-card">
-      <div class="feat-icon icon-rose">📊</div>
-      <h3>Reportes por WhatsApp</h3>
-      <p>Recibí el cierre de caja en tu celular cuando termine cada turno. Reporte semanal los lunes con ventas y gastos.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon icon-blue">🥩</div>
-      <h3>Carnicería y fiambrería</h3>
-      <p>Soporte para balanza Coura (EAN-13). Registrá cortes por kilo con precio variable directo desde la balanza.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon icon-green">🧾</div>
-      <h3>Control de gastos</h3>
-      <p>Registrá los gastos del negocio por categoría. Se descuentan automáticamente del cierre de caja y aparecen en el reporte semanal.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon icon-orange">📦</div>
-      <h3>Gestión de productos</h3>
-      <p>Alta, baja y modificación de productos con precio, código de barra y stock. Edición rápida desde la pantalla de ventas.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon icon-rose">🔄</div>
-      <h3>Actualizaciones automáticas</h3>
-      <p>El sistema se actualiza solo al abrirse. No necesitás hacer nada — siempre tenés la última versión con las mejoras nuevas.</p>
+
+    <div class="feat-block band-rose">
+      <div class="feat-icon-big">⚡</div>
+      <h3>Velocidad y comodidad para el cajero</h3>
+      <p class="feat-desc">Pensado para reducir el tiempo de atención en cada cliente.</p>
+      <ul class="feat-list">
+        <li>Enter para confirmar la venta sin usar el mouse</li>
+        <li>El cursor cae automáticamente en el campo de importe recibido</li>
+        <li>Calculadora de vuelto en tiempo real mientras tipea</li>
+        <li>Pantalla limpia y legible para usar todo el día</li>
+      </ul>
+      <div class="tag-row">
+        <span class="tag g">Sin fricciones</span>
+        <span class="tag g">Teclado completo</span>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- FOR WHO -->
-<section style="padding-top:0">
-  <div class="section-tag">¿Para quién es?</div>
-  <h2>Hecho para negocios como el tuyo</h2>
+<hr class="divider" />
 
-  <div class="forwho">
-    <div class="forwho-inner">
-      <div class="forwho-left">
-        <p style="color:var(--muted); font-size:0.95rem">Juana Cash es ideal si tenés uno de estos negocios:</p>
-        <ul class="forwho-list">
-          <li>
-            <span class="check">✓</span>
-            <div><strong>Almacén o despensa</strong><span>El foco principal del sistema. Ventas rápidas, fiados y caja.</span></div>
-          </li>
-          <li>
-            <span class="check">✓</span>
-            <div><strong>Negocio con carnicería o fiambrería</strong><span>Soporte para balanza y departamentos con precio variable.</span></div>
-          </li>
-          <li>
-            <span class="check">✓</span>
-            <div><strong>Negocio familiar con empleados</strong><span>Control de turnos, caja por cajero y reportes al dueño por WhatsApp.</span></div>
-          </li>
-          <li>
-            <span class="check">✓</span>
-            <div><strong>Negocio que da fiados a clientes fijos</strong><span>Historial de deudas, avisos por WhatsApp y cobro fácil.</span></div>
-          </li>
+<!-- CAJA -->
+<section class="section" id="caja">
+  <div class="section-tag">Control de caja</div>
+  <h2>La caja exacta, turno a turno</h2>
+  <p class="sub">El módulo más crítico del sistema. Diseñado para detectar cualquier diferencia de dinero al instante.</p>
+
+  <div class="caja-box">
+    <div>
+      <h3>Fórmula automática de cierre</h3>
+      <p style="color:var(--muted); font-size:0.9rem">El sistema calcula lo que tiene que haber en caja y lo compara con lo que declaró el cajero.</p>
+      <div class="formula-box">
+<span class="v">Apertura</span>
+<span class="op">+</span> Ventas en efectivo
+<span class="op">+</span> Aportes de caja
+<span class="op">−</span> Gastos registrados
+<span class="op">=</span> <span class="res">Efectivo esperado</span>
+
+<span class="res">Diferencia</span> = Declarado − Esperado
+      </div>
+      <div class="tag-row" style="margin-top:18px">
+        <span class="tag">Apertura de turno</span>
+        <span class="tag">Cierre con declaración</span>
+        <span class="tag g">Diferencia al instante</span>
+      </div>
+    </div>
+    <div class="caja-why">
+      <div class="caja-why-item">
+        <div class="caja-why-icon">🔒</div>
+        <div>
+          <strong>Control anti-robo</strong>
+          <span>Sabés exactamente cuánto debería haber en caja. Cualquier faltante queda registrado.</span>
+        </div>
+      </div>
+      <div class="caja-why-item">
+        <div class="caja-why-icon">🌅</div>
+        <div>
+          <strong>Dos turnos por día</strong>
+          <span>Mañana y tarde, cada uno con su propio cajero y su propio cierre.</span>
+        </div>
+      </div>
+      <div class="caja-why-item">
+        <div class="caja-why-icon">📲</div>
+        <div>
+          <strong>El dueño recibe el cierre por WhatsApp</strong>
+          <span>Al terminar cada turno, te llega el resumen completo al celular aunque no estés en el negocio.</span>
+        </div>
+      </div>
+      <div class="caja-why-item">
+        <div class="caja-why-icon">📝</div>
+        <div>
+          <strong>Fiados anotados en el turno</strong>
+          <span>El reporte de cierre incluye qué clientes sacaron fiado en ese turno y por cuánto.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- FIADOS -->
+<section class="section" id="fiados">
+  <div class="section-tag">Fiados y cuentas corrientes</div>
+  <h2>Llevá los fiados sin papeles ni cuadernos</h2>
+  <p class="sub">Todo digitalizado. Sabés en todo momento quién te debe, cuánto y hace cuánto.</p>
+
+  <div class="feat-big">
+    <div class="feat-block band-orange">
+      <div class="feat-icon-big">📒</div>
+      <h3>Registro completo por cliente</h3>
+      <ul class="feat-list">
+        <li>Cada cliente tiene su propia cuenta con historial completo</li>
+        <li>Podés anotar un fiado directamente al cerrar una venta</li>
+        <li>También podés anotarlo manualmente con descripción libre</li>
+        <li>Registro de cobros parciales o totales</li>
+        <li>Saldo pendiente siempre visible</li>
+      </ul>
+    </div>
+    <div class="feat-block band-blue">
+      <div class="feat-icon-big">📅</div>
+      <h3>Vista de fiados por período</h3>
+      <ul class="feat-list">
+        <li>Filtrá los fiados por cualquier rango de fechas (Desde / Hasta)</li>
+        <li>Total fiado, total cobrado y total pendiente en el período</li>
+        <li>Tabla con nombre del cliente, monto y estado</li>
+        <li>Botón WhatsApp directo por cada fiado para recordar el cobro</li>
+      </ul>
+    </div>
+    <div class="feat-block wide band-green">
+      <div class="feat-icon-big">📲</div>
+      <h3>WhatsApp integrado para cobrar fiados</h3>
+      <p class="feat-desc">Con un solo toque podés contactar al cliente para avisarle que tiene deuda pendiente.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <ul class="feat-list">
+          <li>Si el fiado viene de una venta → manda el <b>ticket completo</b> con el detalle de lo que llevó</li>
+          <li>Si es un fiado manual → manda un <b>recordatorio</b> con el monto y tu nombre de negocio</li>
+        </ul>
+        <ul class="feat-list">
+          <li>El mensaje se abre en WhatsApp listo para enviar</li>
+          <li>Incluye el nombre del cliente y el monto adeudado</li>
+          <li>No necesitás buscar el número — ya está guardado en el sistema</li>
         </ul>
       </div>
-      <div class="forwho-right">
-        <div class="big-emoji">🏪</div>
-        <p>
-          El dueño recibe los reportes en su celular aunque no esté en el negocio. Los cajeros trabajan con una interfaz clara y rápida.
-        </p>
-        <a class="btn-wa" href="https://wa.me/5492634670678?text=Hola!%20quiero%20info%20sobre%20Juana%20Cash" target="_blank">
-          Quiero saber más
-        </a>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- REPORTES -->
+<section class="section" id="reportes">
+  <div class="section-tag">Reportes por WhatsApp</div>
+  <h2>Tu negocio en el celular, aunque no estés</h2>
+  <p class="sub">Recibís reportes automáticos sin hacer nada. El sistema los manda solo.</p>
+
+  <div class="wa-section">
+    <div>
+      <h3>¿Qué reportes recibís?</h3>
+      <div class="feat-list" style="margin-top:20px; gap:14px">
+        <div style="display:flex; gap:10px; align-items:flex-start">
+          <span style="color:var(--green); font-weight:700; flex-shrink:0">✓</span>
+          <div>
+            <b style="display:block; margin-bottom:3px">Cierre de cada turno</b>
+            <span style="font-size:0.83rem; color:var(--muted)">Ventas en efectivo y tarjeta, gastos, total de ventas, diferencia de caja y fiados del turno.</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-start">
+          <span style="color:var(--green); font-weight:700; flex-shrink:0">✓</span>
+          <div>
+            <b style="display:block; margin-bottom:3px">Reporte semanal los lunes</b>
+            <span style="font-size:0.83rem; color:var(--muted)">Resumen de ventas del lunes al domingo anterior: total, por método de pago, gastos de la semana.</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-start">
+          <span style="color:var(--green); font-weight:700; flex-shrink:0">✓</span>
+          <div>
+            <b style="display:block; margin-bottom:3px">Ticket de venta al cliente</b>
+            <span style="font-size:0.83rem; color:var(--muted)">Detalle de cada compra enviado al número del cliente al terminar la venta.</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-start">
+          <span style="color:var(--green); font-weight:700; flex-shrink:0">✓</span>
+          <div>
+            <b style="display:block; margin-bottom:3px">Recordatorio de fiado</b>
+            <span style="font-size:0.83rem; color:var(--muted)">Mensaje al cliente con el detalle de lo que debe, con un solo toque.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wa-msgs">
+      <div>
+        <div class="wa-msg-label">Ejemplo — Cierre de turno</div>
+        <div class="wa-msg">🏪 *CIERRE DE TURNO — Tarde*
+📅 18/06/2026 | 22:03
+
+💵 Efectivo: $184.500
+💳 Tarjeta/QR: $67.200
+🛒 Total ventas: $251.700
+🧾 Gastos: $12.000
+
+Caja esperada: $296.300
+Caja declarada: $296.300
+✅ Diferencia: $0
+
+📝 Fiados del turno:
+  • García: $8.500
+  • Rodríguez: $3.200</div>
+      </div>
+      <div>
+        <div class="wa-msg-label">Ejemplo — Ticket al cliente</div>
+        <div class="wa-msg">🧾 *Ticket de compra*
+📅 18/06/2026 18:42
+
+  • Coca Cola 2.25L x1 — $2.800
+  • Arroz Gallo 1kg x2 — $5.600
+  • Fideos Marolio x3 — $4.200
+──────────────────
+💰 Total: $12.600
+💵 Efectivo: $15.000
+🔄 Vuelto: $2.400</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section>
-  <div class="section-tag">Cómo funciona</div>
-  <h2>Empezá en el mismo día</h2>
-  <p class="subtitle">Sin complicaciones, sin necesitar técnicos.</p>
+<hr class="divider" />
+
+<!-- MAS FEATURES -->
+<section class="section">
+  <div class="section-tag">Más funcionalidades</div>
+  <h2>Un sistema completo para tu negocio</h2>
+  <p class="sub">Todo lo que necesitás en un solo lugar.</p>
+
+  <div class="grid3">
+    <div class="mini-card">
+      <div class="mi">📦</div>
+      <h4>Gestión de productos</h4>
+      <p>Alta, baja y modificación de productos. Nombre, precio y código de barra. Búsqueda rápida. Edición directa desde la pantalla de ventas.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">🥩</div>
+      <h4>Carnicería y fiambrería</h4>
+      <p>Departamentos especiales con precio por kilo variable. Compatible con balanza Coura (EAN-13). También por calculadora manual.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">💸</div>
+      <h4>Registro de gastos</h4>
+      <p>Anotá todos los gastos del negocio con descripción. Se descuentan automáticamente del cierre de caja y aparecen en el reporte semanal.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">🎫</div>
+      <h4>Descuentos y cupones</h4>
+      <p>Aplicá un porcentaje de descuento o un cupón de monto fijo en cualquier venta. El total se recalcula en tiempo real.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">👥</div>
+      <h4>Base de clientes</h4>
+      <p>Registrá tus clientes con nombre, teléfono y datos de contacto. Historial de compras y fiados por cliente.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">🔄</div>
+      <h4>Actualizaciones automáticas</h4>
+      <p>El sistema se actualiza solo al abrir. Barra de progreso durante la descarga. La app se abre sola cuando termina.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">🔒</div>
+      <h4>Sin internet requerido</h4>
+      <p>La base de datos es local en tu PC. Funciona aunque no tengas conexión a internet. Tus datos no salen de tu negocio.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">🌅</div>
+      <h4>Control por turnos</h4>
+      <p>Turno mañana y turno tarde, cada uno con apertura y cierre independiente. Ideal para negocios con más de un cajero.</p>
+    </div>
+    <div class="mini-card">
+      <div class="mi">📊</div>
+      <h4>Resumen del día</h4>
+      <p>Panel con el total de ventas del día, comparativa efectivo vs tarjeta y estado de caja en tiempo real.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- FOR WHO -->
+<section class="section">
+  <div class="section-tag">¿Para quién es?</div>
+  <h2>Negocios que ya lo usan</h2>
+  <p class="sub">Juana Cash está hecho para el tipo de negocio familiar argentino.</p>
+
+  <div class="forwho-grid">
+    <div class="forwho-card">
+      <div class="fw-icon">🏪</div>
+      <h4>Almacén o despensa</h4>
+      <p>El caso principal. Ventas rápidas, fiados y caja exacta turno a turno.</p>
+    </div>
+    <div class="forwho-card">
+      <div class="fw-icon">🥩</div>
+      <h4>Con carnicería</h4>
+      <p>Soporte para balanza y precio por kilo. Registrá los cortes sin calculadora.</p>
+    </div>
+    <div class="forwho-card">
+      <div class="fw-icon">🧀</div>
+      <h4>Con fiambrería</h4>
+      <p>Departamento de fiambrería con precio variable. Igual de rápido que el resto.</p>
+    </div>
+    <div class="forwho-card">
+      <div class="fw-icon">👨‍👩‍👧</div>
+      <h4>Negocio familiar</h4>
+      <p>El dueño recibe los reportes en el celular aunque no esté presente.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- STEPS -->
+<section class="section">
+  <div class="section-tag">Cómo empezar</div>
+  <h2>Arrancás en el mismo día</h2>
+  <p class="sub">Sin técnicos, sin complicaciones.</p>
 
   <div class="steps">
     <div class="step">
       <div class="step-num">1</div>
-      <h3>Te contactás por WhatsApp</h3>
-      <p>Hablás con nosotros, te contamos todo y coordinamos la instalación.</p>
+      <h3>Consultá por WhatsApp</h3>
+      <p>Hablás con nosotros, te contamos todo y vemos si es lo que necesitás.</p>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <h3>Instalamos el sistema</h3>
-      <p>Descargamos e instalamos Juana Cash en la PC del negocio. Te cargamos los productos iniciales.</p>
+      <h3>Instalamos juntos</h3>
+      <p>Descargamos el instalador en la PC del negocio. En minutos está listo.</p>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <h3>Capacitación en el momento</h3>
-      <p>Te explicamos cómo usar el sistema. Es simple — la mayoría aprende en minutos.</p>
+      <h3>Cargamos tus productos</h3>
+      <p>Te ayudamos a cargar el listado de precios inicial para arrancar de cero.</p>
     </div>
     <div class="step">
       <div class="step-num">4</div>
-      <h3>Soporte continuo</h3>
-      <p>Cualquier duda o problema, nos avisás por WhatsApp. Y las actualizaciones llegan solas.</p>
+      <h3>Soporte siempre</h3>
+      <p>Cualquier duda o problema, nos contactás por WhatsApp. Y las mejoras llegan solas.</p>
     </div>
   </div>
 </section>
 
 <!-- CTA -->
-<section class="cta-section" style="max-width:100%; padding:100px 5%">
-  <h2>¿Listo para ordenar tu negocio?</h2>
-  <p>Consultá sin compromiso. Te respondemos por WhatsApp.</p>
+<div class="cta-wrap" id="precio">
+  <h2>¿Querés ordenar tu negocio?</h2>
+  <p>Consultá sin compromiso. Te respondemos rápido por WhatsApp.</p>
   <div style="display:flex; justify-content:center">
-    <div class="cta-box">
-      <div class="price-label">Precio</div>
-      <div class="price-value">Consultá <small>sin compromiso</small></div>
-      <a class="btn-wa" style="width:100%; justify-content:center; font-size:1.05rem"
+    <div class="cta-card">
+      <div style="font-size:0.75rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--muted)">Precio</div>
+      <div style="font-size:2.2rem; font-weight:900">Consultá sin<br><span style="color:var(--primary)">compromiso</span></div>
+      <a class="btn-wa" style="width:100%; justify-content:center; font-size:1rem"
          href="https://wa.me/5492634670678?text=Hola!%20quiero%20info%20y%20precio%20de%20Juana%20Cash" target="_blank">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.118 1.529 5.845L0 24l6.335-1.521A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.372l-.36-.214-3.727.977.994-3.634-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-        Consultá por WhatsApp
+        Escribinos ahora
       </a>
-      <p style="font-size:0.8rem; color:var(--muted); text-align:center">
-        ✅ Pago único &nbsp;·&nbsp; ✅ Sin suscripciones &nbsp;·&nbsp; ✅ Actualizaciones incluidas
-      </p>
+      <ul class="checkmarks">
+        <li><span>✅</span> Pago único, sin suscripciones</li>
+        <li><span>✅</span> Actualizaciones incluidas para siempre</li>
+        <li><span>✅</span> Soporte por WhatsApp</li>
+        <li><span>✅</span> Instalación asistida</li>
+        <li><span>✅</span> Funciona sin internet</li>
+      </ul>
     </div>
   </div>
-</section>
+</div>
 
 <!-- FOOTER -->
-<footer style="max-width:100%">
+<footer>
   <div class="footer-logo">JUANA CASH $</div>
   <div>Punto de venta para almacenes argentinos</div>
-  <div>
-    <a href="https://wa.me/5492634670678" target="_blank" style="color:var(--wa)">WhatsApp: 263 467-0678</a>
-  </div>
+  <a href="https://wa.me/5492634670678" target="_blank" style="color:var(--wa)">📲 263 467-0678</a>
 </footer>
 
-<!-- WA FLOAT BUTTON -->
+<!-- WA FLOAT -->
 <a class="wa-float" href="https://wa.me/5492634670678?text=Hola!%20quiero%20info%20sobre%20Juana%20Cash" target="_blank" title="Consultá por WhatsApp">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.118 1.529 5.845L0 24l6.335-1.521A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.372l-.36-.214-3.727.977.994-3.634-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
 </a>
