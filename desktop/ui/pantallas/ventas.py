@@ -847,6 +847,38 @@ class VentasScreen(QWidget):
         contenido.addLayout(panel_der, 1)
         layout.addLayout(contenido)
 
+        self.barra_ult = QFrame()
+        self.barra_ult.setFixedHeight(38)
+        self.barra_ult.setStyleSheet(
+            f"QFrame {{ background: {BG_MAIN}; border-top: 1.5px solid {BORDER}; }}"
+        )
+        self.barra_ult.hide()
+        _bl = QHBoxLayout(self.barra_ult)
+        _bl.setContentsMargins(16, 0, 16, 0)
+        _bl.setSpacing(4)
+        self.lbl_ult_ticket = QLabel()
+        self.lbl_ult_ticket.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; font-weight: 700; border: none;")
+        self.lbl_ult_total  = QLabel()
+        self.lbl_ult_total.setStyleSheet(f"color: {TEXT_MAIN}; font-size: 12px; font-weight: 700; border: none;")
+        self.lbl_ult_pago   = QLabel()
+        self.lbl_ult_pago.setStyleSheet(f"color: {ACCENT_BOTON}; font-size: 12px; border: none;")
+        self.lbl_ult_cambio = QLabel()
+        self.lbl_ult_cambio.setStyleSheet(f"color: {ACCENT_TOTAL}; font-size: 12px; font-weight: 700; border: none;")
+        def _sep_v():
+            s = QLabel("  |  ")
+            s.setStyleSheet(f"color: {BORDER}; font-size: 12px; border: none;")
+            return s
+        _bl.addWidget(self.lbl_ult_ticket)
+        _bl.addWidget(_sep_v())
+        _bl.addWidget(self.lbl_ult_total)
+        _bl.addWidget(_sep_v())
+        _bl.addWidget(self.lbl_ult_pago)
+        self._ult_sep_cambio = _sep_v()
+        _bl.addWidget(self._ult_sep_cambio)
+        _bl.addWidget(self.lbl_ult_cambio)
+        _bl.addStretch()
+        layout.addWidget(self.barra_ult)
+
         QShortcut(QKeySequence("F2"), self).activated.connect(self.cobrar_sin_ticket)
         QShortcut(QKeySequence("F3"), self).activated.connect(self.verificar_precio)
         QShortcut(QKeySequence("F5"), self).activated.connect(self.pausar_venta_actual)
@@ -1546,7 +1578,7 @@ class VentasScreen(QWidget):
                 btn_layout = QHBoxLayout(btn_widget)
                 btn_layout.setContentsMargins(5, 5, 5, 5)
                 btn_layout.setSpacing(5)
-                btn_menos = QPushButton("−")
+                btn_menos = QPushButton("-")
                 btn_menos.setFixedSize(36, 36)
                 btn_menos.setStyleSheet("QPushButton { background: #FEE2E2; color: #DC2626; border-radius: 6px; font-size: 20px; font-weight: bold; border: 1.5px solid #FCA5A5; } QPushButton:hover { background: #DC2626; color: white; border-color: #DC2626; }")
                 btn_menos.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, -1))
@@ -1557,7 +1589,7 @@ class VentasScreen(QWidget):
                 btn_mas.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, 1))
                 btn_layout.addWidget(btn_mas)
                 self.tabla.setCellWidget(i, 4, btn_widget)
-                btn_del = QPushButton("✕")
+                btn_del = QPushButton("X")
                 btn_del.setFixedSize(36, 36)
                 btn_del.setStyleSheet("QPushButton { color: #DC2626; background: #FEE2E2; border: 1.5px solid #FCA5A5; border-radius: 6px; font-size: 16px; font-weight: bold; } QPushButton:hover { background: #DC2626; color: white; border-color: #DC2626; }")
                 btn_del.clicked.connect(lambda _, idx=i: self.eliminar_item(idx))
@@ -1771,6 +1803,7 @@ class VentasScreen(QWidget):
                     except Exception:
                         pass
                 self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
+                self._actualizar_barra_ultima_venta(ticket, total_final, metodo_pago, metodo_secundario, monto_secundario, vuelto)
                 msg = f"✅ Ticket #{ticket} — {_p(total_final)} ({metodo_str})"
                 if metodo_pago == "efectivo" and vuelto > 0:
                     msg += f" — Vuelto: {_p(vuelto)}"
@@ -1868,6 +1901,7 @@ class VentasScreen(QWidget):
                     try: requests.post(f"{API_URL}/clientes/{cid}/sumar-puntos", params={"monto": total_final}, timeout=3)
                     except Exception: pass
                 self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
+                self._actualizar_barra_ultima_venta(ticket, total_final, metodo_pago, metodo_secundario, monto_secundario, vuelto)
                 msg = f"Ticket: {ticket}\nTotal: {_p(total_final)}\nPago: {metodo_str}"
                 if recargo_monto > 0: msg += f"\nRecargo crédito: {_p(recargo_monto)}"
                 if descuento_pct > 0: msg += f"\nDescuento: {descuento_pct:.1f}%"
@@ -2013,6 +2047,26 @@ class VentasScreen(QWidget):
         in_tel.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
         dlg.exec()
+
+    def _actualizar_barra_ultima_venta(self, ticket, total_final, metodo_pago, metodo_secundario, monto_secundario, vuelto):
+        nombres = {
+            "efectivo": "Efectivo", "debito": "Debito", "tarjeta": "Tarjeta",
+            "mercadopago_qr": "QR/MP", "transferencia": "Transfer.", "fiado": "Fiado",
+        }
+        self.lbl_ult_ticket.setText(f"Ult. venta #{ticket}")
+        self.lbl_ult_total.setText(f"Total: {_p(total_final)}")
+        pago_txt = nombres.get(metodo_pago, metodo_pago)
+        if metodo_secundario:
+            pago_txt += f" + {nombres.get(metodo_secundario, metodo_secundario)}: {_p(monto_secundario)}"
+        self.lbl_ult_pago.setText(f"Pago: {pago_txt}")
+        if vuelto > 0:
+            self.lbl_ult_cambio.setText(f"Cambio: {_p(vuelto)}")
+            self.lbl_ult_cambio.show()
+            self._ult_sep_cambio.show()
+        else:
+            self.lbl_ult_cambio.hide()
+            self._ult_sep_cambio.hide()
+        self.barra_ult.show()
 
     def abrir_busqueda_avanzada(self):
         """F6 — Buscador de artículos. Enter agrega directo al ticket."""
