@@ -213,6 +213,39 @@ TEMAS = {
         "navbar_border":    "#818CF8",
         "logo_color":       "#818CF8",
     },
+    "azul_profesional": {
+        "nombre": "🔷 Azul Profesional",
+        "text_input":  "#1E293B",
+        "bg_app":      "#EEF2FF",
+        "bg_card":     "#FFFFFF",
+        "bg_navbar":   "#1D4ED8",
+        "bg_input":    "#F8FAFC",
+        "bg_hover":    "#EFF6FF",
+        "bg_selected": "#DBEAFE",
+        "primary":        "#2563EB",
+        "primary_hover":  "#1D4ED8",
+        "primary_light":  "#93C5FD",
+        "primary_text":   "#FFFFFF",
+        "accent_green":   "#16A34A",
+        "accent_orange":  "#EA580C",
+        "accent_rose":    "#DC2626",
+        "accent_yellow":  "#D97706",
+        "text_main":   "#1E293B",
+        "text_muted":  "#64748B",
+        "border":      "#E2E8F0",
+        "border_card": "#E2E8F0",
+        "success":     "#16A34A",
+        "warning":     "#D97706",
+        "danger":      "#DC2626",
+        "navbar_text":      "rgba(255,255,255,0.72)",
+        "navbar_active":    "#FFFFFF",
+        "navbar_active_bg": "rgba(255,255,255,0.15)",
+        "navbar_border":    "rgba(255,255,255,0.22)",
+        "navbar_hover_bg":  "rgba(255,255,255,0.12)",
+        "navbar_hover_text":"#FFFFFF",
+        "navbar_muted":     "rgba(255,255,255,0.48)",
+        "logo_color":       "#FFFFFF",
+    },
     "oscuro_esmeralda": {
         "nombre": "🟢 Oscuro Esmeralda",
         "text_input":  "#E6EDF3",
@@ -248,10 +281,10 @@ TEMAS = {
 _CONFIG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
 
 
-TEMA_DEFAULT = "indigo_pro"
+TEMA_DEFAULT = "azul_profesional"
 
 # Temas que se migran automáticamente al nuevo default
-_TEMAS_LEGACY = {"violeta_calido", "lila_sol", "rosa_sage", "naranja_cielo", "oscuro_esmeralda"}
+_TEMAS_LEGACY = {"violeta_calido", "lila_sol", "rosa_sage", "naranja_cielo", "oscuro_esmeralda", "indigo_pro"}
 
 def get_tema_key() -> str:
     env_key = os.environ.get('JUANA_CASH_TEMA', '')

@@ -1,8 +1,8 @@
 {
-  "version": "4.8.0",
-  "desktop_version": "4.8.0",
+  "version": "4.9.0",
+  "desktop_version": "4.9.0",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.8.0/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.9.0/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.8.0 - Nuevo diseño UI indigo, fiados por día, barra de progreso updater, mejoras cobro y reportes"
+  "notas": "v4.9.0 - Nuevo diseño Azul Profesional: navbar azul, fondo claro, tarjetas blancas"
 }
