@@ -1557,6 +1557,28 @@ class VentasScreen(QWidget):
             item["subtotal"] = nueva_cantidad * item["precio_unitario"]
         self.actualizar_tabla()
 
+    def _crear_boton_celda(self, texto, color, color_hover):
+        btn = QPushButton(texto)
+        btn.setFixedSize(36, 36)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        f = QFont("Segoe UI", 15)
+        f.setBold(True)
+        f.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
+        btn.setFont(f)
+        btn.setFlat(True)
+        btn.setStyleSheet(
+            "QPushButton {"
+            f" background: transparent; color: {color};"
+            " border: none; border-radius: 8px;"
+            " padding: 0px; margin: 0px;"
+            f" font-size: 18px; font-weight: 800; }}"
+            "QPushButton:hover {"
+            f" background: {color_hover}; color: {color}; }}"
+            "QPushButton:pressed {"
+            f" background: {color_hover}; color: {color}; }}"
+        )
+        return btn
+
     def actualizar_tabla(self):
         self.tabla.setUpdatesEnabled(False)
         n = len(self.items_venta)
@@ -1575,26 +1597,18 @@ class VentasScreen(QWidget):
             # Crear botones solo si la celda está vacía (fila nueva)
             if self.tabla.cellWidget(i, 4) is None:
                 btn_widget = QWidget()
+                btn_widget.setStyleSheet("background: transparent;")
                 btn_layout = QHBoxLayout(btn_widget)
                 btn_layout.setContentsMargins(5, 5, 5, 5)
                 btn_layout.setSpacing(5)
-                btn_menos = QPushButton("➖")
-                btn_menos.setObjectName(f"qtyMinus{i}")
-                btn_menos.setFixedSize(36, 36)
-                btn_menos.setStyleSheet(f"QPushButton#qtyMinus{i} {{ background:transparent; border:none; font-size:16px; }} QPushButton#qtyMinus{i}:hover {{ background:#FEE2E2; border-radius:6px; }}")
+                btn_menos = self._crear_boton_celda("−", "#DC2626", "#FEE2E2")
                 btn_menos.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, -1))
                 btn_layout.addWidget(btn_menos)
-                btn_mas = QPushButton("➕")
-                btn_mas.setObjectName(f"qtyPlus{i}")
-                btn_mas.setFixedSize(36, 36)
-                btn_mas.setStyleSheet(f"QPushButton#qtyPlus{i} {{ background:transparent; border:none; font-size:16px; }} QPushButton#qtyPlus{i}:hover {{ background:#DCFCE7; border-radius:6px; }}")
+                btn_mas = self._crear_boton_celda("+", "#16A34A", "#DCFCE7")
                 btn_mas.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, 1))
                 btn_layout.addWidget(btn_mas)
                 self.tabla.setCellWidget(i, 4, btn_widget)
-                btn_del = QPushButton("🗑️")
-                btn_del.setObjectName(f"qtyDel{i}")
-                btn_del.setFixedSize(36, 36)
-                btn_del.setStyleSheet(f"QPushButton#qtyDel{i} {{ background:transparent; border:none; font-size:16px; }} QPushButton#qtyDel{i}:hover {{ background:#FEE2E2; border-radius:6px; }}")
+                btn_del = self._crear_boton_celda("✕", "#DC2626", "#FEE2E2")
                 btn_del.clicked.connect(lambda _, idx=i: self.eliminar_item(idx))
                 self.tabla.setCellWidget(i, 5, btn_del)
 
