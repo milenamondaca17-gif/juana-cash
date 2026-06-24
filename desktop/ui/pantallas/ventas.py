@@ -1568,14 +1568,14 @@ class VentasScreen(QWidget):
         btn.setFlat(True)
         btn.setStyleSheet(
             "QPushButton {"
-            f" background: transparent; color: {color};"
-            " border: none; border-radius: 8px;"
+            f" background: #E2E8F0; color: {color};"
+            " border: 2px solid #94A3B8; border-radius: 8px;"
             " padding: 0px; margin: 0px;"
             f" font-size: 18px; font-weight: 800; }}"
             "QPushButton:hover {"
-            f" background: {color_hover}; color: {color}; }}"
+            f" background: {color_hover}; color: {color}; border-color: {color}; }}"
             "QPushButton:pressed {"
-            f" background: {color_hover}; color: {color}; }}"
+            f" background: {color_hover}; color: {color}; border-color: {color}; }}"
         )
         return btn
 

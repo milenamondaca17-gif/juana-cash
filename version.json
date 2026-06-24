@@ -1,8 +1,8 @@
 {
-  "version": "4.9.6",
-  "desktop_version": "4.9.6",
+  "version": "4.9.7",
+  "desktop_version": "4.9.7",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.9.6/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.9.7/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.9.6 - Fix definitivo botones: color declarado en todos los estados"
+  "notas": "v4.9.7 - Botones con borde gris fuerte y fondo solido"
 }
