@@ -1,8 +1,8 @@
 {
-  "version": "4.9.4",
-  "desktop_version": "4.9.4",
+  "version": "4.9.5",
+  "desktop_version": "4.9.5",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.9.4/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.9.5/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.9.4 - Botones cantidad con texto visible, fondo gris neutro"
+  "notas": "v4.9.5 - Botones con emojis: menos, mas, papelera"
 }
