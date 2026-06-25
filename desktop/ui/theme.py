@@ -232,8 +232,8 @@ TEMAS = {
         "accent_yellow":  "#D97706",
         "text_main":   "#1E293B",
         "text_muted":  "#64748B",
-        "border":      "#475569",
-        "border_card": "#475569",
+        "border":      "#1E293B",
+        "border_card": "#1E293B",
         "success":     "#16A34A",
         "warning":     "#D97706",
         "danger":      "#DC2626",
@@ -344,7 +344,7 @@ QFrame {{
 QLineEdit, QSpinBox, QDoubleSpinBox, QTextEdit {{
     background: {t['bg_input']};
     color: {t['text_input']};
-    border: 2px solid {t['border']};
+    border: 3px solid {t['border']};
     border-radius: 8px;
     padding: 6px 12px;
     font-size: 13px;
@@ -364,7 +364,7 @@ QLineEdit:disabled, QTextEdit:disabled {{
 QComboBox {{
     background: {t['bg_input']};
     color: {t['text_main']};
-    border: 2px solid {t['border']};
+    border: 3px solid {t['border']};
     border-radius: 8px;
     padding: 6px 12px;
     font-size: 13px;
@@ -406,7 +406,7 @@ QHeaderView::section {{
     font-size: 11px;
     padding: 8px 10px;
     border: none;
-    border-bottom: 3px solid {t['border']};
+    border-bottom: 4px solid {t['border']};
 }}
 
 /* ── Buttons ── */
@@ -478,7 +478,7 @@ QCheckBox::indicator:checked {{
 
 /* ── GroupBox ── */
 QGroupBox {{
-    border: 2px solid {t['border']};
+    border: 3px solid {t['border']};
     border-radius: 10px;
     margin-top: 16px;
     padding: 12px;

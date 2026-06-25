@@ -1,8 +1,8 @@
 {
-  "version": "4.9.9",
-  "desktop_version": "4.9.9",
+  "version": "4.10.0",
+  "desktop_version": "4.10.0",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.9.9/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.0/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.9.9 - Bordes mas oscuros y gruesos en toda la app"
+  "notas": "v4.10.0 - Bordes 3px muy oscuros en toda la app"
 }
