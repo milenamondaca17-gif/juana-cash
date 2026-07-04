@@ -184,6 +184,22 @@ def _generar_y_enviar_reporte():
                             _canc_cf = " ✅" if cf.get("cancelado") else ""
                             lineas_cobros_t += f"\n    {_em_cf} {cf.get('cliente','?')}: {_p(cf.get('monto',0))} →{_dest_cf}{_canc_cf}"
 
+                    _ap_full = t.get("apertura", "")
+                    _ci_full = t.get("cierre", "") or ahora.strftime("%Y-%m-%dT%H:%M:%S")
+
+                    lineas_fiados_nuevos_t = ""
+                    if _ap_full:
+                        try:
+                            _fn_url = f"http://127.0.0.1:8000/fiados/turno?desde={_ap_full}&hasta={_ci_full}"
+                            _r_fn = _ur.urlopen(_fn_url, timeout=5)
+                            _fiados_nuevos = _json.loads(_r_fn.read().decode())
+                            if _fiados_nuevos:
+                                lineas_fiados_nuevos_t = "\n  📝 Fiados anotados:"
+                                for _fn in _fiados_nuevos:
+                                    lineas_fiados_nuevos_t += f"\n    • {_fn['cliente']}: {_p(_fn['monto'])}"
+                        except Exception:
+                            pass
+
                     dep_carne_t = 0.0
                     dep_fiamb_t = 0.0
                     try:
@@ -217,6 +233,7 @@ def _generar_y_enviar_reporte():
                         + lineas_emp_t
                         + lineas_aportes_t
                         + lineas_cobros_t
+                        + lineas_fiados_nuevos_t
                         + lineas_deptos_t
                     )
 

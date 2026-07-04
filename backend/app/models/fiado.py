@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, Date
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -15,7 +14,7 @@ class Fiado(Base):
     descripcion  = Column(String(300), nullable=True)
     estado       = Column(String(15), default="pendiente")
     vencimiento  = Column(Date, nullable=True)
-    created_at   = Column(DateTime, server_default=func.now())
+    created_at   = Column(DateTime, default=datetime.now)
     cliente      = relationship("Cliente", back_populates="fiados")
 
 class PagoFiado(Base):

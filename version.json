@@ -1,8 +1,8 @@
 {
-  "version": "4.10.0",
-  "desktop_version": "4.10.0",
+  "version": "4.10.1",
+  "desktop_version": "4.10.1",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.0/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.1/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.10.0 - Bordes 3px muy oscuros en toda la app"
+  "notas": "v4.10.1 - Reporte WhatsApp muestra fiados nuevos por turno con nombre del cliente"
 }
