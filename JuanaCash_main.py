@@ -255,6 +255,7 @@ def _generar_y_enviar_reporte():
                     lineas_gastos = "\n\n🧾 *Gastos:*"
                     for g in lista_gastos:
                         lineas_gastos += f"\n  • {g['descripcion']}: {_p(g['monto'])}"
+                    lineas_gastos += f"\n  *Total gastos: {_p(sum(float(g['monto']) for g in lista_gastos))}*"
                 else:
                     lineas_gastos = ""
 
@@ -403,7 +404,9 @@ def _reporte_semanal():
                     f"\n💸 Fiado:       {_p(desglose.get('fiado', 0))}"
                     f"\n{'─'*24}"
                     f"\n📊 *Total semana: {_p(total)}*"
-                    f"\n{color_var}"
+                    + (f"\n🧾 *Gastos semana: -{_p(total_gastos_sem)}*" if total_gastos_sem > 0 else "")
+                    + (f"\n📈 *Neto semana:   {_p(total - total_gastos_sem)}*" if total_gastos_sem > 0 else "")
+                    + f"\n{color_var}"
                     + lineas_gastos_sem
                 )
                 for num in NUMEROS:
