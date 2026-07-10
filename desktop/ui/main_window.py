@@ -599,6 +599,11 @@ class MainWindow(QMainWindow):
             self._timer_offline.timeout.connect(self._sync_offline)
         self._timer_offline.start(30000)
 
+        if not hasattr(self, '_timer_update'):
+            self._timer_update = QTimer()
+            self._timer_update.timeout.connect(self._chequear_actualizacion)
+        self._timer_update.start(6 * 60 * 60 * 1000)  # cada 6 horas
+
         # Timer badge alertas de precios
         if not hasattr(self, '_timer_alertas'):
             self._timer_alertas = QTimer()
@@ -975,6 +980,91 @@ class MainWindow(QMainWindow):
             self.on_turno_seleccionado(cajero)
         else:
             self.stack.setCurrentWidget(self.login_screen)
+
+    def _chequear_actualizacion(self):
+        def _run():
+            try:
+                import urllib.request, json as _j, ssl, time, sys, os
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                ts  = int(time.time())
+                url = f"https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json?t={ts}"
+                data = _j.loads(urllib.request.urlopen(url, timeout=8, context=ctx).read().decode())
+                v_gh = data.get("desktop_version", data.get("version", "0.0.0"))
+
+                v_local = "0.0.0"
+                for p in [os.path.join(os.path.dirname(sys.executable), "version.json"),
+                          os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "version.json"))]:
+                    if os.path.exists(p):
+                        v_local = _j.load(open(p, encoding="utf-8")).get("version", "0.0.0")
+                        break
+
+                if [int(x) for x in v_gh.split(".")] <= [int(x) for x in v_local.split(".")]:
+                    return
+
+                installer_url = data.get("installer_url", "")
+
+                def _preguntar():
+                    from PyQt6.QtWidgets import QMessageBox
+                    r = QMessageBox.question(
+                        self, "Actualización disponible",
+                        f"Nueva versión disponible: v{v_gh}  (tenés v{v_local})\n\n"
+                        "¿Actualizar ahora?\n"
+                        "La app se cierra, instala y vuelve a abrir sola.",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                    )
+                    if r == QMessageBox.StandardButton.Yes:
+                        self._descargar_e_instalar(installer_url, v_gh)
+                QTimer.singleShot(0, _preguntar)
+            except Exception:
+                pass
+        import threading
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _descargar_e_instalar(self, installer_url, version_nueva):
+        from PyQt6.QtWidgets import QProgressDialog
+        prog = QProgressDialog(f"Descargando v{version_nueva}...", None, 0, 100, self)
+        prog.setWindowTitle("Actualizando Juana Cash")
+        prog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        prog.setMinimumDuration(0)
+        prog.setValue(0)
+        prog.show()
+
+        def _download():
+            try:
+                import urllib.request, tempfile, subprocess, ssl
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode    = ssl.CERT_NONE
+                _tf  = tempfile.NamedTemporaryFile(delete=False, suffix=".exe", prefix="JuanaCash_Update_")
+                tmp  = _tf.name
+                _tf.close()
+                with urllib.request.urlopen(installer_url, context=ctx) as r:
+                    total      = int(r.headers.get("Content-Length") or 0)
+                    descargado = 0
+                    with open(tmp, "wb") as f:
+                        while True:
+                            chunk = r.read(65536)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                            descargado += len(chunk)
+                            if total > 0:
+                                pct = int(descargado / total * 100)
+                                QTimer.singleShot(0, lambda p=pct: prog.setValue(p))
+                DETACHED = 0x00000008 | 0x00000200
+                subprocess.Popen([tmp, "/VERYSILENT", "/NORESTART", "/CLOSEAPPLICATIONS"], creationflags=DETACHED)
+                QTimer.singleShot(2000, QApplication.instance().quit)
+            except Exception as e:
+                def _err():
+                    prog.close()
+                    from PyQt6.QtWidgets import QMessageBox
+                    QMessageBox.warning(self, "Error de actualización",
+                        f"No se pudo descargar:\n{e}\n\nCerrá y abrí la app para intentar de nuevo.")
+                QTimer.singleShot(0, _err)
+        import threading
+        threading.Thread(target=_download, daemon=True).start()
 
     def on_logout(self):
         self.usuario_actual = None

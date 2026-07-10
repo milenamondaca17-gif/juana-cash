@@ -1,8 +1,8 @@
 {
-  "version": "4.10.2",
-  "desktop_version": "4.10.2",
+  "version": "4.10.3",
+  "desktop_version": "4.10.3",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.2/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.3/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.10.2 - Reportes WhatsApp incluyen gastos totales del dia y de la semana"
+  "notas": "v4.10.3 - Auto-update mejorado: chequeo cada 6hs con dialogo de confirmacion"
 }
