@@ -1,8 +1,8 @@
 {
-  "version": "4.10.3",
-  "desktop_version": "4.10.3",
+  "version": "4.10.4",
+  "desktop_version": "4.10.4",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.3/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.4/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.10.3 - Auto-update mejorado: chequeo cada 6hs con dialogo de confirmacion"
+  "notas": "v4.10.4 - Wizard primer uso, nombre y numeros WA configurables por negocio"
 }

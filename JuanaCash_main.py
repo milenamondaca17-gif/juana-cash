@@ -110,12 +110,38 @@ def _auto_backup():
                     pass
         time.sleep(30)
 
+def _leer_config_reporte():
+    """Lee nombre del negocio y números de reporte desde los archivos de config."""
+    import json as _j, os as _os
+    _data = _os.path.join(_os.path.expanduser("~"), "JuanaCash_Data")
+    nombre = "JUANA CASH"
+    try:
+        _tc = _os.path.join(_data, "ticket_config.json")
+        if _os.path.exists(_tc):
+            _n = _j.load(open(_tc, encoding="utf-8")).get("nombre_negocio", "")
+            if _n:
+                nombre = _n.upper()
+    except Exception:
+        pass
+    numeros = ["2634670678", "2634633099", "2634633067"]
+    try:
+        _ac = _os.path.join(_data, "app_config.json")
+        if _os.path.exists(_ac):
+            _nums = _j.load(open(_ac, encoding="utf-8")).get("numeros_reportes", [])
+            _nums = [n.strip() for n in _nums if n.strip()]
+            if _nums:
+                numeros = _nums
+    except Exception:
+        pass
+    return nombre, numeros
+
+
 def _generar_y_enviar_reporte():
     """Genera y envía el reporte nocturno. Se puede llamar directamente o desde el loop."""
     import urllib.request as _ur
     import json as _json
     from datetime import datetime as _dt
-    NUMEROS = ["2634670678", "2634633099", "2634633067"]
+    _NOMBRE_NEG, NUMEROS = _leer_config_reporte()
     ahora = _dt.now()
     try:
                 def _p(v): return f"${float(v):,.0f}"
@@ -265,7 +291,7 @@ def _generar_y_enviar_reporte():
 
                 ts = ahora.strftime("%d/%m/%Y")
                 msg = (
-                    f"📊 *RESUMEN DEL DÍA — JUANA CASH*\n"
+                    f"📊 *RESUMEN DEL DÍA — {_NOMBRE_NEG}*\n"
                     f"📅 {ts}  |  🎫 {tickets_dia} tickets  |  Prom: {_p(prom_dia)}"
                     f"\n{'━'*22}"
                     f"\n💵 Efectivo:   {_p(desglose_dia['efectivo'])}"
@@ -332,13 +358,13 @@ def _reporte_semanal():
     import urllib.request as _ur
     import json as _json
     from datetime import datetime as _dt, timedelta as _td
-    NUMEROS = ["2634670678", "2634633099", "2634633067"]
     enviado_semana = None
     while True:
         ahora = _dt.now()
         # weekday() 0 = lunes
         if ahora.weekday() == 0 and ahora.hour == 9 and ahora.minute == 0 and enviado_semana != ahora.date():
             try:
+                _NOMBRE_NEG_SEM, NUMEROS = _leer_config_reporte()
                 hoy = ahora.date()
                 lunes_esta = hoy - _td(days=hoy.weekday())
                 dom_ant    = lunes_esta - _td(days=1)
@@ -392,7 +418,7 @@ def _reporte_semanal():
                     lineas_gastos_sem += f"\n  Total gastos: {_p(total_gastos_sem)}"
 
                 msg = (
-                    f"📅 *RESUMEN SEMANAL — JUANA CASH*\n"
+                    f"📅 *RESUMEN SEMANAL — {_NOMBRE_NEG_SEM}*\n"
                     f"🗓 {lun_ant.strftime('%d/%m')} al {dom_ant.strftime('%d/%m/%Y')}\n"
                     f"\n🎫 Tickets: {tickets}  |  Prom: {_p(prom)}"
                     f"\n{'─'*24}"
@@ -465,7 +491,26 @@ main_window = MainWindow()
 def _terminar():
     splash.lbl_estado.setText("Bienvenido a Juana Cash")
     splash.lbl_estado.setStyleSheet("color: #27AE60; background: transparent; font-weight: bold;")
-    QTimer.singleShot(600, lambda: (splash.close(), main_window.show()))
+
+    def _abrir():
+        splash.close()
+        # Primer uso: si no hay usuarios, mostrar wizard de configuración
+        try:
+            import urllib.request as _ur2, json as _j2
+            _r2 = _ur2.urlopen("http://127.0.0.1:8000/auth/usuarios", timeout=3)
+            _usuarios = _j2.loads(_r2.read().decode())
+        except Exception:
+            _usuarios = [1]  # si falla la consulta, asumir que hay usuarios
+        if not _usuarios:
+            try:
+                from ui.pantallas.wizard_setup import WizardSetup
+                wiz = WizardSetup()
+                wiz.exec()
+            except Exception:
+                pass
+        main_window.show()
+
+    QTimer.singleShot(600, _abrir)
 
 splash._terminar = _terminar
 sys.exit(app.exec())

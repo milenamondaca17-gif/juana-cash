@@ -676,6 +676,57 @@ class ConfigScreen(QWidget):
 
         tabs.addTab(tab_logros, "🏆 Logros")
 
+        # ── TAB: REPORTES WHATSAPP ───────────────────────────────────────────
+        tab_rep = QWidget()
+        tab_rep.setStyleSheet(f"background: {_CARD};")
+        rep_layout = QVBoxLayout(tab_rep)
+        rep_layout.setContentsMargins(24, 24, 24, 24)
+        rep_layout.setSpacing(14)
+
+        lbl_rep_t = QLabel("📱 Números para reportes de WhatsApp")
+        lbl_rep_t.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        lbl_rep_t.setStyleSheet(f"color: {_TXT}; background: transparent;")
+        rep_layout.addWidget(lbl_rep_t)
+
+        lbl_rep_d = QLabel(
+            "Estos números recibirán el resumen diario a las 22:20, "
+            "el cierre de cada turno y los avisos de retiro de caja."
+        )
+        lbl_rep_d.setWordWrap(True)
+        lbl_rep_d.setStyleSheet(f"color: {_MUT}; font-size: 12px; background: transparent;")
+        rep_layout.addWidget(lbl_rep_d)
+
+        estilo_inp = (f"QLineEdit {{ background: {_BG}; border: 1.5px solid {_BOR};"
+                      f" border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 14px; }}")
+
+        for lbl_txt, attr in [
+            ("Número 1 (principal) *  — sin 0, sin 15, solo dígitos:", "inp_rep_num1"),
+            ("Número 2 (opcional):", "inp_rep_num2"),
+            ("Número 3 (opcional):", "inp_rep_num3"),
+        ]:
+            l = QLabel(lbl_txt)
+            l.setStyleSheet(f"color: {_MUT}; font-size: 13px; background: transparent;")
+            rep_layout.addWidget(l)
+            inp = QLineEdit()
+            inp.setFixedHeight(42)
+            inp.setPlaceholderText("Ej: 2634123456")
+            inp.setStyleSheet(estilo_inp)
+            setattr(self, attr, inp)
+            rep_layout.addWidget(inp)
+
+        btn_rep_guardar = QPushButton("💾  Guardar números")
+        btn_rep_guardar.setFixedHeight(42)
+        btn_rep_guardar.setStyleSheet(
+            f"QPushButton {{ background: {_OK}; color: white; border-radius: 8px;"
+            f" font-size: 13px; font-weight: bold; padding: 0 20px; }}"
+            f"QPushButton:hover {{ background: #059669; }}"
+        )
+        btn_rep_guardar.clicked.connect(self._guardar_numeros_reporte)
+        rep_layout.addWidget(btn_rep_guardar)
+        rep_layout.addStretch()
+
+        tabs.addTab(tab_rep, "📱 Reportes WA")
+
         layout.addWidget(tabs)
         self._tabs = tabs  # guardamos referencia para agregar tabs externas
 
@@ -758,6 +809,22 @@ class ConfigScreen(QWidget):
         except Exception:
             pass
 
+        # Cargar números de reporte
+        try:
+            from ui.pantallas.negocio_config import leer_numeros_reporte
+            nums = leer_numeros_reporte()
+            # Solo mostrar si fueron guardados explícitamente (no el fallback)
+            import os, json as _j
+            _ac = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
+            _guardados = []
+            if os.path.exists(_ac):
+                _guardados = _j.load(open(_ac, encoding="utf-8")).get("numeros_reportes", [])
+            for i, attr in enumerate(["inp_rep_num1", "inp_rep_num2", "inp_rep_num3"]):
+                if hasattr(self, attr):
+                    getattr(self, attr).setText(_guardados[i] if i < len(_guardados) else "")
+        except Exception:
+            pass
+
     def guardar_config(self):
         datos = {
             "negocio_nombre": self.inp_nombre.text().strip(),
@@ -787,6 +854,24 @@ class ConfigScreen(QWidget):
                 QMessageBox.critical(self, "Error", "No se pudo guardar")
         except Exception:
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
+
+    def _guardar_numeros_reporte(self):
+        nums = [
+            getattr(self, "inp_rep_num1", None) and self.inp_rep_num1.text().strip(),
+            getattr(self, "inp_rep_num2", None) and self.inp_rep_num2.text().strip(),
+            getattr(self, "inp_rep_num3", None) and self.inp_rep_num3.text().strip(),
+        ]
+        nums = [n for n in nums if n]
+        if not nums:
+            QMessageBox.warning(self, "Campo requerido",
+                                "Ingresá al menos el número principal.")
+            return
+        try:
+            from ui.pantallas.negocio_config import guardar_numeros_reporte
+            guardar_numeros_reporte(nums)
+            QMessageBox.information(self, "✅", "Números de reporte guardados correctamente.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{e}")
 
     def nueva_sucursal(self):
         dialog = QDialog(self)

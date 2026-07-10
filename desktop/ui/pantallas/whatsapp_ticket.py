@@ -21,7 +21,11 @@ def formatear_ticket_whatsapp(venta, items, metodo_pago="", descuento=0,
     except Exception:
         pass
 
-    nombre_negocio = "AUTOSERVICIO SAN VALENTIN"
+    try:
+        from ui.pantallas.negocio_config import leer_nombre_negocio
+        nombre_negocio = leer_nombre_negocio()
+    except Exception:
+        nombre_negocio = cfg.get("nombre_negocio", "JUANA CASH")
     mensaje1 = cfg.get("mensaje1", "Gracias por su compra!")
     mensaje2 = cfg.get("mensaje2", "Vuelva pronto :)")
 
@@ -80,7 +84,7 @@ def formatear_ticket_whatsapp(venta, items, metodo_pago="", descuento=0,
         f"_{mensaje1}_",
         f"_{mensaje2}_",
         "",
-        "_Juana Cash_",
+        f"_{nombre_negocio}_",
     ]
 
     return "\n".join(lineas)

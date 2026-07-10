@@ -1521,8 +1521,15 @@ class CajaScreen(QWidget):
                             _total_fn = sum(float(_fn["monto"]) for _fn in fiados_nuevos_turno)
                             linea_fiados_nuevos += f"\n  Total: {_p(_total_fn)}"
 
+                        try:
+                            from ui.pantallas.negocio_config import leer_nombre_negocio, leer_numeros_reporte
+                            _nombre_neg = leer_nombre_negocio()
+                            _nums_rep   = leer_numeros_reporte()
+                        except Exception:
+                            _nombre_neg = "JUANA CASH"
+                            _nums_rep   = ["2634670678", "2634633099", "2634633067"]
                         msg_wa = (
-                            f"🏪 *CIERRE DE CAJA — JUANA CASH*\n"
+                            f"🏪 *CIERRE DE CAJA — {_nombre_neg}*\n"
                             f"📅 {ts}  |  👤 {getattr(self, 'nombre_cajero', '?')}\n"
                             f"\n🎫 Tickets: {cant_tickets}  |  Prom: {_p(ticket_prom)}"
                             f"\n{'─'*24}"
@@ -1544,7 +1551,7 @@ class CajaScreen(QWidget):
                             f"\n💵 Ef. contado:   {_p(monto_declarado)}"
                             f"\n{faltante_txt}"
                         )
-                        for num in ["2634670678", "2634633099", "2634633067"]:
+                        for num in _nums_rep:
                             try:
                                 requests.post("http://127.0.0.1:3001/send",
                                              json={"phone": num, "message": msg_wa}, timeout=5)
@@ -1940,19 +1947,20 @@ class CajaScreen(QWidget):
                               timeout=5)
             except Exception:
                 pass
-            # Enviar WhatsApp a los 3 números
+            # Enviar WhatsApp a los números configurados
             try:
                 from datetime import datetime as _dt
+                from ui.pantallas.negocio_config import leer_nombre_negocio, leer_numeros_reporte
                 ts = _dt.now().strftime("%d/%m/%Y %H:%M")
                 cajero = getattr(self, "nombre_cajero", "?")
                 msg_wa = (
-                    f"💰 *RETIRO DE CAJA — JUANA CASH*\n"
+                    f"💰 *RETIRO DE CAJA — {leer_nombre_negocio()}*\n"
                     f"📅 {ts}\n"
                     f"👤 Cajero: {cajero}\n"
                     f"📝 {desc}\n"
                     f"💵 Monto: {_p(monto)}"
                 )
-                for num in ["2634670678", "2634633099", "2634633067"]:
+                for num in leer_numeros_reporte():
                     try:
                         requests.post("http://127.0.0.1:3001/send",
                                       json={"phone": num, "message": msg_wa}, timeout=5)
