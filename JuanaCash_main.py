@@ -160,6 +160,7 @@ def _generar_y_enviar_reporte():
                                  "mercadopago_qr": 0.0, "transferencia": 0.0, "fiado": 0.0}
 
                 bloques_turno = ""
+                all_fiados_dia = []
                 for i, t in enumerate(turnos, 1):
                     cajero   = t.get("cajero", "?")
                     estado   = "🟢 abierto" if t.get("estado") == "abierto" else "🔴 cerrado"
@@ -213,16 +214,12 @@ def _generar_y_enviar_reporte():
                     _ap_full = t.get("apertura", "").replace(" ", "T")
                     _ci_full = (t.get("cierre", "") or ahora.strftime("%Y-%m-%dT%H:%M:%S")).replace(" ", "T")
 
-                    lineas_fiados_nuevos_t = ""
                     if _ap_full:
                         try:
                             _fn_url = f"http://127.0.0.1:8000/fiados/turno?desde={_ap_full}&hasta={_ci_full}"
                             _r_fn = _ur.urlopen(_fn_url, timeout=5)
                             _fiados_nuevos = _json.loads(_r_fn.read().decode())
-                            if _fiados_nuevos:
-                                lineas_fiados_nuevos_t = "\n  📝 Fiados anotados:"
-                                for _fn in _fiados_nuevos:
-                                    lineas_fiados_nuevos_t += f"\n    • {_fn['cliente']}: {_p(_fn['monto'])}"
+                            all_fiados_dia.extend(_fiados_nuevos)
                         except Exception:
                             pass
 
@@ -253,11 +250,9 @@ def _generar_y_enviar_reporte():
                         f"\n💸 Fiado: {_p(desg.get('fiado',0))}"
                         f"  🏦 Trans: {_p(desg.get('transferencia',0))}"
                         f"\n📊 Total: {_p(vendido)}"
-                        + (f"  |  🧾 Gastos: {_p(gastos_t)}" if gastos_t > 0 else "")
                         + lineas_emp_t
                         + lineas_aportes_t
                         + lineas_cobros_t
-                        + lineas_fiados_nuevos_t
                         + lineas_deptos_t
                     )
 
@@ -276,12 +271,24 @@ def _generar_y_enviar_reporte():
                 datos_gastos = _json.loads(r3.read().decode())
                 lista_gastos = datos_gastos.get("gastos", [])
                 if lista_gastos:
-                    lineas_gastos = "\n\n🧾 *Gastos:*"
+                    lineas_gastos = "\n\n🧾 *Gastos del día:*"
                     for g in lista_gastos:
                         lineas_gastos += f"\n  • {g['descripcion']}: {_p(g['monto'])}"
-                    lineas_gastos += f"\n  *Total gastos: {_p(sum(float(g['monto']) for g in lista_gastos))}*"
+                    lineas_gastos += f"\n  *Total: {_p(sum(float(g['monto']) for g in lista_gastos))}*"
                 else:
                     lineas_gastos = ""
+
+                # Fiados del día (consolidado de todos los turnos)
+                if all_fiados_dia:
+                    _total_fiados_dia = sum(float(f.get('monto', 0)) for f in all_fiados_dia)
+                    lineas_fiados_dia = "\n\n📝 *Fiados anotados en el día:*"
+                    for _fd in all_fiados_dia:
+                        lineas_fiados_dia += f"\n  • {_fd['cliente']}: {_p(_fd['monto'])}"
+                        if _fd.get('descripcion'):
+                            lineas_fiados_dia += f" ({_fd['descripcion']})"
+                    lineas_fiados_dia += f"\n  *Total fiado: {_p(_total_fiados_dia)}*"
+                else:
+                    lineas_fiados_dia = ""
 
                 prom_dia = (total_dia / tickets_dia) if tickets_dia > 0 else 0
                 neto_dia = total_dia - total_gastos_dia - total_emp_dia
@@ -307,6 +314,7 @@ def _generar_y_enviar_reporte():
                     f"\n💵 *Balance efectivo: {_p(balance_ef)}*"
                     f"\n🥩 Carnicería: {_p(carne)}  🧀 Fiamb: {_p(fiamb)}"
                     + lineas_gastos
+                    + lineas_fiados_dia
                     + f"\n{'━'*22}"
                     f"\n📋 *DETALLE POR TURNO*"
                     + bloques_turno
