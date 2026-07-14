@@ -11,7 +11,7 @@ def _p(v):
     """Precio en formato argentino: $10.000"""
     return f"${float(v):,.0f}".replace(",", ".")
 
-APP_VERSION = "4.2.1"
+APP_VERSION = "4.3.0"
 APK_URL     = "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.4.4/JuanaCash.apk"
 VERSION_URL = "https://raw.githubusercontent.com/milenamondaca17-gif/juana-cash/main/version.json"
 
@@ -316,7 +316,7 @@ def main(page: ft.Page):
                 ft.Text("ERROR AL INICIAR", size=18, weight="bold", color="#EF4444"),
                 ft.Text(str(_e), size=13, color="white", selectable=True),
                 ft.Divider(color="#1E293B"),
-                ft.Text(traceback.format_exc(), size=10, color="#94A3B8", selectable=True),
+                ft.Text(traceback.format_exc(), size=10, color="#9E9E9E", selectable=True),
             ], scroll=ft.ScrollMode.ALWAYS, spacing=10),
             padding=20, expand=True
         ))
@@ -327,31 +327,31 @@ def _main(page: ft.Page):
 
     page.title      = "Juana Cash"
     page.theme_mode = ft.ThemeMode.DARK
-    page.bgcolor    = "#080E1C"
+    page.bgcolor    = "#0D0D0D"
     page.padding    = 0
     page.spacing    = 0
 
     # ── SPLASH ───────────────────────────────────────────────────────────────
-    progress_bar = ft.ProgressBar(value=0, expand=True, height=5,
-                                  color="#27AE60", bgcolor="#0d1f35")
-    lbl_pct    = ft.Text("0%", size=13, weight="bold", color="#1B9FD4", text_align="center")
-    lbl_estado = ft.Text("Iniciando...", size=11, color="#4a7a9a", text_align="center")
+    progress_bar = ft.ProgressBar(value=0, expand=True, height=4,
+                                  color="#F5A623", bgcolor="#2A2A2A")
+    lbl_pct    = ft.Text("0%", size=13, weight="bold", color="#F5A623", text_align="center")
+    lbl_estado = ft.Text("Iniciando...", size=11, color="#9E9E9E", text_align="center")
 
     page.add(ft.Container(
         content=ft.Column([
             ft.Container(expand=True),
-            ft.Image(src="/assets/splash.png", width=260, fit="contain"),
-            ft.Container(height=18),
+            ft.Image(src="/assets/splash.png", width=220, fit="contain"),
+            ft.Container(height=24),
             progress_bar,
-            ft.Container(height=10),
+            ft.Container(height=12),
             ft.Row([lbl_pct], alignment="center"),
             ft.Container(height=4),
             ft.Row([lbl_estado], alignment="center"),
             ft.Container(expand=True),
-            ft.Text("CAMMUS_25  //  DIGITAL CREATOR", size=9, color="#2a4a6a", text_align="center"),
+            ft.Text("CAMMUS_25  //  DIGITAL CREATOR", size=9, color="#3A3A3A", text_align="center"),
             ft.Container(height=20),
         ], horizontal_alignment="center", spacing=0),
-        bgcolor="#080E1C", expand=True, padding=40
+        bgcolor="#0D0D0D", expand=True, padding=40
     ))
     page.update()
 
@@ -368,12 +368,12 @@ def _main(page: ft.Page):
         lbl_pct.value = f"{int(valor*100)}%"
         lbl_estado.value = texto
         if valor == 1.0:
-            lbl_estado.color = "#27AE60"
+            lbl_estado.color = "#F5A623"
         page.update()
 
     time.sleep(0.5)
     page.controls.clear()
-    page.bgcolor = "#0B1120"
+    page.bgcolor = "#0D0D0D"
     page.update()
     # ── FIN SPLASH ────────────────────────────────────────────────────────────
 
@@ -412,15 +412,23 @@ def _main(page: ft.Page):
             page.update()
 
     # ── Barra superior ────────────────────────────────────────────────────────
-    lbl_ip_status = ft.Text("", size=11, color="#94A3B8")
+    lbl_ip_status = ft.Text("", size=11, color="#9E9E9E")
     app_bar = ft.Container(
         content=ft.Row([
-            ft.Text("JUANA CASH", weight="w900", size=20, color="#F43F5E"),
+            ft.Row([
+                ft.Container(
+                    width=8, height=8, bgcolor="#F5A623",
+                    border_radius=4,
+                ),
+                ft.Container(width=6),
+                ft.Text("JUANA CASH", weight="w900", size=18, color="#FFFFFF"),
+            ]),
             ft.Container(expand=True),
             lbl_ip_status,
-        ], alignment="spaceBetween"),
-        padding=ft.padding.symmetric(horizontal=16, vertical=12),
-        bgcolor="#0F172A"
+        ], alignment="spaceBetween", vertical_alignment="center"),
+        padding=ft.padding.symmetric(horizontal=16, vertical=14),
+        bgcolor="#111111",
+        border=ft.border.only(bottom=ft.border.BorderSide(1, "#2A2A2A")),
     )
 
     def inp(label, hint="", w=None, kb="text"):
@@ -428,33 +436,38 @@ def _main(page: ft.Page):
             label=label, hint_text=hint, width=w,
             filled=True, border_color="transparent",
             border_radius=12, content_padding=16,
-            bgcolor="#1E293B", keyboard_type=kb
+            bgcolor="#1C1C1C", keyboard_type=kb
         )
 
     # ── PANTALLA 1: DASHBOARD ─────────────────────────────────────────────────
-    lbl_total    = ft.Text("$0", size=44, weight="w900", color="#10B981")
-    lbl_tickets  = ft.Text("0 tickets hoy", size=14, color="#94A3B8")
-    lbl_mes      = ft.Text("", size=13, color="#94A3B8")
-    lbl_metodo   = ft.Text("", size=12, color="#38BDF8")
-    lbl_top_prod = ft.Text("", size=12, color="#F59E0B")
+    lbl_total    = ft.Text("$0", size=40, weight="w900", color="#FFFFFF")
+    lbl_tickets  = ft.Text("0 tickets hoy", size=13, color="#CCCCCC")
+    lbl_mes      = ft.Text("", size=12, color="#9E9E9E")
+    lbl_metodo   = ft.Text("", size=11, color="#9E9E9E")
+    lbl_top_prod = ft.Text("", size=11, color="#F5A623")
     lbl_offline_badge = ft.Text("", size=12, color="#F59E0B")
+
+    # Tarjetas de métricas
+    lbl_card_ventas = ft.Text("$0", size=18, weight="w900", color="#FFFFFF")
+    lbl_card_gastos = ft.Text("$0", size=18, weight="w900", color="#EF5350")
+    lbl_card_neto   = ft.Text("$0", size=18, weight="w900", color="#4CAF50")
 
     @en_hilo
     def sincronizar_manual(e=None):
         n = _contar_pendientes()
         if n == 0:
             lbl_offline_badge.value = "✅ Sin ventas pendientes"
-            lbl_offline_badge.color = "#10B981"
+            lbl_offline_badge.color = "#4CAF50"
             page.update()
             return
         lbl_offline_badge.value = f"⏳ Sincronizando {n} venta(s)..."
-        lbl_offline_badge.color = "#94A3B8"
+        lbl_offline_badge.color = "#9E9E9E"
         page.update()
         ok    = _sincronizar_offline()
         resto = _contar_pendientes()
         if resto == 0:
             lbl_offline_badge.value = f"✅ {ok} venta(s) sincronizadas!"
-            lbl_offline_badge.color = "#10B981"
+            lbl_offline_badge.color = "#4CAF50"
         else:
             lbl_offline_badge.value = f"⚠️ {ok} OK, {resto} aún pendientes"
             lbl_offline_badge.color = "#F59E0B"
@@ -469,10 +482,10 @@ def _main(page: ft.Page):
             lbl_offline_badge.value = ""
         page.update()
 
-    lista_movs        = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=260)
-    lbl_dashboard_err = ft.Text("", color="#EF4444", size=12)
+    lista_movs        = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=240)
+    lbl_dashboard_err = ft.Text("", color="#EF5350", size=12)
     lbl_gastos_hoy    = ft.Text("Gastos: $0", size=12, color="#F59E0B")
-    lbl_neto_hoy      = ft.Text("Neto: $0", size=13, weight="bold", color="#10B981")
+    lbl_neto_hoy      = ft.Text("Neto: $0", size=13, weight="bold", color="#4CAF50")
 
     NOMBRES_M = {
         "efectivo": "💵 Efectivo", "debito": "🏧 Débito", "tarjeta": "💳 Tarjeta",
@@ -490,7 +503,8 @@ def _main(page: ft.Page):
         if data:
             total_ventas = data.get('total_vendido', 0)
             lbl_total.value   = _p(total_ventas)
-            lbl_total.color   = "#10B981"
+            lbl_total.color   = "#FFFFFF"
+            lbl_card_ventas.value = _p(total_ventas)
             cant = data.get("cantidad_ventas", 0)
             lbl_tickets.value = f"{cant} ticket{'s' if cant != 1 else ''} hoy"
             lbl_dashboard_err.value = ""
@@ -511,18 +525,18 @@ def _main(page: ft.Page):
                 total  = float(v.get("total", 0))
                 estado = v.get("estado", "")
                 hora   = v.get("fecha", "")[-5:] if v.get("fecha") else ""
-                color  = "#EF4444" if estado == "anulada" else "#38BDF8"
+                color  = "#EF5350" if estado == "anulada" else "#42A5F5"
                 icon   = "❌" if estado == "anulada" else NOMBRES_M.get(metodo, "🛍️")[:2]
                 lista_movs.controls.append(
                     ft.Container(
                         content=ft.Row([
-                            ft.Text(hora, size=11, color="#94A3B8", width=36),
+                            ft.Text(hora, size=11, color="#9E9E9E", width=36),
                             ft.Text(icon, size=14),
                             ft.Text(NOMBRES_M.get(metodo, metodo).split(" ", 1)[-1],
-                                    expand=True, size=11, color="#94A3B8"),
+                                    expand=True, size=11, color="#9E9E9E"),
                             ft.Text(_p(total), weight="bold", color=color, size=13),
                         ]),
-                        bgcolor="#1E293B", padding=8, border_radius=8
+                        bgcolor="#1C1C1C", padding=10, border_radius=10,
                     )
                 )
             # gastos
@@ -534,21 +548,24 @@ def _main(page: ft.Page):
                     lista_movs.controls.append(
                         ft.Container(
                             content=ft.Row([
-                                ft.Text(g.get("hora",""), size=11, color="#94A3B8", width=36),
+                                ft.Text(g.get("hora",""), size=11, color="#9E9E9E", width=36),
                                 ft.Text("💸", size=14),
-                                ft.Text(g.get("descripcion","")[:22], expand=True, size=11, color="#94A3B8"),
+                                ft.Text(g.get("descripcion","")[:22], expand=True, size=11, color="#9E9E9E"),
                                 ft.Text(f"-{_p(g.get('monto',0))}", weight="bold", color="#F59E0B", size=13),
                             ]),
-                            bgcolor="#1E1005", padding=8, border_radius=8
+                            bgcolor="#1A1000", padding=10, border_radius=10,
                         )
                     )
             lbl_gastos_hoy.value = f"Gastos del día: {_p(total_gastos)}"
+            lbl_card_gastos.value = _p(total_gastos)
             neto = total_ventas - total_gastos
             lbl_neto_hoy.value = f"Neto: {_p(neto)}"
-            lbl_neto_hoy.color = "#10B981" if neto >= 0 else "#EF4444"
+            lbl_card_neto.value = _p(neto)
+            lbl_neto_hoy.color  = "#4CAF50" if neto >= 0 else "#EF5350"
+            lbl_card_neto.color = "#4CAF50" if neto >= 0 else "#EF5350"
         else:
             lbl_total.value   = "Sin conexión"
-            lbl_total.color   = "#EF4444"
+            lbl_total.color   = "#EF5350"
             lbl_dashboard_err.value = f"No se pudo conectar a {get_api_url()}"
         if data_mes:
             lbl_mes.value = f"Este mes: {_p(data_mes.get('total_vendido', 0))}"
@@ -566,36 +583,84 @@ def _main(page: ft.Page):
 
     view_dashboard = ft.Container(
         content=ft.Column([
+            # ── Tarjeta principal: ventas del día ────────────────────────────
             ft.Container(
                 content=ft.Column([
-                    ft.Text("CAJA DEL DÍA", weight="bold", color="#94A3B8", size=12),
-                    lbl_total, lbl_tickets,
-                    ft.Row([lbl_mes, lbl_metodo], alignment="spaceBetween"),
-                    ft.Row([lbl_gastos_hoy, lbl_neto_hoy], alignment="spaceBetween"),
-                    lbl_top_prod,
-                    lbl_dashboard_err,
-                ], horizontal_alignment="center"),
-                padding=16, border_radius=16, bgcolor="#0F172A"
+                    ft.Row([
+                        ft.Column([
+                            ft.Text("VENTAS HOY", size=11, weight="bold", color="#CCCCCC"),
+                            lbl_total,
+                            lbl_tickets,
+                        ], spacing=4, expand=True),
+                        ft.Column([
+                            ft.Text(lbl_mes.value, size=11, color="#9E9E9E"),
+                            lbl_top_prod,
+                            lbl_metodo,
+                        ], spacing=4, horizontal_alignment="end"),
+                    ], alignment="spaceBetween"),
+                ]),
+                padding=20, border_radius=20,
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.top_left,
+                    end=ft.alignment.bottom_right,
+                    colors=["#2C1900", "#1A1A00"],
+                ),
+                border=ft.border.all(1, "#3A2800"),
             ),
+            # ── Fila de 3 métricas ───────────────────────────────────────────
+            ft.Row([
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("💰", size=20, text_align="center"),
+                        ft.Text("VENTAS", size=9, color="#9E9E9E", text_align="center"),
+                        lbl_card_ventas,
+                    ], horizontal_alignment="center", spacing=4),
+                    bgcolor="#1C1C1C", border_radius=16, padding=12, expand=True,
+                    border=ft.border.all(1, "#2A2A2A"),
+                ),
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("💸", size=20, text_align="center"),
+                        ft.Text("GASTOS", size=9, color="#9E9E9E", text_align="center"),
+                        lbl_card_gastos,
+                    ], horizontal_alignment="center", spacing=4),
+                    bgcolor="#1C1C1C", border_radius=16, padding=12, expand=True,
+                    border=ft.border.all(1, "#2A2A2A"),
+                ),
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("📈", size=20, text_align="center"),
+                        ft.Text("NETO", size=9, color="#9E9E9E", text_align="center"),
+                        lbl_card_neto,
+                    ], horizontal_alignment="center", spacing=4),
+                    bgcolor="#1C1C1C", border_radius=16, padding=12, expand=True,
+                    border=ft.border.all(1, "#2A2A2A"),
+                ),
+            ], spacing=8),
+            # ── Offline badge ─────────────────────────────────────────────────
             ft.GestureDetector(
                 content=ft.Container(
                     content=lbl_offline_badge,
                     padding=ft.padding.symmetric(horizontal=12, vertical=8),
-                    border_radius=8, bgcolor="#1E293B",
+                    border_radius=10, bgcolor="#1C1C1C",
                 ),
                 on_tap=sincronizar_manual,
             ),
+            lbl_dashboard_err,
+            # ── Movimientos ───────────────────────────────────────────────────
             ft.Row([
-                ft.Text("Movimientos en vivo", weight="w600", size=15, expand=True),
-                ft.Text("🔄 auto 30s", size=10, color="#475569"),
+                ft.Text("Movimientos en vivo", weight="w600", size=14, expand=True, color="#FFFFFF"),
+                ft.Text("🔄 30s", size=10, color="#9E9E9E"),
             ]),
             lista_movs,
-            ft.ElevatedButton(
-                "🔄 ACTUALIZAR AHORA", on_click=cargar_dashboard,
-                expand=True, height=44,
-                bgcolor="#3B82F6", color="white",
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-            )
+            ft.Container(
+                content=ft.Text("ACTUALIZAR", size=13, weight="bold", color="#F5A623", text_align="center"),
+                on_click=cargar_dashboard,
+                bgcolor="#2C1900",
+                border=ft.border.all(1, "#F5A623"),
+                border_radius=12, padding=ft.padding.symmetric(vertical=14),
+                expand=True,
+            ),
         ], spacing=12, scroll=ft.ScrollMode.AUTO),
         padding=16, visible=True, expand=True
     )
@@ -603,10 +668,10 @@ def _main(page: ft.Page):
     # ── PANTALLA 2: COBRAR ────────────────────────────────────────────────────
     lbl_aviso    = ft.Text("", size=13, weight="bold")
     lista_compra = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=140)
-    lbl_total_c  = ft.Text("$0", size=28, weight="w900", color="#F43F5E")
+    lbl_total_c  = ft.Text("$0", size=28, weight="w900", color="#F5A623")
     in_scan = ft.TextField(
         label="Escanear o buscar...", filled=True, border_color="transparent",
-        border_radius=12, content_padding=16, bgcolor="#1E293B", expand=True
+        border_radius=12, content_padding=16, bgcolor="#1C1C1C", expand=True
     )
     in_cliente  = inp("Cliente (opcional)", w=160)
     drop_metodo = ft.Dropdown(
@@ -619,7 +684,7 @@ def _main(page: ft.Page):
             ft.dropdown.Option(key="fiado",          text="💸 Fiado"),
         ],
         value="efectivo", expand=True, border_radius=10,
-        filled=True, bgcolor="#1E293B", border_color="transparent"
+        filled=True, bgcolor="#1C1C1C", border_color="transparent"
     )
 
     cliente_fiado     = {"id": None, "nombre": ""}
@@ -680,13 +745,13 @@ def _main(page: ft.Page):
                     lista_clientes.controls.append(
                         ft.Container(
                             content=ft.Text(txt, expand=True, size=12, color="white"),
-                            bgcolor="#1E293B", padding=10, border_radius=8,
+                            bgcolor="#1C1C1C", padding=10, border_radius=8,
                             on_click=lambda e, cl=c: seleccionar_cliente(cl),
                         )
                     )
             else:
                 lista_clientes.controls.append(
-                    ft.Text("Sin resultados", color="#94A3B8", size=12)
+                    ft.Text("Sin resultados", color="#9E9E9E", size=12)
                 )
             page.update()
 
@@ -695,7 +760,7 @@ def _main(page: ft.Page):
     in_buscar_cliente = ft.TextField(
         label="Buscar cliente por nombre",
         filled=True, border_color="transparent", border_radius=10,
-        content_padding=12, bgcolor="#1E293B", expand=True,
+        content_padding=12, bgcolor="#1C1C1C", expand=True,
         on_submit=buscar_cliente
     )
 
@@ -713,7 +778,7 @@ def _main(page: ft.Page):
     panel_buscar_cliente.padding       = 10
 
     btn_recuperar = ft.ElevatedButton(
-        "⏳ (0)", bgcolor="#334155", color="white", visible=False
+        "⏳ (0)", bgcolor="#2A2A2A", color="white", visible=False
     )
 
     def recalc():
@@ -756,7 +821,7 @@ def _main(page: ft.Page):
             ft.ElevatedButton(
                 f"🛒 {t['nombre']} ({len(t['items'])} prod)",
                 on_click=lambda ev, tk=t: cargar_pausado(tk),
-                height=48, width=260, bgcolor="#1E293B", color="white"
+                height=48, width=260, bgcolor="#1C1C1C", color="white"
             ) for t in tickets_espera
         ]
         dlg_pausados.content = ft.Column(cols, tight=True)
@@ -779,7 +844,7 @@ def _main(page: ft.Page):
                            weight="bold", size=13, color="#F1B44C")
         in_p = ft.TextField(
             value=f"{data['p']:.0f}", width=80, text_align="right",
-            bgcolor="#0F172A", border_color="transparent",
+            bgcolor="#111111", border_color="transparent",
             filled=True, border_radius=8, content_padding=4,
             on_change=lambda e: (setval(data, "p", float(e.control.value or 0)), recalc())
         )
@@ -804,14 +869,14 @@ def _main(page: ft.Page):
                 ft.Text(data["n"], expand=True, size=11, weight="bold"),
                 ft.ElevatedButton("-",
                     on_click=lambda _: cambiar_cant(-1),
-                    bgcolor="#334155", color="white", width=34, height=34),
+                    bgcolor="#2A2A2A", color="white", width=34, height=34),
                 lbl_cant,
                 ft.ElevatedButton("+",
                     on_click=lambda _: cambiar_cant(1),
                     bgcolor="#10B981", color="white", width=34, height=34),
                 in_p,
             ], spacing=4),
-            bgcolor="#1E293B", padding=8, border_radius=12
+            bgcolor="#1C1C1C", padding=8, border_radius=12
         )
         lista_compra.controls.append(fila)
 
@@ -877,7 +942,7 @@ def _main(page: ft.Page):
                         ft.Text(_p(p.get('precio_venta') or 0),
                                color="#38BDF8", size=13, weight="bold"),
                     ]),
-                    bgcolor="#1E293B",
+                    bgcolor="#1C1C1C",
                     padding=ft.padding.symmetric(horizontal=12, vertical=10),
                     border_radius=8,
                     on_click=lambda e, prod=p: seleccionar(prod),
@@ -911,12 +976,12 @@ def _main(page: ft.Page):
     # ── Panel calculadora inline (sin AlertDialog) ───────────────────────────
     _calc = {"montos": [], "nombre": "", "color": "#f39c12"}
     lbl_calc_titulo = ft.Text("", size=17, weight="w900", color="#f39c12")
-    lbl_calc_items  = ft.Text("— Sin ítems aún —", color="#94A3B8", size=13)
+    lbl_calc_items  = ft.Text("— Sin ítems aún —", color="#9E9E9E", size=13)
     lbl_calc_total  = ft.Text("Total: $0", size=22, weight="w900", color="#f39c12")
     in_calc = ft.TextField(
         hint_text="Monto → + Sumar (campo vacío → confirma)",
         keyboard_type=ft.KeyboardType.NUMBER,
-        filled=True, border_radius=10, content_padding=14, bgcolor="#0F172A",
+        filled=True, border_radius=10, content_padding=14, bgcolor="#111111",
     )
 
     def _calc_render():
@@ -980,22 +1045,22 @@ def _main(page: ft.Page):
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Container(
                 content=ft.Column([lbl_calc_items, lbl_calc_total], spacing=4),
-                bgcolor="#0F172A", padding=10, border_radius=10,
+                bgcolor="#111111", padding=10, border_radius=10,
             ),
             in_calc,
             ft.Row([
                 ft.ElevatedButton("⌫ Borrar", on_click=_calc_borrar,
-                    bgcolor="#334155", color="white", expand=True, height=46,
+                    bgcolor="#2A2A2A", color="white", expand=True, height=46,
                     style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))),
                 ft.ElevatedButton("+ Sumar", on_click=_calc_sumar,
                     bgcolor="#10B981", color="white", expand=True, height=46,
                     style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))),
             ], spacing=8),
             ft.ElevatedButton("✅ BAJAR AL TICKET", on_click=_calc_confirmar,
-                bgcolor="#F43F5E", color="white", expand=True, height=52,
+                bgcolor="#F5A623", color="black", expand=True, height=52,
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))),
         ], spacing=10),
-        bgcolor="#1E293B", padding=14, border_radius=14,
+        bgcolor="#1C1C1C", padding=14, border_radius=14,
         visible=False,
     )
 
@@ -1035,14 +1100,14 @@ def _main(page: ft.Page):
 
     btn_cobrar = ft.ElevatedButton(
         "🧾 COBRAR", expand=True, height=46,
-        bgcolor="#F43F5E", color="white",
+        bgcolor="#F5A623", color="black",
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=14)),
         on_click=lambda e: ir_ticket()
     )
 
     btn_ir_fiados = ft.ElevatedButton(
         "💸 FIADO", expand=True, height=46,
-        bgcolor="#1E293B", color="#EF4444",
+        bgcolor="#1C1C1C", color="#EF4444",
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
         on_click=lambda e: _ir_fiados()
     )
@@ -1073,12 +1138,12 @@ def _main(page: ft.Page):
     lista_ticket      = ft.Column(scroll=ft.ScrollMode.ALWAYS, height=180)
     in_pago           = inp("¿Con cuánto paga?", kb="number")
     lbl_vuelto        = ft.Text("$0", size=28, weight="w900", color="#EF4444")
-    lbl_ticket_total  = ft.Text("$0", size=34, weight="w900", color="#F43F5E")
+    lbl_ticket_total  = ft.Text("$0", size=34, weight="w900", color="#F5A623")
     lbl_cobrar_status = ft.Text("", size=13, weight="bold")
     row_vuelto        = ft.Column(visible=False)
 
     # ── Pago mixto ────────────────────────────────────────────────────────────
-    sw_mixto      = ft.Switch(label="Pago mixto", value=False, active_color="#F43F5E")
+    sw_mixto      = ft.Switch(label="Pago mixto", value=False, active_color="#F5A623")
     panel_mixto   = ft.Column(visible=False, spacing=6)
     pagos_mixto   = []   # lista de {"metodo": str, "monto": float, "in_monto": TextField}
     lbl_pendiente = ft.Text("", size=13, color="#F59E0B", weight="bold")
@@ -1105,7 +1170,7 @@ def _main(page: ft.Page):
             label=MNAMES.get(metodo, metodo),
             keyboard_type=ft.KeyboardType.NUMBER,
             filled=True, border_color="transparent", border_radius=8,
-            content_padding=10, bgcolor="#0F172A", expand=True,
+            content_padding=10, bgcolor="#111111", expand=True,
             on_change=lambda e: _recalc_pendiente()
         )
         entry = {"metodo": metodo, "in_monto": in_m}
@@ -1114,7 +1179,7 @@ def _main(page: ft.Page):
         drop_m = ft.Dropdown(
             options=[ft.dropdown.Option(key=k, text=v) for k, v in MNAMES.items()],
             value=metodo, width=130, border_radius=8,
-            filled=True, bgcolor="#0F172A", border_color="transparent",
+            filled=True, bgcolor="#111111", border_color="transparent",
         )
         def _on_drop(e, ent=entry):
             ent["metodo"] = drop_m.value
@@ -1151,7 +1216,7 @@ def _main(page: ft.Page):
     sw_mixto.on_change = _on_mixto_change
 
     btn_agregar_pago = ft.ElevatedButton(
-        "+ Agregar método de pago", bgcolor="#334155", color="white",
+        "+ Agregar método de pago", bgcolor="#2A2A2A", color="white",
         expand=True, height=38,
         on_click=lambda e: _agregar_pago_mixto("efectivo")
     )
@@ -1168,7 +1233,7 @@ def _main(page: ft.Page):
 
     in_pago.on_change = calc_vuelto
     row_vuelto.controls = [
-        ft.Divider(color="#334155"),
+        ft.Divider(color="#2A2A2A", height=1),
         ft.Row([ft.Text("SU PAGO:"), in_pago], alignment="spaceBetween"),
         ft.Row([ft.Text("VUELTO:", weight="bold"), lbl_vuelto], alignment="spaceBetween"),
     ]
@@ -1278,17 +1343,17 @@ def _main(page: ft.Page):
 
     view_ticket = ft.Container(
         content=ft.Column([
-            ft.Text("🧾 CONFIRMAR VENTA", size=22, weight="w900", color="#94A3B8"),
-            ft.Divider(color="#334155"),
+            ft.Text("🧾 CONFIRMAR VENTA", size=22, weight="w900", color="#9E9E9E"),
+            ft.Divider(color="#2A2A2A", height=1),
             lista_ticket,
-            ft.Divider(color="#334155"),
+            ft.Divider(color="#2A2A2A", height=1),
             ft.Row([ft.Text("TOTAL:", weight="bold", size=16), lbl_ticket_total], alignment="spaceBetween"),
             sw_mixto,
             panel_mixto,
             row_vuelto,
             lbl_cobrar_status,
             ft.Row([
-                ft.ElevatedButton("🔙 ATRÁS", expand=True, height=52, bgcolor="#334155", color="white",
+                ft.ElevatedButton("🔙 ATRÁS", expand=True, height=52, bgcolor="#2A2A2A", color="white",
                     on_click=lambda _: (
                         setattr(view_ticket, "visible", False),
                         setattr(view_cobrar, "visible", True),
@@ -1313,7 +1378,7 @@ def _main(page: ft.Page):
         lista_ticket.controls = [
             ft.Row([
                 ft.Text(i["n"], expand=True, size=12),
-                ft.Text(f"x{i.get('cant',1)}", size=11, color="#94A3B8", width=28),
+                ft.Text(f"x{i.get('cant',1)}", size=11, color="#9E9E9E", width=28),
                 ft.Text(_p(i['p']), size=13, weight="bold"),
             ])
             for i in carrito
@@ -1406,7 +1471,7 @@ def _main(page: ft.Page):
                     color_item = o.get("color_fondo", "#e74c3c")
                 else:
                     texto_item = f"📷  {os.path.basename(o['contenido'])}"
-                    color_item = "#334155"
+                    color_item = "#2A2A2A"
                 lista_ofertas_ui.controls.append(
                     ft.Container(
                         content=ft.Row([
@@ -1422,7 +1487,7 @@ def _main(page: ft.Page):
                 )
             if not data:
                 lista_ofertas_ui.controls.append(
-                    ft.Text("Sin ofertas todavía", color="#94A3B8", size=13)
+                    ft.Text("Sin ofertas todavía", color="#9E9E9E", size=13)
                 )
         else:
             lista_ofertas_ui.controls.append(
@@ -1431,7 +1496,7 @@ def _main(page: ft.Page):
         page.update()
 
     # ── FilePicker para subir foto desde galería (Flet 0.84) ──────────────────
-    lbl_foto_preview = ft.Text("", size=12, color="#94A3B8")
+    lbl_foto_preview = ft.Text("", size=12, color="#9E9E9E")
     # FilePicker se crea lazy dentro del handler para que context.page esté disponible
 
     async def _pick_y_subir():
@@ -1504,7 +1569,7 @@ def _main(page: ft.Page):
         label="O pegá una URL de imagen",
         hint_text="https://...",
         filled=True, border_color="transparent", border_radius=12,
-        content_padding=14, bgcolor="#1E293B", expand=True,
+        content_padding=14, bgcolor="#1C1C1C", expand=True,
         keyboard_type=ft.KeyboardType.URL,
     )
 
@@ -1534,7 +1599,7 @@ def _main(page: ft.Page):
     view_ofertas = ft.Container(
         content=ft.Column([
             ft.Text("🏷️ SUBIR OFERTAS A LA PC", size=20, weight="w900"),
-            ft.Text("Las ofertas se muestran en la pantalla de ventas", color="#94A3B8", size=12),
+            ft.Text("Las ofertas se muestran en la pantalla de ventas", color="#9E9E9E", size=12),
             lbl_color_preview,
             in_texto_oferta,
             ft.Row([
@@ -1542,7 +1607,7 @@ def _main(page: ft.Page):
                 ft.ElevatedButton("📤 SUBIR TEXTO", bgcolor="#556EE6", color="white",
                     on_click=agregar_oferta_texto, expand=True, height=44)
             ]),
-            ft.Divider(color="#334155"),
+            ft.Divider(color="#2A2A2A", height=1),
             ft.Text("📷 Subir foto", weight="bold", size=14, color="#E91E63"),
             ft.Row([
                 ft.ElevatedButton(
@@ -1560,11 +1625,11 @@ def _main(page: ft.Page):
                     bgcolor="#475569", color="white", height=48, width=50),
             ], spacing=8),
             lbl_oferta_status,
-            ft.Divider(color="#334155"),
+            ft.Divider(color="#2A2A2A", height=1),
             ft.Row([
                 ft.Text("Ofertas en la PC:", weight="bold", size=13, expand=True),
                 ft.ElevatedButton("🔄", on_click=cargar_lista_ofertas,
-                    bgcolor="#1E293B", color="white", width=44, height=36)
+                    bgcolor="#1C1C1C", color="white", width=44, height=36)
             ]),
             lista_ofertas_ui,
         ], spacing=10, scroll=ft.ScrollMode.AUTO),
@@ -1575,12 +1640,12 @@ def _main(page: ft.Page):
     hoy_str        = datetime.now().strftime("%Y-%m-%d")
     in_desde = ft.TextField(label="Desde", hint_text="YYYY-MM-DD", value=hoy_str,
         filled=True, border_color="transparent", border_radius=12,
-        content_padding=14, bgcolor="#1E293B", expand=True)
+        content_padding=14, bgcolor="#1C1C1C", expand=True)
     in_hasta = ft.TextField(label="Hasta", hint_text="YYYY-MM-DD", value=hoy_str,
         filled=True, border_color="transparent", border_radius=12,
-        content_padding=14, bgcolor="#1E293B", expand=True)
+        content_padding=14, bgcolor="#1C1C1C", expand=True)
     lbl_ventas_total   = ft.Text("$0", size=32, weight="w900", color="#10B981")
-    lbl_ventas_resumen = ft.Text("", size=12, color="#94A3B8")
+    lbl_ventas_resumen = ft.Text("", size=12, color="#9E9E9E")
     lbl_ventas_err     = ft.Text("", color="#EF4444", size=12)
     lista_ventas_ui    = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=370)
 
@@ -1599,18 +1664,18 @@ def _main(page: ft.Page):
             in_anular_pass    = ft.TextField(
                 label="Contraseña admin", password=True,
                 filled=True, border_color="transparent", border_radius=8,
-                content_padding=10, bgcolor="#0F172A"
+                content_padding=10, bgcolor="#111111"
             )
             in_motivo = ft.TextField(
                 label="Motivo", value="Anulación desde móvil",
                 filled=True, border_color="transparent", border_radius=8,
-                content_padding=10, bgcolor="#0F172A"
+                content_padding=10, bgcolor="#111111"
             )
             # Selector de usuario admin
             usuarios_admin = [{"id": 1, "nombre": "Admin"}]
             drop_usuario   = ft.Dropdown(
                 options=[], value=None, border_radius=8,
-                filled=True, bgcolor="#0F172A", border_color="transparent",
+                filled=True, bgcolor="#111111", border_color="transparent",
                 label="Usuario"
             )
 
@@ -1634,7 +1699,7 @@ def _main(page: ft.Page):
                 title=ft.Text("🚫 Anular venta", color="#EF4444", weight="bold"),
                 content=ft.Column([
                     ft.Text(f"Venta #{data.get('numero','?')} — {_p(data.get('total',0))}",
-                            size=13, color="#94A3B8"),
+                            size=13, color="#9E9E9E"),
                     drop_usuario,
                     in_anular_pass,
                     in_motivo,
@@ -1645,7 +1710,7 @@ def _main(page: ft.Page):
                     ft.ElevatedButton("🚫 ANULAR", bgcolor="#EF4444", color="white",
                         on_click=lambda e: _confirmar_anulacion()),
                 ],
-                bgcolor="#1E293B",
+                bgcolor="#1C1C1C",
             )
 
             def _confirmar_anulacion():
@@ -1699,12 +1764,12 @@ def _main(page: ft.Page):
                     content=ft.Column([
                         ft.Row([
                             ft.Text(i.get("nombre", "?"), expand=True, size=12),
-                            ft.Text(f"x{i.get('cantidad', 1)}", size=12, color="#94A3B8"),
+                            ft.Text(f"x{i.get('cantidad', 1)}", size=12, color="#9E9E9E"),
                             ft.Text(_p(i.get('subtotal', 0)), size=13,
                                     weight="bold", color="#38BDF8"),
                         ]) for i in items
                     ] + [
-                        ft.Divider(color="#334155"),
+                        ft.Divider(color="#2A2A2A", height=1),
                         ft.Row([
                             ft.Text("TOTAL", weight="bold", expand=True),
                             ft.Text(_p(data.get('total', 0)),
@@ -1714,7 +1779,7 @@ def _main(page: ft.Page):
                     height=300
                 ),
                 actions=acciones,
-                bgcolor="#1E293B",
+                bgcolor="#1C1C1C",
             )
             abrir_dlg(dlg)
 
@@ -1762,13 +1827,13 @@ def _main(page: ft.Page):
                                         color="#EF4444" if estado=="anulada" else "#94A3B8"),
                             ], spacing=0, horizontal_alignment="end"),
                         ]),
-                        bgcolor="#1E293B", padding=12, border_radius=12,
+                        bgcolor="#1C1C1C", padding=12, border_radius=12,
                         on_click=lambda e, vid=v.get("id"): ver_detalle_venta(vid)
                     )
                 )
             if not ventas:
                 lista_ventas_ui.controls.append(
-                    ft.Text("Sin ventas en ese período", color="#94A3B8",
+                    ft.Text("Sin ventas en ese período", color="#9E9E9E",
                             size=13, text_align="center")
                 )
         else:
@@ -1794,16 +1859,16 @@ def _main(page: ft.Page):
             ft.Row([in_desde, in_hasta], spacing=8),
             ft.Row([
                 ft.ElevatedButton("Hoy", on_click=_v_hoy, expand=True, height=40,
-                    bgcolor="#1E293B", color="white"),
+                    bgcolor="#1C1C1C", color="white"),
                 ft.ElevatedButton("Mes", on_click=_v_mes, expand=True, height=40,
-                    bgcolor="#1E293B", color="white"),
+                    bgcolor="#1C1C1C", color="white"),
                 ft.ElevatedButton("🔍 Ver", on_click=cargar_ventas, expand=True, height=40,
                     bgcolor="#3B82F6", color="white"),
             ], spacing=6),
             ft.Container(
                 content=ft.Column([lbl_ventas_total, lbl_ventas_resumen],
                     horizontal_alignment="center", spacing=2),
-                bgcolor="#0F172A", padding=14, border_radius=14),
+                bgcolor="#111111", padding=14, border_radius=14),
             lbl_ventas_err,
             lista_ventas_ui,
         ], spacing=10, scroll=ft.ScrollMode.AUTO),
@@ -1812,7 +1877,7 @@ def _main(page: ft.Page):
 
     # ── PANTALLA: FIADOS ──────────────────────────────────────────────────────
     lista_fiados_ui   = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, height=420)
-    lbl_fiados_status = ft.Text("", size=12, color="#94A3B8")
+    lbl_fiados_status = ft.Text("", size=12, color="#9E9E9E")
 
     @en_hilo
     def cargar_fiados(e=None):
@@ -1833,7 +1898,7 @@ def _main(page: ft.Page):
                 in_pago_fiado = ft.TextField(
                     label="Pago parcial $", keyboard_type=ft.KeyboardType.NUMBER,
                     filled=True, border_color="transparent", border_radius=8,
-                    content_padding=8, bgcolor="#0F172A", width=130
+                    content_padding=8, bgcolor="#111111", width=130
                 )
 
                 def _registrar_pago(ev, cli=c, inp=in_pago_fiado):
@@ -1871,7 +1936,7 @@ def _main(page: ft.Page):
                                     height=40, on_click=_registrar_pago),
                             ], spacing=8),
                         ], spacing=6),
-                        bgcolor="#1E293B", padding=14, border_radius=12
+                        bgcolor="#1C1C1C", padding=14, border_radius=12
                     )
                 )
         else:
@@ -1882,9 +1947,9 @@ def _main(page: ft.Page):
     view_fiados = ft.Container(
         content=ft.Column([
             ft.Text("💸 DEUDAS DE FIADOS", size=20, weight="w900"),
-            ft.Text("Clientes con saldo pendiente", color="#94A3B8", size=12),
+            ft.Text("Clientes con saldo pendiente", color="#9E9E9E", size=12),
             ft.ElevatedButton("🔄 Actualizar", on_click=cargar_fiados,
-                expand=True, height=40, bgcolor="#1E293B", color="white"),
+                expand=True, height=40, bgcolor="#1C1C1C", color="white"),
             lbl_fiados_status,
             lista_fiados_ui,
         ], spacing=10, scroll=ft.ScrollMode.AUTO),
@@ -1894,10 +1959,10 @@ def _main(page: ft.Page):
     # ── PANTALLA 6: MODIFICAR PRECIOS ────────────────────────────────────────
     in_buscar_precio  = ft.TextField(
         label="Buscar producto...", filled=True, border_color="transparent",
-        border_radius=12, content_padding=14, bgcolor="#1E293B", expand=True
+        border_radius=12, content_padding=14, bgcolor="#1C1C1C", expand=True
     )
     lista_precios_ui  = ft.Column(spacing=6, scroll=ft.ScrollMode.ALWAYS, height=420)
-    lbl_precio_status = ft.Text("", size=12, color="#94A3B8")
+    lbl_precio_status = ft.Text("", size=12, color="#9E9E9E")
 
     def _buscar_para_precio(e=None):
         q = in_buscar_precio.value.strip()
@@ -1919,13 +1984,13 @@ def _main(page: ft.Page):
                 in_nuevo = ft.TextField(
                     value=f"{precio_actual:.0f}",
                     width=110, text_align="right",
-                    bgcolor="#0F172A", border_color="transparent",
+                    bgcolor="#111111", border_color="transparent",
                     filled=True, border_radius=8, content_padding=8,
                     keyboard_type=ft.KeyboardType.NUMBER
                 )
                 in_pin = ft.TextField(
                     label="PIN", password=True, max_length=6,
-                    width=80, bgcolor="#0F172A", border_color="transparent",
+                    width=80, bgcolor="#111111", border_color="transparent",
                     filled=True, border_radius=8, content_padding=8,
                 )
 
@@ -1978,19 +2043,19 @@ def _main(page: ft.Page):
                             ft.Text(p["nombre"], size=12, weight="bold", color="white"),
                             ft.Row([
                                 ft.Text(f"Actual: {_p(precio_actual)}", size=11,
-                                        color="#94A3B8", expand=True),
+                                        color="#9E9E9E", expand=True),
                                 in_pin,
                                 in_nuevo,
                                 ft.ElevatedButton("✓", bgcolor="#10B981", color="white",
                                     width=44, height=40, on_click=_guardar),
                             ], spacing=4),
                         ], spacing=4),
-                        bgcolor="#1E293B", padding=12, border_radius=12
+                        bgcolor="#1C1C1C", padding=12, border_radius=12
                     )
                 )
             if not matches:
                 lista_precios_ui.controls.append(
-                    ft.Text("Sin resultados", color="#94A3B8", size=13, text_align="center")
+                    ft.Text("Sin resultados", color="#9E9E9E", size=13, text_align="center")
                 )
             page.update()
 
@@ -2001,7 +2066,7 @@ def _main(page: ft.Page):
     view_precios_mobile = ft.Container(
         content=ft.Column([
             ft.Text("💰 MODIFICAR PRECIOS", size=20, weight="w900"),
-            ft.Text("PIN requerido — la PC recibirá la alerta", color="#94A3B8", size=11),
+            ft.Text("PIN requerido — la PC recibirá la alerta", color="#9E9E9E", size=11),
             ft.Row([
                 in_buscar_precio,
                 ft.ElevatedButton("🔍", on_click=_buscar_para_precio,
@@ -2020,10 +2085,10 @@ def _main(page: ft.Page):
                "mercadopago_qr": "📱", "transferencia": "🏦", "fiado": "💸"}
 
     # ── Cabecera: total del día + delta + turno ───────────────────────────────
-    lbl_caja_total    = ft.Text("$0", size=32, weight="w900", color="#F43F5E")
-    lbl_caja_delta    = ft.Text("", size=13, color="#94A3B8")
-    lbl_caja_ventas   = ft.Text("0 ventas", size=12, color="#94A3B8")
-    lbl_caja_ticket   = ft.Text("Ticket: $0", size=12, color="#94A3B8")
+    lbl_caja_total    = ft.Text("$0", size=32, weight="w900", color="#F5A623")
+    lbl_caja_delta    = ft.Text("", size=13, color="#9E9E9E")
+    lbl_caja_ventas   = ft.Text("0 ventas", size=12, color="#9E9E9E")
+    lbl_caja_ticket   = ft.Text("Ticket: $0", size=12, color="#9E9E9E")
     lbl_turno_badge   = ft.Text("", size=11, weight="bold")
     ctn_turno_badge   = ft.Container(
         content=lbl_turno_badge, border_radius=8, padding=ft.padding.symmetric(4, 10)
@@ -2031,18 +2096,18 @@ def _main(page: ft.Page):
 
     # Chips semana / mes
     lbl_sem_total  = ft.Text("$0", size=14, weight="bold", color="white")
-    lbl_sem_ventas = ft.Text("0 ventas", size=10, color="#94A3B8")
+    lbl_sem_ventas = ft.Text("0 ventas", size=10, color="#9E9E9E")
     lbl_mes_total  = ft.Text("$0", size=14, weight="bold", color="white")
-    lbl_mes_ventas = ft.Text("0 ventas", size=10, color="#94A3B8")
+    lbl_mes_ventas = ft.Text("0 ventas", size=10, color="#9E9E9E")
 
     ctn_cabecera = ft.Container(
         content=ft.Column([
             ft.Row([
                 ft.Column([
-                    ft.Text("HOY", size=10, weight="bold", color="#94A3B8"),
+                    ft.Text("HOY", size=10, weight="bold", color="#9E9E9E"),
                     lbl_caja_total,
                     ft.Row([lbl_caja_delta], spacing=4),
-                    ft.Row([lbl_caja_ventas, ft.Text("·", color="#334155"), lbl_caja_ticket], spacing=6),
+                    ft.Row([lbl_caja_ventas, ft.Text("·", color="#2A2A2A"), lbl_caja_ticket], spacing=6),
                 ], spacing=2, expand=True),
                 ctn_turno_badge,
             ], alignment="spaceBetween"),
@@ -2050,26 +2115,26 @@ def _main(page: ft.Page):
             ft.Row([
                 ft.Container(
                     content=ft.Column([
-                        ft.Text("7 DÍAS", size=9, color="#94A3B8"),
+                        ft.Text("7 DÍAS", size=9, color="#9E9E9E"),
                         lbl_sem_total, lbl_sem_ventas,
                     ], spacing=1, horizontal_alignment="center"),
-                    bgcolor="#1E293B", border_radius=10, padding=10, expand=True
+                    bgcolor="#1C1C1C", border_radius=10, padding=10, expand=True
                 ),
                 ft.Container(
                     content=ft.Column([
-                        ft.Text("ESTE MES", size=9, color="#94A3B8"),
+                        ft.Text("ESTE MES", size=9, color="#9E9E9E"),
                         lbl_mes_total, lbl_mes_ventas,
                     ], spacing=1, horizontal_alignment="center"),
-                    bgcolor="#1E293B", border_radius=10, padding=10, expand=True
+                    bgcolor="#1C1C1C", border_radius=10, padding=10, expand=True
                 ),
             ], spacing=8),
         ], spacing=6),
-        bgcolor="#0F172A", padding=14, border_radius=14
+        bgcolor="#111111", padding=14, border_radius=14
     )
 
     # ── Tabs HOY / HISTORIAL / CIERRES ───────────────────────────────────────
     vista_caja   = {"sel": "hoy"}
-    lbl_caja_status = ft.Text("", size=12, color="#94A3B8")
+    lbl_caja_status = ft.Text("", size=12, color="#9E9E9E")
     lista_caja_ui   = ft.Column(spacing=8, scroll=ft.ScrollMode.ALWAYS, expand=True)
 
     _TABS_CAJA = [("hoy", "Hoy"), ("historial", "Historial"), ("cierres", "Cierres")]
@@ -2077,8 +2142,8 @@ def _main(page: ft.Page):
     def _mk_tab_btn_caja(key, label):
         btn = ft.ElevatedButton(
             label,
-            bgcolor="#F43F5E" if key == "hoy" else "#1E293B",
-            color="white", expand=True, height=36,
+            bgcolor="#F5A623" if key == "hoy" else "#1C1C1C",
+            color="black" if key == "hoy" else "white", expand=True, height=36,
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
         )
         def _click(e, k=key): _sel_caja_tab(k)
@@ -2090,7 +2155,8 @@ def _main(page: ft.Page):
     def _sel_caja_tab(key):
         vista_caja["sel"] = key
         for k, b in _btns_caja.items():
-            b.bgcolor = "#F43F5E" if k == key else "#1E293B"
+            b.bgcolor = "#F5A623" if k == key else "#1C1C1C"
+            b.color   = "black"   if k == key else "white"
         cargar_caja()
 
     # ── Helpers de renderizado ────────────────────────────────────────────────
@@ -2120,16 +2186,16 @@ def _main(page: ft.Page):
             content=ft.Column([
                 ft.Row([
                     ft.Text(fecha, weight="bold", size=13, color="white", expand=True),
-                    ft.Text(_p(total), weight="bold", size=14, color="#F43F5E"),
+                    ft.Text(_p(total), weight="bold", size=14, color="#F5A623"),
                 ]),
                 ft.Row([
-                    ft.Text(f"{cant} ventas", size=10, color="#94A3B8"),
-                    ft.Text("·", color="#334155", size=10),
-                    ft.Text(f"Ticket {_p(ticket)}", size=10, color="#94A3B8"),
+                    ft.Text(f"{cant} ventas", size=10, color="#9E9E9E"),
+                    ft.Text("·", color="#2A2A2A", size=10),
+                    ft.Text(f"Ticket {_p(ticket)}", size=10, color="#9E9E9E"),
                 ], spacing=6),
-                ft.Column(barras, spacing=3) if barras else ft.Text("Sin ventas", color="#334155", size=11),
+                ft.Column(barras, spacing=3) if barras else ft.Text("Sin ventas", color="#2A2A2A", size=11),
             ], spacing=6),
-            bgcolor="#1E293B", padding=12, border_radius=12
+            bgcolor="#1C1C1C", padding=12, border_radius=12
         )
 
     def _card_turno(t):
@@ -2143,25 +2209,25 @@ def _main(page: ft.Page):
         return ft.Container(
             content=ft.Column([
                 ft.Row([
-                    ft.Text(f"🕐 {apertura}", size=11, color="#94A3B8", expand=True),
+                    ft.Text(f"🕐 {apertura}", size=11, color="#9E9E9E", expand=True),
                     ft.Text(f"→ {cierre}", size=11, color="#64748B"),
                 ]),
                 ft.Row([
                     ft.Column([
-                        ft.Text("Calculado", size=10, color="#94A3B8"),
+                        ft.Text("Calculado", size=10, color="#9E9E9E"),
                         ft.Text(_p(calculado), size=15, weight="bold", color="#10B981"),
                     ], spacing=2, expand=True),
                     ft.Column([
-                        ft.Text("Declarado", size=10, color="#94A3B8"),
+                        ft.Text("Declarado", size=10, color="#9E9E9E"),
                         ft.Text(_p(declarado), size=15, weight="bold", color="#38BDF8"),
                     ], spacing=2, expand=True),
                     ft.Column([
-                        ft.Text("Diferencia", size=10, color="#94A3B8"),
+                        ft.Text("Diferencia", size=10, color="#9E9E9E"),
                         ft.Text(f"{icono_dif} {('+' if diferencia >= 0 else '') + _p(diferencia)}", size=15, weight="bold", color=color_dif),
                     ], spacing=2, expand=True),
                 ]),
             ], spacing=8),
-            bgcolor="#1E293B", padding=12, border_radius=12
+            bgcolor="#1C1C1C", padding=12, border_radius=12
         )
 
     # ── Carga principal ───────────────────────────────────────────────────────
@@ -2233,7 +2299,7 @@ def _main(page: ft.Page):
                         except Exception:
                             _dl = _fech[-2:]
                         _es_hoy_d = (_fech == _cdate.today().isoformat())
-                        _col_bar  = "#F43F5E" if _es_hoy_d else "#3B82F6"
+                        _col_bar  = "#F5A623" if _es_hoy_d else "#3B82F6"
                         _col_lbl  = "white"   if _es_hoy_d else "#64748B"
                         _barras_7d.append(
                             ft.Column([
@@ -2247,11 +2313,11 @@ def _main(page: ft.Page):
                     lista_caja_ui.controls.append(
                         ft.Container(
                             content=ft.Column([
-                                ft.Text("ÚLTIMOS 7 DÍAS", size=10, weight="bold", color="#94A3B8"),
+                                ft.Text("ÚLTIMOS 7 DÍAS", size=10, weight="bold", color="#9E9E9E"),
                                 ft.Row(_barras_7d, alignment=ft.MainAxisAlignment.SPACE_EVENLY,
                                        vertical_alignment=ft.CrossAxisAlignment.END),
                             ], spacing=8),
-                            bgcolor="#0F172A", padding=14, border_radius=12
+                            bgcolor="#111111", padding=14, border_radius=12
                         )
                     )
 
@@ -2264,18 +2330,18 @@ def _main(page: ft.Page):
                 lista_caja_ui.controls.append(
                     ft.Container(
                         content=ft.Column([
-                            ft.Text("💵 EFECTIVO EN CAJA", size=11, weight="bold", color="#94A3B8"),
-                            ft.Row([ft.Text("Apertura", size=12, color="#94A3B8", expand=True),
-                                    ft.Text(f"+{_p(apertura)}", size=12, color="#94A3B8")]),
+                            ft.Text("💵 EFECTIVO EN CAJA", size=11, weight="bold", color="#9E9E9E"),
+                            ft.Row([ft.Text("Apertura", size=12, color="#9E9E9E", expand=True),
+                                    ft.Text(f"+{_p(apertura)}", size=12, color="#9E9E9E")]),
                             ft.Row([ft.Text("+ Ventas efectivo", size=12, color="#10B981", expand=True),
                                     ft.Text(f"+{_p(ef_ventas)}", size=12, color="#10B981")]),
                             ft.Row([ft.Text("- Gastos del día", size=12, color="#EF4444", expand=True),
                                     ft.Text(f"-{_p(total_gastos)}", size=12, color="#EF4444")]),
-                            ft.Divider(color="#334155", height=6),
+                            ft.Divider(color="#2A2A2A", height=6),
                             ft.Row([ft.Text("EN CAJA AHORA", size=14, weight="bold", color="white", expand=True),
                                     ft.Text(_p(efectivo_caja), size=18, weight="w900", color="#10B981")]),
                         ], spacing=5),
-                        bgcolor="#0F172A", padding=14, border_radius=12,
+                        bgcolor="#111111", padding=14, border_radius=12,
                         border=ft.border.all(1, "#10B981"),
                     )
                 )
@@ -2294,19 +2360,19 @@ def _main(page: ft.Page):
                                     ft.Row([
                                         ft.Text(m.replace("_", " ").title(), size=12,
                                                 color="white", expand=True, weight="bold"),
-                                        ft.Text(pct_txt, size=11, color="#94A3B8"),
+                                        ft.Text(pct_txt, size=11, color="#9E9E9E"),
                                     ]),
                                     ft.Container(
                                         content=ft.Container(
                                             width=max(6, int(260 * (val / total_hoy))),
                                             height=8, bgcolor=MCOLOR[m], border_radius=4
                                         ),
-                                        bgcolor="#0F172A", border_radius=4, height=8, expand=True
+                                        bgcolor="#111111", border_radius=4, height=8, expand=True
                                     ),
                                     ft.Text(_p(val), size=16, weight="bold", color=MCOLOR[m]),
                                 ], spacing=4, expand=True),
                             ], spacing=10, vertical_alignment="center"),
-                            bgcolor="#1E293B", padding=ft.padding.symmetric(12, 14),
+                            bgcolor="#1C1C1C", padding=ft.padding.symmetric(12, 14),
                             border_radius=12
                         )
                     )
@@ -2327,7 +2393,7 @@ def _main(page: ft.Page):
                 lista_caja_ui.controls.append(
                     ft.Container(
                         content=ft.Column([
-                            ft.Text("POR DEPARTAMENTO", size=10, weight="bold", color="#94A3B8"),
+                            ft.Text("POR DEPARTAMENTO", size=10, weight="bold", color="#9E9E9E"),
                             ft.Row([
                                 ft.Container(
                                     content=ft.Column([
@@ -2335,7 +2401,7 @@ def _main(page: ft.Page):
                                         ft.Text(_p(_carne_a), size=18, weight="w900", color="white"),
                                         ft.Text(_carne_cmp_txt, size=10, color=_carne_cmp_col),
                                     ], spacing=2),
-                                    bgcolor="#1E293B", border_radius=10,
+                                    bgcolor="#1C1C1C", border_radius=10,
                                     border=ft.border.only(left=ft.border.BorderSide(3, "#EF4444")),
                                     padding=10, expand=True
                                 ),
@@ -2345,20 +2411,20 @@ def _main(page: ft.Page):
                                         ft.Text(_p(_fiamb_a), size=18, weight="w900", color="white"),
                                         ft.Text(_fiamb_cmp_txt, size=10, color=_fiamb_cmp_col),
                                     ], spacing=2),
-                                    bgcolor="#1E293B", border_radius=10,
+                                    bgcolor="#1C1C1C", border_radius=10,
                                     border=ft.border.only(left=ft.border.BorderSide(3, "#F59E0B")),
                                     padding=10, expand=True
                                 ),
                             ], spacing=8),
                         ], spacing=6),
-                        bgcolor="#0F172A", padding=14, border_radius=12
+                        bgcolor="#111111", padding=14, border_radius=12
                     )
                 )
 
                 if not any(float(resumen_hoy_data.get(m, 0)) > 0 for m in MICON):
                     lista_caja_ui.controls.append(
                         ft.Container(
-                            ft.Text("Sin ventas registradas hoy", color="#94A3B8",
+                            ft.Text("Sin ventas registradas hoy", color="#9E9E9E",
                                     size=13, text_align="center"),
                             padding=24
                         )
@@ -2430,7 +2496,7 @@ def _main(page: ft.Page):
                             ft.Column([
                                 ft.Text("TURNO ACTIVO", size=10, weight="bold", color="#10B981"),
                                 ft.Text(f"Abierto: {t.get('apertura', '')}", size=12, color="white"),
-                                ft.Text(f"Apertura: {_p(t.get('monto_apertura', 0))}", size=11, color="#94A3B8"),
+                                ft.Text(f"Apertura: {_p(t.get('monto_apertura', 0))}", size=11, color="#9E9E9E"),
                             ], spacing=3, expand=True),
                             ft.Container(
                                 ft.Text("EN CURSO", size=10, weight="bold", color="#10B981"),
@@ -2450,7 +2516,7 @@ def _main(page: ft.Page):
                 if not data:
                     lista_caja_ui.controls.append(
                         ft.Container(
-                            ft.Text("Sin cierres registrados", color="#94A3B8",
+                            ft.Text("Sin cierres registrados", color="#9E9E9E",
                                     size=13, text_align="center"),
                             padding=24
                         )
@@ -2466,7 +2532,7 @@ def _main(page: ft.Page):
             ft.Row([
                 ft.Text("🏦 CAJA", size=20, weight="w900", expand=True),
                 ft.IconButton(
-                    "refresh", icon_color="#94A3B8",
+                    "refresh", icon_color="#9E9E9E",
                     icon_size=20, tooltip="Actualizar",
                     on_click=cargar_caja
                 ),
@@ -2484,7 +2550,7 @@ def _main(page: ft.Page):
         label="IP de la PC (ej: 192.168.1.100)",
         value=leer_ip(),
         filled=True, border_color="transparent",
-        border_radius=12, content_padding=16, bgcolor="#1E293B",
+        border_radius=12, content_padding=16, bgcolor="#1C1C1C",
         keyboard_type=ft.KeyboardType.URL
     )
     in_pin_config = ft.TextField(
@@ -2492,7 +2558,7 @@ def _main(page: ft.Page):
         value=leer_pin_precios(),
         password=True, max_length=8,
         filled=True, border_color="transparent",
-        border_radius=12, content_padding=16, bgcolor="#1E293B",
+        border_radius=12, content_padding=16, bgcolor="#1C1C1C",
         keyboard_type=ft.KeyboardType.NUMBER
     )
     lbl_config_status = ft.Text("", size=13)
@@ -2548,35 +2614,35 @@ def _main(page: ft.Page):
         content=ft.Column([
             ft.Text("⚙️ CONFIGURACIÓN", size=20, weight="w900"),
             ft.Text("Detectá automáticamente o ingresá la IP manualmente",
-                    color="#94A3B8", size=12),
+                    color="#9E9E9E", size=12),
             ft.Container(
                 content=ft.Column([
                     ft.Text("📡 En la misma WiFi del negocio", weight="bold",
                             color="#38BDF8", size=13),
                     ft.Text("Usá DETECTAR AUTOMÁTICAMENTE — encuentra la PC solo.",
-                            color="#94A3B8", size=12),
-                    ft.Divider(color="#334155", height=8),
+                            color="#9E9E9E", size=12),
+                    ft.Divider(color="#2A2A2A", height=8),
                     ft.Text("🌐 Con datos móviles o WiFi de casa", weight="bold",
                             color="#10B981", size=13),
                     ft.Text("Tailscale VPN se conecta automáticamente. Si falla, ingresá la IP de Tailscale manualmente:",
-                            color="#94A3B8", size=12),
+                            color="#9E9E9E", size=12),
                     ft.Container(
                         content=ft.Text(f"{TAILSCALE_IP}", color="#10B981",
                                         font_family="monospace", size=14),
-                        bgcolor="#0F172A", padding=10, border_radius=8
+                        bgcolor="#111111", padding=10, border_radius=8
                     ),
                 ]),
-                bgcolor="#1E293B", padding=14, border_radius=12
+                bgcolor="#1C1C1C", padding=14, border_radius=12
             ),
             ft.ElevatedButton(
                 "🔍 DETECTAR AUTOMÁTICAMENTE", on_click=detectar_auto,
                 expand=True, height=44,
-                bgcolor="#0F172A", color="#38BDF8",
+                bgcolor="#111111", color="#38BDF8",
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
             ),
             in_ip,
-            ft.Divider(color="#334155"),
-            ft.Text("PIN para modificar precios", size=13, color="#94A3B8"),
+            ft.Divider(color="#2A2A2A", height=1),
+            ft.Text("PIN para modificar precios", size=13, color="#9E9E9E"),
             in_pin_config,
             ft.ElevatedButton(
                 "💾 GUARDAR Y PROBAR", on_click=guardar_config,
@@ -2601,10 +2667,19 @@ def _main(page: ft.Page):
         "S": view_config,
     }
 
-    COLOR_INACTIVO = "#1E293B"
-    COLOR_ACTIVO   = "#F43F5E"
+    COLOR_INACTIVO = "#1C1C1C"
+    COLOR_ACTIVO   = "#F5A623"
 
     nav_btns = {}
+
+    def _actualizar_nav(key):
+        for k, btn in nav_btns.items():
+            is_active = (k == key)
+            btn.bgcolor = COLOR_ACTIVO if is_active else COLOR_INACTIVO
+            if btn.content and hasattr(btn.content, "controls"):
+                for ctrl in btn.content.controls:
+                    if isinstance(ctrl, ft.Text):
+                        ctrl.color = "#000000" if is_active else "#9E9E9E"
 
     def nav(e):
         key = e.control.data
@@ -2612,9 +2687,7 @@ def _main(page: ft.Page):
             v.visible = (k == key)
         view_ticket.visible = False
         lbl_aviso.value     = ""
-        # Actualizar colores de la barra
-        for k, btn in nav_btns.items():
-            btn.bgcolor = COLOR_ACTIVO if k == key else COLOR_INACTIVO
+        _actualizar_nav(key)
         if key == "D": cargar_dashboard()
         if key == "C": cargar_cache_productos()
         if key == "O": cargar_lista_ofertas()
@@ -2624,27 +2697,52 @@ def _main(page: ft.Page):
         if key == "P": cargar_cache_productos()
         page.update()
 
-    TABS = [
-        ("D", "📊"), ("C", "🛒"), ("O", "🏷️"), ("V", "📋"),
-        ("P", "💰"), ("F", "💸"), ("K", "🏦"), ("S", "⚙️"),
+    # 2 filas de 4 tabs: ícono + etiqueta
+    TABS_ROW1 = [
+        ("D", "🏠", "Inicio"),
+        ("C", "🛒", "Cobrar"),
+        ("K", "🏦", "Caja"),
+        ("F", "💸", "Fiados"),
+    ]
+    TABS_ROW2 = [
+        ("O", "🏷️", "Ofertas"),
+        ("V", "📋", "Ventas"),
+        ("P", "💰", "Precios"),
+        ("S", "⚙️", "Config"),
     ]
 
-    nav_row_controls = []
-    for key, icon in TABS:
-        btn = ft.ElevatedButton(
-            icon, data=key, on_click=nav,
-            expand=True, height=56,
-            bgcolor=COLOR_ACTIVO if key == "D" else COLOR_INACTIVO,
-            color="white",
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))
+    def _mk_tab(key, icon_str, label, is_active=False):
+        return ft.Container(
+            content=ft.Column([
+                ft.Text(icon_str, size=18, text_align="center",
+                        color="#000000" if is_active else "#9E9E9E"),
+                ft.Text(label, size=8, text_align="center", weight="bold",
+                        color="#000000" if is_active else "#9E9E9E"),
+            ], horizontal_alignment="center", spacing=2),
+            data=key, on_click=nav,
+            expand=True, height=48,
+            bgcolor=COLOR_ACTIVO if is_active else COLOR_INACTIVO,
+            alignment=ft.alignment.center,
         )
+
+    row1_ctrls, row2_ctrls = [], []
+    for key, icon_str, label in TABS_ROW1:
+        btn = _mk_tab(key, icon_str, label, is_active=(key == "D"))
         nav_btns[key] = btn
-        nav_row_controls.append(btn)
+        row1_ctrls.append(btn)
+    for key, icon_str, label in TABS_ROW2:
+        btn = _mk_tab(key, icon_str, label)
+        nav_btns[key] = btn
+        row2_ctrls.append(btn)
 
     nav_bar = ft.Container(
-        content=ft.Row(nav_row_controls, spacing=1),
-        bgcolor="#0F172A",
-        padding=ft.padding.only(bottom=40)
+        content=ft.Column([
+            ft.Row(row1_ctrls, spacing=1),
+            ft.Row(row2_ctrls, spacing=1),
+        ], spacing=1),
+        bgcolor="#111111",
+        border=ft.border.only(top=ft.border.BorderSide(1, "#2A2A2A")),
+        padding=ft.padding.only(bottom=28),
     )
 
     # ── Banner de actualización disponible ───────────────────────────────────
@@ -2665,7 +2763,7 @@ def _main(page: ft.Page):
                 title=ft.Text("Descargá la APK"),
                 content=ft.Column([
                     ft.Text("Copiá este link en tu navegador:", size=13),
-                    ft.Text(url, selectable=True, size=11, color="#94A3B8"),
+                    ft.Text(url, selectable=True, size=11, color="#9E9E9E"),
                 ], tight=True, spacing=8),
                 actions=[ft.TextButton("Cerrar", on_click=lambda _: cerrar_dlg(dlg))],
             )
@@ -2713,8 +2811,7 @@ def _main(page: ft.Page):
             v.visible = (k == "F")
         view_ticket.visible = False
         lbl_aviso.value = ""
-        for k, btn in nav_btns.items():
-            btn.bgcolor = COLOR_ACTIVO if k == "F" else COLOR_INACTIVO
+        _actualizar_nav("F")
         cargar_fiados()
         page.update()
 

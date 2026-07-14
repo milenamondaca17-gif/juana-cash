@@ -1,8 +1,8 @@
 {
   "version": "4.10.8",
   "desktop_version": "4.10.8",
-  "apk_version": "4.2.1",
+  "apk_version": "4.3.0",
   "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.8/JuanaCash_Setup.exe",
-  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.10.8 - Reporte nocturno: fiados y gastos consolidados del dia"
+  "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.0-apk/JuanaCash.apk",
+  "notas": "v4.10.8 / apk v4.3.0 - Rediseno visual APK: tema ambar, nav 2 filas con etiquetas, dashboard con tarjetas"
 }
