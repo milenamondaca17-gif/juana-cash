@@ -1,8 +1,8 @@
 {
-  "version": "4.10.6",
-  "desktop_version": "4.10.6",
+  "version": "4.10.7",
+  "desktop_version": "4.10.7",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.6/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.7/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.10.6 - Fechas en hora local Argentina en todos los modelos"
+  "notas": "v4.10.7 - Fix fiados y carniceria en reporte nocturno"
 }

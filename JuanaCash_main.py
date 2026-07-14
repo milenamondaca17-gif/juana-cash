@@ -210,8 +210,8 @@ def _generar_y_enviar_reporte():
                             _canc_cf = " ✅" if cf.get("cancelado") else ""
                             lineas_cobros_t += f"\n    {_em_cf} {cf.get('cliente','?')}: {_p(cf.get('monto',0))} →{_dest_cf}{_canc_cf}"
 
-                    _ap_full = t.get("apertura", "")
-                    _ci_full = t.get("cierre", "") or ahora.strftime("%Y-%m-%dT%H:%M:%S")
+                    _ap_full = t.get("apertura", "").replace(" ", "T")
+                    _ci_full = (t.get("cierre", "") or ahora.strftime("%Y-%m-%dT%H:%M:%S")).replace(" ", "T")
 
                     lineas_fiados_nuevos_t = ""
                     if _ap_full:
@@ -229,8 +229,6 @@ def _generar_y_enviar_reporte():
                     dep_carne_t = 0.0
                     dep_fiamb_t = 0.0
                     try:
-                        _ap_full = t.get("apertura", "")
-                        _ci_full = t.get("cierre", "") or ahora.strftime("%Y-%m-%dT%H:%M:%S")
                         if _ap_full:
                             _dep_url = (f"http://127.0.0.1:8000/reportes/departamentos"
                                         f"?desde={_ap_full}&hasta={_ci_full}")
