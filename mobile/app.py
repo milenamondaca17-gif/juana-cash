@@ -600,11 +600,7 @@ def _main(page: ft.Page):
                     ], alignment="spaceBetween"),
                 ]),
                 padding=20, border_radius=20,
-                gradient=ft.LinearGradient(
-                    begin=ft.alignment.top_left,
-                    end=ft.alignment.bottom_right,
-                    colors=["#2C1900", "#1A1A00"],
-                ),
+                bgcolor="#1E1200",
                 border=ft.border.all(1, "#3A2800"),
             ),
             # ── Fila de 3 métricas ───────────────────────────────────────────
