@@ -12,7 +12,7 @@ class Sesion(Base):
     monto_inicial = Column(Float, default=0.0)
     monto_final = Column(Float, nullable=True)
     activa = Column(Boolean, default=True)
-    fecha_apertura = Column(DateTime, default=datetime.utcnow)
+    fecha_apertura = Column(DateTime, default=datetime.now)
     fecha_cierre = Column(DateTime, nullable=True)
     
     # Relaciones

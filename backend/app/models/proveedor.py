@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, ForeignKey
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from ..database import Base
 
 class Proveedor(Base):
@@ -14,7 +14,7 @@ class Proveedor(Base):
     condicion_pago  = Column(String(20), default="contado")  # contado, 7dias, 15dias, 30dias
     notas           = Column(String(500))
     activo          = Column(Boolean, default=True)
-    created_at      = Column(DateTime, server_default=func.now())
+    created_at      = Column(DateTime, default=datetime.now)
 
     productos       = relationship("Producto", back_populates="proveedor")
     compras         = relationship("CompraProveedor", back_populates="proveedor", cascade="all, delete-orphan")
@@ -25,7 +25,7 @@ class CompraProveedor(Base):
     __tablename__ = "compras_proveedor"
     id                  = Column(Integer, primary_key=True, index=True)
     proveedor_id        = Column(Integer, ForeignKey("proveedores.id"), nullable=False)
-    fecha               = Column(DateTime, server_default=func.now())
+    fecha               = Column(DateTime, default=datetime.now)
     nro_factura         = Column(String(50))
     monto_total         = Column(Numeric(12, 2), default=0)
     condicion           = Column(String(20), default="contado")  # contado, credito
@@ -56,7 +56,7 @@ class PagoProveedor(Base):
     id              = Column(Integer, primary_key=True, index=True)
     proveedor_id    = Column(Integer, ForeignKey("proveedores.id"), nullable=False)
     compra_id       = Column(Integer, ForeignKey("compras_proveedor.id"), nullable=True)
-    fecha           = Column(DateTime, server_default=func.now())
+    fecha           = Column(DateTime, default=datetime.now)
     monto           = Column(Numeric(12, 2), default=0)
     metodo_pago     = Column(String(30), default="efectivo")  # efectivo, transferencia, cheque, debito
     referencia      = Column(String(200))   # nro de transferencia, cheque, etc.

@@ -13,7 +13,7 @@ class Caja(Base):
     monto = Column(Float, nullable=False)
     metodo = Column(String, nullable=False)  # efectivo, tarjeta, transferencia
     descripcion = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
     
     # Relaciones
     sesion = relationship("Sesion")

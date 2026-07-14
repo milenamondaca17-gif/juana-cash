@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, ForeignKey
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from ..database import Base
 
 class Categoria(Base):
@@ -35,8 +35,8 @@ class Producto(Base):
     stock_minimo = Column(Numeric(12,3), default=0)
     pesable      = Column(Boolean, default=False)
     activo       = Column(Boolean, default=True)
-    created_at   = Column(DateTime, server_default=func.now())
-    updated_at   = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at   = Column(DateTime, default=datetime.now)
+    updated_at   = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
     proveedor_id  = Column(Integer, ForeignKey("proveedores.id"), nullable=True)
 

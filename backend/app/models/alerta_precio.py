@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, ForeignKey
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from ..database import Base
 
 class AlertaPrecio(Base):
@@ -12,6 +12,6 @@ class AlertaPrecio(Base):
     precio_nuevo    = Column(Numeric(12, 2), nullable=False)
     usuario         = Column(String(100), default="mobile")
     visto           = Column(Boolean, default=False)
-    creado_en       = Column(DateTime, server_default=func.now())
+    creado_en       = Column(DateTime, default=datetime.now)
 
     producto = relationship("Producto")
