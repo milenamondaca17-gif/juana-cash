@@ -1,8 +1,8 @@
 {
-  "version": "4.10.4",
-  "desktop_version": "4.10.4",
+  "version": "4.10.5",
+  "desktop_version": "4.10.5",
   "apk_version": "4.2.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.4/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.5/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.7.0/JuanaCash.apk",
-  "notas": "v4.10.4 - Wizard primer uso, nombre y numeros WA configurables por negocio"
+  "notas": "v4.10.5 - Botones de tabla con tema oscuro profesional"
 }

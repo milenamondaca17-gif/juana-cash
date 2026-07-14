@@ -1559,9 +1559,9 @@ class VentasScreen(QWidget):
 
     def _crear_boton_celda(self, texto, color, bg, bg_hover):
         btn = QPushButton(texto)
-        btn.setFixedSize(36, 36)
+        btn.setFixedSize(38, 38)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        f = QFont("Segoe UI", 15)
+        f = QFont("Segoe UI Emoji", 16)
         f.setBold(True)
         f.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
         btn.setFont(f)
@@ -1569,13 +1569,13 @@ class VentasScreen(QWidget):
         btn.setStyleSheet(
             "QPushButton {"
             f" background: {bg}; color: {color};"
-            f" border: 2.5px solid {color}; border-radius: 8px;"
+            f" border: 1.5px solid {color}55; border-radius: 10px;"
             " padding: 0px; margin: 0px;"
-            f" font-size: 18px; font-weight: 800; }}"
+            f" font-size: 17px; font-weight: 800; }}"
             "QPushButton:hover {"
-            f" background: {bg_hover}; color: {color}; border: 2.5px solid {color}; }}"
+            f" background: {bg_hover}; color: white; border: 1.5px solid {color}; }}"
             "QPushButton:pressed {"
-            f" background: {bg_hover}; color: {color}; border: 2.5px solid {color}; }}"
+            f" background: {bg_hover}; color: white; border: 1.5px solid {color}; }}"
         )
         return btn
 
@@ -1601,14 +1601,14 @@ class VentasScreen(QWidget):
                 btn_layout = QHBoxLayout(btn_widget)
                 btn_layout.setContentsMargins(5, 5, 5, 5)
                 btn_layout.setSpacing(5)
-                btn_menos = self._crear_boton_celda("−", "#DC2626", "#FEE2E2", "#FECACA")
+                btn_menos = self._crear_boton_celda("−", "#f87171", "#2d0a0a", "#7f1d1d")
                 btn_menos.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, -1))
                 btn_layout.addWidget(btn_menos)
-                btn_mas = self._crear_boton_celda("+", "#16A34A", "#DCFCE7", "#BBF7D0")
+                btn_mas = self._crear_boton_celda("+", "#4ade80", "#052a12", "#14532d")
                 btn_mas.clicked.connect(lambda _, idx=i: self.cambiar_cantidad(idx, 1))
                 btn_layout.addWidget(btn_mas)
                 self.tabla.setCellWidget(i, 4, btn_widget)
-                btn_del = self._crear_boton_celda("✕", "#DC2626", "#FEE2E2", "#FECACA")
+                btn_del = self._crear_boton_celda("🗑", "#f87171", "#1a0505", "#450e0e")
                 btn_del.clicked.connect(lambda _, idx=i: self.eliminar_item(idx))
                 self.tabla.setCellWidget(i, 5, btn_del)
 
