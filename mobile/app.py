@@ -2718,7 +2718,7 @@ def _main(page: ft.Page):
             data=key, on_click=nav,
             expand=True, height=48,
             bgcolor=COLOR_ACTIVO if is_active else COLOR_INACTIVO,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment(0, 0),
         )
 
     row1_ctrls, row2_ctrls = [], []
