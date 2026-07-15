@@ -1,8 +1,8 @@
 {
-  "version": "4.10.8",
-  "desktop_version": "4.10.8",
+  "version": "4.10.9",
+  "desktop_version": "4.10.9",
   "apk_version": "4.3.0",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.8/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.9/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.0-apk/JuanaCash.apk",
-  "notas": "v4.10.8 / apk v4.3.0 - Rediseno visual APK: tema ambar, nav 2 filas con etiquetas, dashboard con tarjetas"
+  "notas": "v4.10.9 - Botones acciones productos con emojis"
 }
