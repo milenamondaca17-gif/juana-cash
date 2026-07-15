@@ -1,8 +1,8 @@
 {
-  "version": "4.10.10",
-  "desktop_version": "4.10.10",
+  "version": "4.10.11",
+  "desktop_version": "4.10.11",
   "apk_version": "4.3.0",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.10/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.11/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.0-apk/JuanaCash.apk",
-  "notas": "v4.10.10 - Botones acciones productos con emojis (rebuild limpio)"
+  "notas": "v4.10.11 - Botones Editar/Stock/Borrar en productos, chips de color"
 }
