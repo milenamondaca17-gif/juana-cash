@@ -970,7 +970,7 @@ def _main(page: ft.Page):
     ]
 
     # ── Panel calculadora inline (sin AlertDialog) ───────────────────────────
-    _calc = {"montos": [], "nombre": "", "color": "#f39c12"}
+    _calc = {"montos": [], "nombre": "", "color": "#f39c12", "producto_id": 1}
     lbl_calc_titulo = ft.Text("", size=17, weight="w900", color="#f39c12")
     lbl_calc_items  = ft.Text("— Sin ítems aún —", color="#9E9E9E", size=13)
     lbl_calc_total  = ft.Text("Total: $0", size=22, weight="w900", color="#f39c12")
@@ -1016,7 +1016,7 @@ def _main(page: ft.Page):
         if not _calc["montos"]:
             return
         total = sum(_calc["montos"])
-        dat = {"n": _calc["nombre"], "p": total, "producto_id": 0}
+        dat = {"n": _calc["nombre"], "p": total, "producto_id": _calc.get("producto_id", 1), "es_departamento": True}
         carrito.append(dat)
         agregar_ui(dat)
         recalc()
@@ -1060,10 +1060,11 @@ def _main(page: ft.Page):
         visible=False,
     )
 
-    def _abrir_calculadora_depto(nombre_sec, color_sec):
+    def _abrir_calculadora_depto(nombre_sec, color_sec, prod_id=1):
         _calc["montos"] = []
         _calc["nombre"] = nombre_sec
         _calc["color"]  = color_sec
+        _calc["producto_id"] = prod_id
         lbl_calc_titulo.value = nombre_sec
         lbl_calc_titulo.color = color_sec
         lbl_calc_total.color  = color_sec
@@ -1076,11 +1077,11 @@ def _main(page: ft.Page):
         page.update()
 
     def _click_fiambreria(e):
-        _abrir_calculadora_depto("🧀 Fiambrería", "#f39c12")
+        _abrir_calculadora_depto("🧀 Fiambrería", "#f39c12", prod_id=11)
     def _click_carniceria(e):
-        _abrir_calculadora_depto("🥩 Carnicería", "#e74c3c")
+        _abrir_calculadora_depto("🥩 Carnicería", "#e74c3c", prod_id=3)
     def _click_kiosco(e):
-        _abrir_calculadora_depto("🛒 Kiosco", "#8e44ad")
+        _abrir_calculadora_depto("🛒 Kiosco", "#8e44ad", prod_id=1)
 
     fila_secciones = ft.Row([
         ft.ElevatedButton("🧀 Fiambrería", height=40, expand=True, bgcolor="#f39c12", color="white",
@@ -1243,12 +1244,13 @@ def _main(page: ft.Page):
                 "producto_id":     i["producto_id"],
                 "cantidad":        i.get("cant", 1),
                 "precio_unitario": i.get("precio_unit", i["p"]),
-                "descuento":       0
+                "descuento":       0,
+                "es_departamento": i.get("es_departamento", False)
             }
-            for i in carrito if i.get("producto_id") and i["producto_id"] != 0
+            for i in carrito if i.get("producto_id")
         ]
         if not items_api:
-            items_api = [{"producto_id": 1, "cantidad": 1, "precio_unitario": tot, "descuento": 0}]
+            items_api = [{"producto_id": 1, "cantidad": 1, "precio_unitario": tot, "descuento": 0, "es_departamento": False}]
 
         # Armar lista de pagos
         if sw_mixto.value and pagos_mixto:
@@ -1259,6 +1261,12 @@ def _main(page: ft.Page):
             if not pagos_api:
                 lbl_cobrar_status.value = "⚠️ Ingresá los montos del pago mixto"
                 lbl_cobrar_status.color = "#F59E0B"
+                page.update()
+                return
+            suma_pagos = sum(p["monto"] for p in pagos_api)
+            if suma_pagos < tot - 1:
+                lbl_cobrar_status.value = f"⚠️ Los montos ingresados ({_p(suma_pagos)}) no cubren el total ({_p(tot)})"
+                lbl_cobrar_status.color = "#EF4444"
                 page.update()
                 return
         else:
@@ -1371,6 +1379,13 @@ def _main(page: ft.Page):
             panel_buscar_cliente.visible = True
             page.update()
             return
+        if sw_mixto.value and not cliente_fiado["id"]:
+            if any(p["metodo"] == "fiado" for p in pagos_mixto):
+                lbl_aviso.value = "⚠️ Fiado requiere vincular un cliente"
+                lbl_aviso.color = "#EF4444"
+                panel_buscar_cliente.visible = True
+                page.update()
+                return
         lista_ticket.controls = [
             ft.Row([
                 ft.Text(i["n"], expand=True, size=12),
@@ -1481,10 +1496,10 @@ def _main(page: ft.Page):
                         border_radius=10
                     )
                 )
-            if not data:
-                lista_ofertas_ui.controls.append(
-                    ft.Text("Sin ofertas todavía", color="#9E9E9E", size=13)
-                )
+        elif data is not None:
+            lista_ofertas_ui.controls.append(
+                ft.Text("Sin ofertas todavía", color="#9E9E9E", size=13)
+            )
         else:
             lista_ofertas_ui.controls.append(
                 ft.Text(f"Sin conexión — {get_api_url()}", color="#EF4444", size=12)
@@ -2278,7 +2293,7 @@ def _main(page: ft.Page):
             resumen_hoy_data = resumen.get("hoy", {}) if resumen else None
             if resumen_hoy_data:
                 # ── Gráfico 7 días ────────────────────────────────────────
-                from datetime import datetime as _dth
+                from datetime import datetime as _dth, date as _cdate, timedelta as _ctd
                 datos_7d = api_get("/caja/historial-efectivo", params={"dias": 7}) or []
                 if datos_7d:
                     _max_7d = max((float(d.get("total", 0)) for d in datos_7d), default=1) or 1
@@ -2318,25 +2333,38 @@ def _main(page: ft.Page):
                     )
 
                 # ── Card efectivo en caja ─────────────────────────────────
-                gastos_data  = api_get("/gastos/hoy") or {}
-                total_gastos = float(gastos_data.get("total", 0))
-                apertura     = float((resumen.get("turno") or {}).get("monto_apertura", 0))
-                ef_ventas    = float(resumen_hoy_data.get("efectivo", 0))
-                efectivo_caja = apertura + ef_ventas - total_gastos
+                gastos_data   = api_get("/gastos/hoy") or {}
+                total_gastos  = float(gastos_data.get("total", 0))
+                turno_data    = resumen.get("turno") or {}
+                apertura      = float(turno_data.get("monto_apertura", 0))
+                ef_ventas     = float(resumen_hoy_data.get("efectivo", 0))
+                total_aportes = float(turno_data.get("total_aportes", 0))
+                total_emp     = float(turno_data.get("total_empleados", 0))
+                cobros_fiado  = float(resumen_hoy_data.get("cobros_fiado_efectivo", 0))
+                efectivo_caja = apertura + ef_ventas + total_aportes + cobros_fiado - total_gastos - total_emp
+                filas_ef = [
+                    ft.Row([ft.Text("Apertura", size=12, color="#9E9E9E", expand=True),
+                            ft.Text(f"+{_p(apertura)}", size=12, color="#9E9E9E")]),
+                    ft.Row([ft.Text("+ Ventas efectivo", size=12, color="#10B981", expand=True),
+                            ft.Text(f"+{_p(ef_ventas)}", size=12, color="#10B981")]),
+                ]
+                if total_aportes > 0:
+                    filas_ef.append(ft.Row([ft.Text("+ Aportes", size=12, color="#10B981", expand=True),
+                                            ft.Text(f"+{_p(total_aportes)}", size=12, color="#10B981")]))
+                if cobros_fiado > 0:
+                    filas_ef.append(ft.Row([ft.Text("+ Cobros fiado", size=12, color="#10B981", expand=True),
+                                            ft.Text(f"+{_p(cobros_fiado)}", size=12, color="#10B981")]))
+                filas_ef.append(ft.Row([ft.Text("- Gastos del día", size=12, color="#EF4444", expand=True),
+                                        ft.Text(f"-{_p(total_gastos)}", size=12, color="#EF4444")]))
+                if total_emp > 0:
+                    filas_ef.append(ft.Row([ft.Text("- Pago empleados", size=12, color="#EF4444", expand=True),
+                                            ft.Text(f"-{_p(total_emp)}", size=12, color="#EF4444")]))
+                filas_ef.append(ft.Divider(color="#2A2A2A", height=6))
+                filas_ef.append(ft.Row([ft.Text("EN CAJA AHORA", size=14, weight="bold", color="white", expand=True),
+                                        ft.Text(_p(efectivo_caja), size=18, weight="w900", color="#10B981")]))
                 lista_caja_ui.controls.append(
                     ft.Container(
-                        content=ft.Column([
-                            ft.Text("💵 EFECTIVO EN CAJA", size=11, weight="bold", color="#9E9E9E"),
-                            ft.Row([ft.Text("Apertura", size=12, color="#9E9E9E", expand=True),
-                                    ft.Text(f"+{_p(apertura)}", size=12, color="#9E9E9E")]),
-                            ft.Row([ft.Text("+ Ventas efectivo", size=12, color="#10B981", expand=True),
-                                    ft.Text(f"+{_p(ef_ventas)}", size=12, color="#10B981")]),
-                            ft.Row([ft.Text("- Gastos del día", size=12, color="#EF4444", expand=True),
-                                    ft.Text(f"-{_p(total_gastos)}", size=12, color="#EF4444")]),
-                            ft.Divider(color="#2A2A2A", height=6),
-                            ft.Row([ft.Text("EN CAJA AHORA", size=14, weight="bold", color="white", expand=True),
-                                    ft.Text(_p(efectivo_caja), size=18, weight="w900", color="#10B981")]),
-                        ], spacing=5),
+                        content=ft.Column(filas_ef, spacing=5),
                         bgcolor="#111111", padding=14, border_radius=12,
                         border=ft.border.all(1, "#10B981"),
                     )
@@ -2373,7 +2401,6 @@ def _main(page: ft.Page):
                         )
                     )
                 # Carnicería / Fiambrería del día vs ayer
-                from datetime import date as _cdate, timedelta as _ctd
                 _hoy_s  = _cdate.today().isoformat()
                 _ayer_s = (_cdate.today() - _ctd(days=1)).isoformat()
                 _dep_hoy  = api_get("/reportes/departamentos", params={"desde": f"{_hoy_s}T00:00:00",  "hasta": f"{_hoy_s}T23:59:59"})  or {}

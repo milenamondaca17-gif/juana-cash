@@ -38,22 +38,14 @@ class PagoSchema(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _saldo(proveedor_id: int, db: Session) -> float:
-    total_compras = db.query(func.sum(CompraProveedor.monto_total)).filter(
+    # Suma directa de compras a crédito no saldadas. Una compra se marca pagado=True
+    # cuando se registra su pago completo, por lo que este valor es el saldo real pendiente.
+    total = db.query(func.sum(CompraProveedor.monto_total)).filter(
         CompraProveedor.proveedor_id == proveedor_id,
         CompraProveedor.condicion == "credito",
         CompraProveedor.pagado == False
     ).scalar() or 0
-
-    total_pagos = db.query(func.sum(PagoProveedor.monto)).filter(
-        PagoProveedor.proveedor_id == proveedor_id
-    ).scalar() or 0
-
-    # Saldo = lo que compramos a crédito - lo que ya pagamos
-    deuda_credito = float(total_compras)
-    pagado = float(total_pagos)
-
-    # También contar compras contado que no tienen pago asociado como "ya pagadas"
-    return max(0, deuda_credito - pagado)
+    return float(total)
 
 def _serializar(p: Proveedor, db: Session) -> dict:
     return {

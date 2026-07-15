@@ -139,12 +139,16 @@ def pagar_fiado(datos: PagoFiadoCrear, db: Session = Depends(get_db)):
     fiado = db.query(Fiado).filter(Fiado.id == datos.fiado_id).first()
     if not fiado:
         raise HTTPException(status_code=404, detail="Fiado no encontrado")
-    fiado.monto_pagado = float(fiado.monto_pagado or 0) + datos.monto
-    fiado.saldo = max(0, float(fiado.saldo) - datos.monto)
+    if fiado.estado == "pagado" or float(fiado.saldo) <= 0:
+        raise HTTPException(status_code=400, detail="Este fiado ya está saldado")
+    saldo_antes = float(fiado.saldo)
+    monto_aplicado = min(datos.monto, saldo_antes)
+    fiado.monto_pagado = float(fiado.monto_pagado or 0) + monto_aplicado
+    fiado.saldo = max(0, saldo_antes - datos.monto)
     fiado.estado = "pagado" if fiado.saldo <= 0 else "parcial"
     cliente = db.query(Cliente).filter(Cliente.id == fiado.cliente_id).first()
     if cliente:
-        cliente.deuda_actual = max(0, float(cliente.deuda_actual or 0) - datos.monto)
+        cliente.deuda_actual = max(0, float(cliente.deuda_actual or 0) - monto_aplicado)
     pago = PagoFiado(fiado_id=datos.fiado_id, usuario_id=datos.usuario_id,
                      monto=datos.monto, metodo=datos.metodo, observacion=datos.observacion)
     db.add(pago)

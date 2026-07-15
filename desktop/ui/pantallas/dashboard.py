@@ -639,7 +639,7 @@ class DashboardScreen(QWidget):
             estado   = "🟢 Abierto" if t.get("estado") == "abierto" else "⚫ Cerrado"
             tix_t    = str(t.get("cantidad_ventas", 0))
             tot_t    = _p(t.get("total_vendido", 0))
-            dif      = _tf(t.get("total_vendido", 0)) - _tf(t.get("monto_cierre_declarado", 0))
+            dif      = _tf(t.get("diferencia", 0))
 
             if t.get("estado") == "abierto":
                 dif_txt  = "En curso"

@@ -192,8 +192,11 @@ def anular_venta(id: int, datos: AnularVentaSchema, db: Session = Depends(get_db
     if not pwd_context.verify(datos.password_admin, usuario.password_hash):
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
-    # Devolver stock
+    # Devolver stock (excluye departamentos carnicería/fiambrería que nunca descontaron stock)
+    DEPT_SIN_STOCK = {3, 11}
     for item in venta.items:
+        if item.producto_id in DEPT_SIN_STOCK:
+            continue
         producto = db.query(Producto).filter(Producto.id == item.producto_id).first()
         if producto:
             producto.stock_actual = float(producto.stock_actual) + float(item.cantidad)
@@ -201,14 +204,15 @@ def anular_venta(id: int, datos: AnularVentaSchema, db: Session = Depends(get_db
     # Revertir deuda del cliente si había fiado
     for pago in venta.pagos:
         if pago.metodo.lower() == "fiado" and venta.cliente_id:
-            cliente = db.query(Cliente).filter(Cliente.id == venta.cliente_id).first()
-            if cliente:
-                cliente.deuda_actual = max(0, float(cliente.deuda_actual or 0) - float(pago.monto))
-            # Marcar el fiado como anulado
             fiado = db.query(Fiado).filter(
                 Fiado.venta_id == venta.id,
                 Fiado.cliente_id == venta.cliente_id
             ).first()
+            cliente = db.query(Cliente).filter(Cliente.id == venta.cliente_id).first()
+            if cliente:
+                # Usar el saldo pendiente del fiado, no el monto original del pago
+                monto_pendiente = float(fiado.saldo) if fiado else float(pago.monto)
+                cliente.deuda_actual = max(0, float(cliente.deuda_actual or 0) - monto_pendiente)
             if fiado:
                 fiado.estado = "anulado"
                 fiado.saldo = 0
@@ -253,17 +257,23 @@ def reset_ventas(datos: ResetVentasSchema, db: Session = Depends(get_db)):
     cant_turnos  = db.query(CajaTurno).count()
     cant_ses     = db.query(SesionLog).count()
 
+    from ..models.fiado import Fiado, PagoFiado
+
     # Borrar en orden por foreign keys
     db.query(RegistroBorrados).delete()
+    db.query(PagoFiado).delete()
+    db.query(Fiado).delete()
     db.query(Pago).delete()
     db.query(ItemVenta).delete()
     db.query(Venta).delete()
     db.query(CajaTurno).delete()
     db.query(SesionLog).delete()
     db.query(Gasto).delete()
+    # Resetear deuda de todos los clientes
+    db.query(Cliente).update({"deuda_actual": 0})
 
     # Resetear contadores autoincrementales
-    for tabla in ["ventas", "items_venta", "pagos", "caja_turnos", "sesion_logs", "gastos", "registro_borrados"]:
+    for tabla in ["ventas", "items_venta", "pagos", "caja_turnos", "sesion_logs", "gastos", "registro_borrados", "fiados", "pagos_fiado"]:
         try:
             db.execute(text(f"DELETE FROM sqlite_sequence WHERE name='{tabla}'"))
         except Exception:

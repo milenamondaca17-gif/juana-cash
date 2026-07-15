@@ -4,8 +4,15 @@ build/
 __pycache__/
 *.pyc
 mobile/juana_cash.db
-instalador_output/*.zip
+instalador_output/
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
 *.apk
 .claude/
+*.png
+preview_*.png
+pastel_*.png
+fullscreen_*.png
+styleA_*.png
+styleB_*.png
+styleC_*.png

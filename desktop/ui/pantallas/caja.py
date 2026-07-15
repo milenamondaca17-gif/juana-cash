@@ -505,15 +505,22 @@ class CajaScreen(QWidget):
         btn_cerrar.clicked.connect(dialog.accept)
         lay.addWidget(btn_cerrar)
 
+        _dialog_abierto = [True]
+        dialog.finished.connect(lambda _: _dialog_abierto.__setitem__(0, False))
+
         def cargar():
             try:
                 r = requests.get(f"{API_URL}/caja/historial-efectivo?dias=30", timeout=5)
                 datos = r.json() if r.status_code == 200 else []
             except Exception:
                 datos = []
+            if not _dialog_abierto[0]:
+                return
             tabla.setRowCount(0)
             colores = ["white", "#27ae60", "#3498db", "#009ee3", "#9b59b6", "#e74c3c", "#f39c12"]
             for d in datos:
+                if not _dialog_abierto[0]:
+                    return
                 row = tabla.rowCount()
                 tabla.insertRow(row)
                 vals = [
@@ -530,7 +537,8 @@ class CajaScreen(QWidget):
                     item = QTableWidgetItem(str(val))
                     item.setForeground(__import__('PyQt6.QtGui', fromlist=['QColor']).QColor(color))
                     tabla.setItem(row, col, item)
-            lbl_estado.setText(f"✅ {len(datos)} día(s) con ventas" if datos else "Sin datos aún")
+            if _dialog_abierto[0]:
+                lbl_estado.setText(f"✅ {len(datos)} día(s) con ventas" if datos else "Sin datos aún")
 
         threading.Thread(target=cargar, daemon=True).start()
         dialog.exec()
@@ -1271,7 +1279,7 @@ class CajaScreen(QWidget):
             for in_n, in_m in filas_emp:
                 try:
                     if in_n.text().strip() and in_m.text().strip():
-                        total += float(in_m.text())
+                        total += float(in_m.text().strip().replace(".", "").replace(",", ".") or 0)
                 except ValueError:
                     pass
             lbl_total_emp.setText(f"Total empleados: {_p(total)}")
@@ -2185,6 +2193,8 @@ class CajaScreen(QWidget):
                         btn_anular.setStyleSheet("QPushButton { background: #e94560; color: white; border-radius: 4px; font-size: 11px; padding: 0 6px; }")
                         btn_anular.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.anular_venta(vid, num))
                         self.tabla.setCellWidget(i, 6, btn_anular)
+                    else:
+                        self.tabla.setCellWidget(i, 6, None)
                     btn_reimp = QPushButton("🖨")
                     btn_reimp.setFixedHeight(26)
                     btn_reimp.setToolTip("Reimprimir ticket")

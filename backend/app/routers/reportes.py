@@ -158,7 +158,9 @@ def productos_mas_vendidos(db: Session = Depends(get_db)):
         Producto.nombre,
         func.sum(ItemVenta.cantidad).label("total_vendido"),
         func.sum(ItemVenta.subtotal).label("total_facturado")
-    ).join(ItemVenta).group_by(Producto.id).order_by(
+    ).join(ItemVenta).join(Venta, ItemVenta.venta_id == Venta.id)\
+     .filter(Venta.estado == "completada")\
+     .group_by(Producto.id).order_by(
         func.sum(ItemVenta.cantidad).desc()
     ).limit(10).all()
     return [
@@ -415,7 +417,7 @@ def ventas_por_periodo(periodo: str = "dia", db: Session = Depends(get_db)):
         func.strftime(formato, Venta.fecha).label("periodo"),
         Producto.nombre,
         func.sum(ItemVenta.cantidad),
-        func.sum(ItemVenta.precio_unitario * ItemVenta.cantidad)
+        func.sum(ItemVenta.subtotal)
     ).join(ItemVenta, Venta.id == ItemVenta.venta_id)\
      .join(Producto, ItemVenta.producto_id == Producto.id)\
      .filter(Venta.estado == "completada")\
