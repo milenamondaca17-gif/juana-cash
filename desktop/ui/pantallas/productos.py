@@ -431,6 +431,7 @@ class ProductosScreen(QWidget):
     def mostrar_productos(self, productos, es_filtro=False):
         MAX_MOSTRAR = 50
         mostrar = productos[:MAX_MOSTRAR] if not es_filtro and len(productos) > MAX_MOSTRAR else productos
+        self.tabla.setRowCount(0)
         self.tabla.setRowCount(len(mostrar))
         for i, p in enumerate(mostrar):
             self.tabla.setItem(i, 0, QTableWidgetItem(p["nombre"]))

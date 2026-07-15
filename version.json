@@ -1,8 +1,8 @@
 {
-  "version": "4.10.11",
-  "desktop_version": "4.10.11",
+  "version": "4.10.12",
+  "desktop_version": "4.10.12",
   "apk_version": "4.3.0",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.11/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.12/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.0-apk/JuanaCash.apk",
-  "notas": "v4.10.11 - Botones Editar/Stock/Borrar en productos, chips de color"
+  "notas": "v4.10.12 - Fix busqueda por escaner en Productos mostraba nombre en blanco"
 }
