@@ -2213,6 +2213,17 @@ class CajaScreen(QWidget):
     def actualizar_ventas(self):
         try:
             apertura = self._apertura_iso()
+            # Si el turno abrió en un día anterior, limitar la vista a las 00:00 de hoy.
+            # Esto evita acumular ventas de días anteriores cuando el turno no fue cerrado.
+            if apertura:
+                from datetime import datetime as _dtn, date as _date
+                try:
+                    ap_dt = _dtn.fromisoformat(apertura)
+                    hoy_inicio = _dtn.combine(_date.today(), _dtn.min.time())
+                    if ap_dt < hoy_inicio:
+                        apertura = hoy_inicio.strftime("%Y-%m-%dT%H:%M:%S")
+                except Exception:
+                    pass
             params = {"desde": apertura} if apertura else {}
             r = requests.get(f"{API_URL}/reportes/hoy", params=params, timeout=5)
             if r.status_code == 200:

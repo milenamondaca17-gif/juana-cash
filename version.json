@@ -1,8 +1,8 @@
 {
-  "version": "4.10.15",
-  "desktop_version": "4.10.15",
+  "version": "4.10.16",
+  "desktop_version": "4.10.16",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.15/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.16/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.15 - Efectivo contado siempre visible en cierre de caja"
+  "notas": "v4.10.16 - Caja muestra solo ventas del dia actual aunque el turno sea viejo"
 }
