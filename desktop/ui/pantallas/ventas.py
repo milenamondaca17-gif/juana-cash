@@ -1617,7 +1617,13 @@ class VentasScreen(QWidget):
         self.tabla.setUpdatesEnabled(True)
         if n > 0:
             self.tabla.scrollToItem(self.tabla.item(n - 1, 0))
-        self.lbl_total.setText(_p(total))
+        _txt_total = _p(total)
+        _font_size = (44 if len(_txt_total) <= 7
+                      else 36 if len(_txt_total) <= 9
+                      else 28 if len(_txt_total) <= 11
+                      else 22)
+        self.lbl_total.setFont(QFont("Arial", _font_size, QFont.Weight.Bold))
+        self.lbl_total.setText(_txt_total)
         n_items = len(self.items_venta)
         self.lbl_items_count.setText(
             f"{n_items} {'ítem' if n_items == 1 else 'ítems'}" if n_items > 0 else ""
