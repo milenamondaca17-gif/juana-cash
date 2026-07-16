@@ -281,11 +281,11 @@ TEMAS = {
 _CONFIG_PATH = os.path.join(os.path.expanduser("~"), "JuanaCash_Data", "app_config.json")
 
 
-TEMA_DEFAULT = "azul_profesional"
+TEMA_DEFAULT = "menta_pastel"
 
 # Temas que se migran automáticamente al nuevo default
 _TEMAS_LEGACY = {"violeta_calido", "lila_sol", "rosa_sage", "naranja_cielo",
-                 "oscuro_esmeralda", "indigo_pro", "clasico_oscuro", "menta_pastel"}
+                 "oscuro_esmeralda", "indigo_pro", "clasico_oscuro", "azul_profesional"}
 
 def get_tema_key() -> str:
     env_key = os.environ.get('JUANA_CASH_TEMA', '')

@@ -1,8 +1,8 @@
 {
-  "version": "4.10.17",
-  "desktop_version": "4.10.17",
+  "version": "4.10.18",
+  "desktop_version": "4.10.18",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.17/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.18/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.17 - Total ventas se achica automaticamente, tema oscuro migra a azul"
+  "notas": "v4.10.18 - PC del negocio migra al tema menta pastel automaticamente"
 }
