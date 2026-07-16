@@ -1,8 +1,8 @@
 {
-  "version": "4.10.18",
-  "desktop_version": "4.10.18",
+  "version": "4.10.19",
+  "desktop_version": "4.10.19",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.18/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.19/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.18 - PC del negocio migra al tema menta pastel automaticamente"
+  "notas": "v4.10.19 - Letras negras en tema menta pastel"
 }
