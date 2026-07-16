@@ -1,8 +1,8 @@
 {
-  "version": "4.10.13",
-  "desktop_version": "4.10.13",
+  "version": "4.10.14",
+  "desktop_version": "4.10.14",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.13/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.14/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.13 - Correccion masiva de bugs: stock, fiados, caja, reportes, mobile"
+  "notas": "v4.10.14 - Advertencia automatica cuando el turno lleva mas de 1 dia abierto"
 }

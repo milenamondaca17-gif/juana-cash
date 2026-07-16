@@ -759,20 +759,84 @@ class CajaScreen(QWidget):
                 data = r.json()
                 if data.get("abierto"):
                     self.turno_actual = data
-                    self.lbl_estado.setText("🟢 Caja abierta")
-                    self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 15px; font-weight: bold;")
-                    self._card_barra.setStyleSheet("background: #27ae60; border-radius: 4px;")
                     apertura = data.get("apertura", "")
                     monto_ap = float(data.get("monto_apertura", 0))
+
+                    # Verificar si el turno es de un día anterior
+                    turno_viejo = False
+                    dias_abierto = 0
+                    if apertura:
+                        from datetime import date as _date, datetime as _datetime
+                        try:
+                            ap_date = _datetime.fromisoformat(apertura.replace(" ", "T")).date()
+                            dias_abierto = (_date.today() - ap_date).days
+                            turno_viejo = dias_abierto > 0
+                        except Exception:
+                            pass
+
+                    if turno_viejo:
+                        self.lbl_estado.setText("⚠️ Caja abierta (turno viejo)")
+                        self.lbl_estado.setStyleSheet(f"color: {DANGER}; font-size: 15px; font-weight: bold;")
+                        self._card_barra.setStyleSheet(f"background: {DANGER}; border-radius: 4px;")
+                    else:
+                        self.lbl_estado.setText("🟢 Caja abierta")
+                        self.lbl_estado.setStyleSheet("color: #27ae60; font-size: 15px; font-weight: bold;")
+                        self._card_barra.setStyleSheet("background: #27ae60; border-radius: 4px;")
+
                     self.lbl_apertura.setText(
                         f"Turno #{data['id']} — Monto inicial: {_p(monto_ap)}"
                         + (f" — Desde: {apertura[:16]}" if apertura else "")
+                        + (f"  ⚠️ {dias_abierto} día(s) sin cerrar" if turno_viejo else "")
                     )
                     self.btn_abrir.setEnabled(False)
                     self.btn_cerrar.setEnabled(True)
                     self.btn_aporte.setEnabled(True)
+
+                    if turno_viejo:
+                        QTimer.singleShot(800, lambda: self._advertir_turno_viejo(data["id"], apertura[:16], dias_abierto))
         except Exception:
             pass
+
+    def _advertir_turno_viejo(self, turno_id, apertura_str, dias):
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Turno sin cerrar")
+        dlg.setMinimumWidth(480)
+        dlg.setStyleSheet(f"background: {BG_CARD}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(28, 28, 28, 24)
+        lay.setSpacing(14)
+
+        lbl_titulo = QLabel(f"Turno #{turno_id} sin cerrar")
+        lbl_titulo.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        lbl_titulo.setStyleSheet(f"color: {DANGER}; background: transparent;")
+        lay.addWidget(lbl_titulo)
+
+        lbl_msg = QLabel(
+            f"Este turno lleva {dias} dia{'s' if dias > 1 else ''} abierto desde: {apertura_str}\n\n"
+            f"Los totales de la pantalla incluyen ventas de todos esos dias.\n"
+            f"Cerra el turno ahora para hacer la caja correcta del dia de hoy."
+        )
+        lbl_msg.setWordWrap(True)
+        lbl_msg.setStyleSheet(f"color: {TEXT_MAIN}; font-size: 13px; background: transparent;")
+        lay.addWidget(lbl_msg)
+
+        btns = QHBoxLayout()
+        btn_ignorar = QPushButton("Ignorar por ahora")
+        btn_ignorar.setFixedHeight(40)
+        btn_ignorar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_ignorar.clicked.connect(dlg.reject)
+        btns.addWidget(btn_ignorar)
+
+        btn_cerrar_turno = QPushButton(f"Cerrar turno #{turno_id} ahora")
+        btn_cerrar_turno.setFixedHeight(40)
+        btn_cerrar_turno.setStyleSheet(f"QPushButton {{ background: {DANGER}; color: white; border-radius: 8px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: #b91c1c; }}")
+        btn_cerrar_turno.clicked.connect(dlg.accept)
+        btns.addWidget(btn_cerrar_turno)
+        lay.addLayout(btns)
+
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self.cerrar_caja()
 
     def showEvent(self, event):
         super().showEvent(event)
