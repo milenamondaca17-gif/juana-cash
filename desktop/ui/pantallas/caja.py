@@ -1171,6 +1171,11 @@ class CajaScreen(QWidget):
         dialog.setWindowTitle("Cierre de caja")
         dialog.setMinimumWidth(520)
         dialog.setStyleSheet("background-color: #1a1a2e; color: white;")
+        from PyQt6.QtWidgets import QApplication as _QApp
+        _scr = _QApp.primaryScreen()
+        if _scr:
+            _avail = _scr.availableGeometry()
+            dialog.resize(560, min(int(_avail.height() * 0.88), 780))
         from PyQt6.QtWidgets import QScrollArea
         outer_lay = QVBoxLayout(dialog)
         outer_lay.setContentsMargins(0, 0, 0, 0)
@@ -1354,21 +1359,28 @@ class CajaScreen(QWidget):
         for in_n, in_m in filas_emp:
             in_m.textChanged.connect(lambda _: actualizar_total_emp())
 
-        row_decl = QHBoxLayout()
-        lbl_d = QLabel("Efectivo contado ($):"); lbl_d.setStyleSheet("color: #a0a0b0; font-size: 13px;")
+        # "Efectivo contado" va FUERA del scroll para que siempre sea visible
+        # independientemente del tamaño de pantalla. Se agrega a outer_lay más abajo.
+        _decl_frame = QFrame()
+        _decl_frame.setStyleSheet("QFrame { background: #1a1a2e; border-top: 1px solid #0f3460; }")
+        row_decl = QHBoxLayout(_decl_frame)
+        row_decl.setContentsMargins(24, 10, 24, 4)
+        lbl_d = QLabel("Efectivo contado ($):")
+        lbl_d.setStyleSheet("color: #a0a0b0; font-size: 13px; background: transparent;")
         row_decl.addWidget(lbl_d)
         input_declarado = QLineEdit()
         input_declarado.setPlaceholderText(_p(efectivo_esperado).lstrip("$"))
-        input_declarado.setFixedWidth(140); input_declarado.setFixedHeight(38)
-        input_declarado.setStyleSheet("QLineEdit { background: #0f3460; border: 1px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }")
+        input_declarado.setFixedWidth(160); input_declarado.setFixedHeight(42)
+        input_declarado.setStyleSheet("QLineEdit { background: #0f3460; border: 2px solid #e94560; border-radius: 8px; padding: 8px; color: white; font-size: 16px; font-weight: bold; }")
         row_decl.addWidget(input_declarado)
-        lay.addLayout(row_decl)
 
         # Pre-cargar empleados guardados en los campos del diálogo
         for i, pago in enumerate((self._pagos_empleados_guardados or [])[:5]):
             filas_emp[i][0].setText(pago["nombre"])
             filas_emp[i][1].setText(str(int(pago["monto"])))
         actualizar_total_emp()
+
+        outer_lay.addWidget(_decl_frame)
 
         btns = QHBoxLayout()
         btns.setContentsMargins(24, 8, 24, 16)
