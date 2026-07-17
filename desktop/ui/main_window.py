@@ -834,7 +834,20 @@ class MainWindow(QMainWindow):
 
     def _actualizar_meta(self):
         try:
-            r = requests.get(f"{API_URL}/reportes/hoy", timeout=3)
+            params = {}
+            if hasattr(self, 'caja_screen'):
+                apertura = self.caja_screen._apertura_iso()
+                if apertura:
+                    from datetime import datetime as _dtn, date as _date
+                    try:
+                        ap_dt = _dtn.fromisoformat(apertura)
+                        hoy_inicio = _dtn.combine(_date.today(), _dtn.min.time())
+                        if ap_dt < hoy_inicio:
+                            apertura = hoy_inicio.strftime("%Y-%m-%dT%H:%M:%S")
+                    except Exception:
+                        pass
+                    params['desde'] = apertura
+            r = requests.get(f"{API_URL}/reportes/hoy", params=params, timeout=3)
             if not r.ok:
                 return
             total = float(r.json().get("total_vendido", 0))

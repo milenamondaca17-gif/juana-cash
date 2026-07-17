@@ -1,8 +1,8 @@
 {
-  "version": "4.10.21",
-  "desktop_version": "4.10.21",
+  "version": "4.10.22",
+  "desktop_version": "4.10.22",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.21/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.22/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.21 - Bordes uniformes en pantalla de ventas"
+  "notas": "v4.10.22 - Fuegos artificiales por turno, no acumulado del dia"
 }
