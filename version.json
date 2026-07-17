@@ -1,8 +1,8 @@
 {
-  "version": "4.10.24",
-  "desktop_version": "4.10.24",
+  "version": "4.10.25",
+  "desktop_version": "4.10.25",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.24/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.25/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.24 - Numero total a cobrar en negro fuerte"
+  "notas": "v4.10.25 - Boton WhatsApp para reenviar ultimo ticket"
 }

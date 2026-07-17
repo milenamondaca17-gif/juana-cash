@@ -563,6 +563,7 @@ class VentasScreen(QWidget):
         self.usuario = None
         self.items_venta = []
         self.ultimo_producto = None
+        self._ultimo_ticket_wa = None
         self.log_eliminados = []
         self.log_ventas = []
         self.log_modificaciones = []
@@ -794,11 +795,12 @@ class VentasScreen(QWidget):
 
         fila_btns = QHBoxLayout()
         fila_btns.setSpacing(6)
-        btn_repetir = QPushButton("↩ F4")
+        btn_repetir = QPushButton("📱 ↩")
         btn_repetir.setFixedHeight(40)
         btn_repetir.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_repetir.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_OFERTAS}; border-radius: 8px; font-size: 14px; font-weight: bold; border: 1px solid {ACCENT_OFERTAS}; }}")
-        btn_repetir.clicked.connect(self.repetir_ultimo)
+        btn_repetir.setToolTip("Reenviar último ticket por WhatsApp")
+        btn_repetir.setStyleSheet("QPushButton { background: #25D366; color: white; border-radius: 8px; font-size: 16px; font-weight: bold; border: none; } QPushButton:hover { background: #1DA851; }")
+        btn_repetir.clicked.connect(self.reenviar_ticket_whatsapp)
         fila_btns.addWidget(btn_repetir)
 
         btn_cancelar = QPushButton("✕  Cancelar (ESC)")
@@ -1024,9 +1026,83 @@ class VentasScreen(QWidget):
         dialog.exec()
         self.input_buscar.setFocus()
 
-    def repetir_ultimo(self):
-        if self.ultimo_producto: self.agregar_item(self.ultimo_producto)
-        else: QMessageBox.information(self, "Info", "No hay producto anterior para repetir")
+    def reenviar_ticket_whatsapp(self):
+        if not self._ultimo_ticket_wa:
+            QMessageBox.information(self, "Sin ticket", "Todavía no se realizó ninguna venta en este turno.")
+            return
+        try:
+            from ui.pantallas.whatsapp_ticket import servidor_activo, formatear_ticket_whatsapp, enviar_ticket_whatsapp
+        except Exception:
+            QMessageBox.warning(self, "WhatsApp", "El servidor de WhatsApp no está disponible.")
+            return
+
+        datos = self._ultimo_ticket_wa
+        dialog = QDialog(self)
+        dialog.setWindowTitle("📱 Reenviar ticket por WhatsApp")
+        dialog.setMinimumWidth(340)
+        dialog.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(10)
+        lay.setContentsMargins(16, 16, 16, 16)
+
+        lbl_info = QLabel(f"Ticket #{datos['numero']}  —  {_p(datos['total'])}  ({datos['metodo']})")
+        lbl_info.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; padding: 6px; background: {BG_PANEL}; border-radius: 6px;")
+        lay.addWidget(lbl_info)
+
+        lbl_tel = QLabel("Ingresá el número de WhatsApp:")
+        lbl_tel.setStyleSheet(f"color: {TEXT_MAIN}; font-size: 13px; font-weight: bold; margin-top: 6px;")
+        lay.addWidget(lbl_tel)
+
+        in_tel = QLineEdit()
+        in_tel.setPlaceholderText("Ej: 3512345678  (sin 0 ni 15)")
+        in_tel.setFixedHeight(48)
+        in_tel.setStyleSheet(f"QLineEdit {{ background: {BG_PANEL}; border: 3px solid #25D366; border-radius: 10px; padding: 10px; color: {TEXT_MAIN}; font-size: 16px; }}")
+        lay.addWidget(in_tel)
+
+        lbl_status = QLabel("")
+        lbl_status.setStyleSheet("font-size: 12px; min-height: 18px;")
+        lay.addWidget(lbl_status)
+
+        def _enviar():
+            tel = in_tel.text().strip()
+            if not tel:
+                lbl_status.setText("⚠️ Ingresá el número")
+                return
+            lbl_status.setText("Enviando...")
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()
+            try:
+                ticket_texto = formatear_ticket_whatsapp(
+                    {"numero": datos["numero"], "total": datos["total"]},
+                    datos["items"],
+                    metodo=datos["metodo"],
+                    descuento_pct=datos["descuento_pct"],
+                    recargo=datos["recargo_monto"],
+                )
+                ok, resp = enviar_ticket_whatsapp(tel, ticket_texto)
+                if ok:
+                    lbl_status.setText("✅ ¡Ticket enviado!")
+                    QTimer.singleShot(1500, dialog.accept)
+                else:
+                    lbl_status.setText(f"❌ Error: {resp}")
+            except Exception as e:
+                lbl_status.setText(f"❌ {str(e)[:60]}")
+
+        btn_enviar = QPushButton("📱 Enviar por WhatsApp")
+        btn_enviar.setFixedHeight(46)
+        btn_enviar.setStyleSheet("QPushButton { background: #25D366; color: white; border-radius: 10px; font-size: 15px; font-weight: bold; border: none; } QPushButton:hover { background: #1DA851; }")
+        btn_enviar.clicked.connect(_enviar)
+        in_tel.returnPressed.connect(_enviar)
+        lay.addWidget(btn_enviar)
+
+        btn_cancelar = QPushButton("Cancelar")
+        btn_cancelar.setFixedHeight(36)
+        btn_cancelar.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px;")
+        btn_cancelar.clicked.connect(dialog.reject)
+        lay.addWidget(btn_cancelar)
+
+        dialog.exec()
+        self.input_buscar.setFocus()
 
     def verificar_precio(self):
         """F3 — Buscador de precios. Solo consulta, no agrega al ticket."""
@@ -1827,6 +1903,14 @@ class VentasScreen(QWidget):
                         pass
                 self.guardar_informe(ticket, descuento_pct, total_original, total_final, metodo_str, vuelto)
                 self._actualizar_barra_ultima_venta(ticket, total_final, metodo_pago, metodo_secundario, monto_secundario, vuelto)
+                self._ultimo_ticket_wa = {
+                    "numero": ticket,
+                    "total": total_final,
+                    "items": list(self.items_venta),
+                    "metodo": metodo_str,
+                    "descuento_pct": descuento_pct,
+                    "recargo_monto": recargo_monto,
+                }
                 msg = f"✅ Ticket #{ticket} — {_p(total_final)} ({metodo_str})"
                 if metodo_pago == "efectivo" and vuelto > 0:
                     msg += f" — Vuelto: {_p(vuelto)}"
