@@ -771,7 +771,7 @@ class VentasScreen(QWidget):
 
         self.lbl_total = QLabel("$0")
         self.lbl_total.setFont(QFont("Arial", 44, QFont.Weight.Bold))
-        self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px; margin-top: -4px;")
+        self.lbl_total.setStyleSheet(f"color: {TEXT_MAIN}; letter-spacing: -1px; margin-top: -4px;")
         self.lbl_total.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.lbl_total.setMinimumWidth(260)
         self.lbl_total.setWordWrap(False)
@@ -1833,7 +1833,7 @@ class VentasScreen(QWidget):
                 self.lbl_total.setText(msg)
                 self.lbl_total.setStyleSheet(f"color: #27ae60; font-size: 28px; font-weight: bold;")
                 self.cancelar_venta()
-                QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {ACCENT_TOTAL}; letter-spacing: -1px;"))
+                QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {TEXT_MAIN}; letter-spacing: -1px;"))
             else:
                 try:
                     data = r.json()
