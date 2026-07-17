@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 import threading
 import smtplib
 import json
@@ -116,7 +116,7 @@ class AnularDialog(QDialog):
         btns = QHBoxLayout()
         btn_c = QPushButton("Cancelar")
         btn_c.setFixedHeight(40)
-        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }} QPushButton:hover {{ background: {BG_MAIN}; }}")
+        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-weight: bold; }} QPushButton:hover {{ background: {BG_MAIN}; }}")
         btn_c.clicked.connect(self.reject)
         btns.addWidget(btn_c)
         btn_ok = QPushButton("🚫 Confirmar anulación")
@@ -190,7 +190,7 @@ class CajaScreen(QWidget):
         # Card estado
         from PyQt6.QtWidgets import QGridLayout
         self.card_estado = QFrame()
-        self.card_estado.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 14px; border: 1.5px solid {BORDER}; }}")
+        self.card_estado.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 14px; border: 3px solid {BORDER}; }}")
         self.card_estado.setMinimumHeight(100)
         outer_card = QHBoxLayout(self.card_estado)
         outer_card.setContentsMargins(0, 0, 0, 0)
@@ -233,7 +233,7 @@ class CajaScreen(QWidget):
 
         # Desglose por método
         desglose_frame = QFrame()
-        desglose_frame.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 12px; border: 1.5px solid {BORDER}; }}")
+        desglose_frame.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 12px; border: 3px solid {BORDER}; }}")
         desglose_layout = QHBoxLayout(desglose_frame)
         desglose_layout.setContentsMargins(16, 12, 16, 12)
         desglose_layout.setSpacing(8)
@@ -266,7 +266,7 @@ class CajaScreen(QWidget):
         dsg_scroll.setFixedHeight(90)
         dsg_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         dsg_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        dsg_scroll.setStyleSheet(f"QScrollArea {{ border: 1.5px solid {BORDER}; border-radius: 12px; background: {BG_CARD}; }} QScrollBar:horizontal {{ height: 4px; background: transparent; }} QScrollBar::handle:horizontal {{ background: {BORDER}; border-radius: 2px; }}")
+        dsg_scroll.setStyleSheet(f"QScrollArea {{ border: 3px solid {BORDER}; border-radius: 12px; background: {BG_CARD}; }} QScrollBar:horizontal {{ height: 4px; background: transparent; }} QScrollBar::handle:horizontal {{ background: {BORDER}; border-radius: 2px; }}")
         layout.addWidget(dsg_scroll)
 
         # Botones de acción — 2 filas para no amontonar
@@ -368,7 +368,7 @@ class CajaScreen(QWidget):
         hdr_hist.addStretch()
         btn_hist_ref = QPushButton("🔄")
         btn_hist_ref.setFixedSize(34, 34)
-        btn_hist_ref.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; border: 1.5px solid {BORDER}; }}")
+        btn_hist_ref.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; border: 3px solid {BORDER}; }}")
         btn_hist_ref.clicked.connect(self.cargar_historial)
         hdr_hist.addWidget(btn_hist_ref)
         layout.addLayout(hdr_hist)
@@ -464,7 +464,7 @@ class CajaScreen(QWidget):
 
         btn_cerrar = QPushButton("Cerrar")
         btn_cerrar.setFixedHeight(38)
-        btn_cerrar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_cerrar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
         btn_cerrar.clicked.connect(dlg.reject)
         lay.addWidget(btn_cerrar)
         dlg.exec()
@@ -824,7 +824,7 @@ class CajaScreen(QWidget):
         btns = QHBoxLayout()
         btn_ignorar = QPushButton("Ignorar por ahora")
         btn_ignorar.setFixedHeight(40)
-        btn_ignorar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_ignorar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
         btn_ignorar.clicked.connect(dlg.reject)
         btns.addWidget(btn_ignorar)
 
@@ -884,7 +884,7 @@ class CajaScreen(QWidget):
             btn_ver = QPushButton("📋")
             btn_ver.setFixedSize(38, 26)
             btn_ver.setToolTip("Ver resumen completo")
-            btn_ver.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; border: 1px solid {BORDER}; font-size: 13px; }}")
+            btn_ver.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; border: 3px solid {BORDER}; font-size: 13px; }}")
             btn_ver.clicked.connect(lambda _, datos=c: self._ver_detalle_cierre(datos))
             self.tabla_historial.setCellWidget(row, 9, btn_ver)
 
@@ -949,7 +949,7 @@ class CajaScreen(QWidget):
 
         btn_c = QPushButton("Cerrar")
         btn_c.setFixedHeight(40)
-        btn_c.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_c.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
         btn_c.clicked.connect(dlg.accept)
         btns_row.addWidget(btn_c)
         lay.addLayout(btns_row)
@@ -1003,7 +1003,7 @@ class CajaScreen(QWidget):
             tabla_v.setColumnWidth(5, 44)
             tabla_v.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             tabla_v.setAlternatingRowColors(True)
-            tabla_v.setStyleSheet(f"QTableWidget {{ background: {BG_MAIN}; border: 1px solid {BORDER}; border-radius: 6px; gridline-color: {BORDER}; }} QHeaderView::section {{ background: {BG_CARD}; color: {TEXT_MUTED}; padding: 4px; border: none; }}")
+            tabla_v.setStyleSheet(f"QTableWidget {{ background: {BG_MAIN}; border: 3px solid {BORDER}; border-radius: 6px; gridline-color: {BORDER}; }} QHeaderView::section {{ background: {BG_CARD}; color: {TEXT_MUTED}; padding: 4px; border: none; }}")
             tabla_v.setRowCount(len(ventas))
 
             nombres_m = {
@@ -1032,7 +1032,7 @@ class CajaScreen(QWidget):
 
         btn_cerrar = QPushButton("Cerrar")
         btn_cerrar.setFixedHeight(38)
-        btn_cerrar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_cerrar.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
         btn_cerrar.clicked.connect(dlg.accept)
         lay.addWidget(btn_cerrar)
         dlg.exec()
@@ -1692,7 +1692,7 @@ class CajaScreen(QWidget):
         combo_metodo = QComboBox()
         combo_metodo.addItems(["💵 Efectivo", "🏦 Transferencia", "📱 QR / Mercado Pago", "🏧 Débito"])
         combo_metodo.setFixedHeight(38)
-        combo_metodo.setStyleSheet(f"QComboBox {{ background: {BG_MAIN}; border: 1.5px solid {BORDER}; border-radius: 8px; padding: 6px 12px; color: {TEXT_MAIN}; }} QComboBox::drop-down {{ border: none; }}")
+        combo_metodo.setStyleSheet(f"QComboBox {{ background: {BG_MAIN}; border: 3px solid {BORDER}; border-radius: 8px; padding: 6px 12px; color: {TEXT_MAIN}; }} QComboBox::drop-down {{ border: none; }}")
         lay.addWidget(combo_metodo)
 
         lbl_m = QLabel("Monto ($):")
@@ -1710,13 +1710,13 @@ class CajaScreen(QWidget):
         inp_desc = QLineEdit()
         inp_desc.setPlaceholderText("Ej: Plata del sobre")
         inp_desc.setFixedHeight(38)
-        inp_desc.setStyleSheet(f"QLineEdit {{ background: {BG_MAIN}; border: 1.5px solid {BORDER}; border-radius: 8px; padding: 6px 12px; color: {TEXT_MAIN}; }}")
+        inp_desc.setStyleSheet(f"QLineEdit {{ background: {BG_MAIN}; border: 3px solid {BORDER}; border-radius: 8px; padding: 6px 12px; color: {TEXT_MAIN}; }}")
         lay.addWidget(inp_desc)
 
         btns = QHBoxLayout()
         btn_c = QPushButton("Cancelar")
         btn_c.setFixedHeight(40)
-        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; }}")
+        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; }}")
         btn_c.clicked.connect(dialog.reject)
         btns.addWidget(btn_c)
         btn_ok = QPushButton("✅ Confirmar")
@@ -2153,7 +2153,7 @@ class CajaScreen(QWidget):
         input_tel = QLineEdit()
         input_tel.setPlaceholderText("5492634000000")
         input_tel.setFixedHeight(40)
-        input_tel.setStyleSheet(f"background: {BG_MAIN}; border: 1.5px solid {BORDER}; border-radius: 8px; padding: 8px; color: {TEXT_MAIN}; font-size: 14px;")
+        input_tel.setStyleSheet(f"background: {BG_MAIN}; border: 3px solid {BORDER}; border-radius: 8px; padding: 8px; color: {TEXT_MAIN}; font-size: 14px;")
         lay.addWidget(input_tel)
 
         lbl_status = QLabel("")
@@ -2163,7 +2163,7 @@ class CajaScreen(QWidget):
         btns = QHBoxLayout()
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setFixedHeight(38)
-        btn_cancel.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1.5px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
+        btn_cancel.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-weight: bold; }}")
         btn_cancel.clicked.connect(dlg.reject)
         btns.addWidget(btn_cancel)
 
@@ -2285,7 +2285,7 @@ class CajaScreen(QWidget):
                     btn_reimp = QPushButton("🖨")
                     btn_reimp.setFixedHeight(26)
                     btn_reimp.setToolTip("Reimprimir ticket")
-                    btn_reimp.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; font-size: 13px; border: 1px solid {BORDER}; }}")
+                    btn_reimp.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; font-size: 13px; border: 3px solid {BORDER}; }}")
                     btn_reimp.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.reimprimir_ticket(vid, num))
                     self.tabla.setCellWidget(i, 7, btn_reimp)
 

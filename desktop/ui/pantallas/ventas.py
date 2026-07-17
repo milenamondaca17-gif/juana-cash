@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 import os
 import json
 import threading
@@ -191,7 +191,7 @@ class CobrarDialog(QDialog):
 
         # ── Recargo tarjeta crédito ───────────────────────────────────────────
         self.recargo_frame = QFrame()
-        self.recargo_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; border: 1.5px solid {ACCENT_BOTON}; }}")
+        self.recargo_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 8px; border: 3px solid {ACCENT_BOTON}; }}")
         rec_lay = QVBoxLayout(self.recargo_frame)
         rec_lay.setContentsMargins(12, 10, 12, 10)
         rec_lay.setSpacing(6)
@@ -209,7 +209,7 @@ class CobrarDialog(QDialog):
         self.spin_recargo.setSuffix(" %")
         self.spin_recargo.setFixedHeight(36)
         self.spin_recargo.setFixedWidth(100)
-        self.spin_recargo.setStyleSheet(f"QDoubleSpinBox {{ background: {BG_MAIN}; border: 1.5px solid {ACCENT_BOTON}; border-radius: 6px; padding: 5px; color: {TEXT_MAIN}; font-size: 14px; font-weight: bold; }}")
+        self.spin_recargo.setStyleSheet(f"QDoubleSpinBox {{ background: {BG_MAIN}; border: 3px solid {ACCENT_BOTON}; border-radius: 6px; padding: 5px; color: {TEXT_MAIN}; font-size: 14px; font-weight: bold; }}")
         self.spin_recargo.valueChanged.connect(self.actualizar_total)
         rec_pct_row.addWidget(self.spin_recargo)
         rec_pct_row.addStretch()
@@ -295,7 +295,7 @@ class CobrarDialog(QDialog):
         self.input_pct = QDoubleSpinBox()
         self.input_pct.setRange(0, 100)
         self.input_pct.setSingleStep(5)
-        self.input_pct.setStyleSheet(f"background: {BG_MAIN}; border: 1px solid {BORDER}; color: {TEXT_MAIN}; padding: 5px;")
+        self.input_pct.setStyleSheet(f"background: {BG_MAIN}; border: 3px solid {BORDER}; color: {TEXT_MAIN}; padding: 5px;")
         self.input_pct.valueChanged.connect(self.actualizar_total)
         desc_layout.addWidget(self.input_pct)
         layout.addWidget(desc_frame)
@@ -325,7 +325,7 @@ class CobrarDialog(QDialog):
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setFixedHeight(44)
         btn_cancelar.clicked.connect(self.reject)
-        btn_cancelar.setStyleSheet(f"background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 6px;")
+        btn_cancelar.setStyleSheet(f"background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 6px;")
         btns.addWidget(btn_cancelar)
         self.btn_cobrar = QPushButton("COBRAR")
         self.btn_cobrar.setFixedHeight(44)
@@ -345,14 +345,14 @@ class CobrarDialog(QDialog):
             self.monto_secundario = 0
             self.input_monto_sec.clear()
             for btn, c in self.btns_secundarios.values():
-                btn.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+                btn.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px;")
             self.lbl_resumen_mixto.setText("")
         self.calcular_mixto()
 
     def seleccionar_metodo(self, key, color):
         self.metodo_pago = key
         for k, (btn, c) in self.btns_pago.items():
-            btn.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+            btn.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px;")
         self.btns_pago[key][0].setStyleSheet(f"background: {color}; color: white; font-weight: bold; border-radius: 8px;")
         self.recargo_frame.setVisible(key == "tarjeta")
         self.actualizar_total()
@@ -360,7 +360,7 @@ class CobrarDialog(QDialog):
     def seleccionar_metodo_sec(self, key, color):
         self.metodo_secundario = key
         for k, (btn, c) in self.btns_secundarios.items():
-            btn.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+            btn.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px;")
         self.btns_secundarios[key][0].setStyleSheet(f"background: {color}; color: white; font-weight: bold; border-radius: 8px;")
         self.calcular_mixto()
 
@@ -503,8 +503,8 @@ class EditarItemDialog(QDialog):
         lay.addWidget(QLabel(self.item["nombre"]))
         self.input_precio = QLineEdit(str(self.item["precio_unitario"]))
         self.input_cant = QLineEdit(str(self.item["cantidad"]))
-        self.input_precio.setStyleSheet(f"background: {BG_PANEL}; border: 1px solid {BORDER}; padding: 5px;")
-        self.input_cant.setStyleSheet(f"background: {BG_PANEL}; border: 1px solid {BORDER}; padding: 5px;")
+        self.input_precio.setStyleSheet(f"background: {BG_PANEL}; border: 3px solid {BORDER}; padding: 5px;")
+        self.input_cant.setStyleSheet(f"background: {BG_PANEL}; border: 3px solid {BORDER}; padding: 5px;")
         lay.addWidget(QLabel("Precio:"))
         lay.addWidget(self.input_precio)
         lay.addWidget(QLabel("Cantidad:"))
@@ -531,12 +531,12 @@ class EditorOfertasDialog(QDialog):
         lay = QVBoxLayout(self)
         self.txt = QTextEdit(self)
         self.txt.setPlainText(texto_actual)
-        self.txt.setStyleSheet(f"background: {BG_PANEL}; border: 1px solid {BORDER}; color: {TEXT_MAIN}; font-size: 16px;")
+        self.txt.setStyleSheet(f"background: {BG_PANEL}; border: 3px solid {BORDER}; color: {TEXT_MAIN}; font-size: 16px;")
         lay.addWidget(self.txt)
         btns = QHBoxLayout()
         btn_c = QPushButton("Cancelar")
         btn_c.setFixedHeight(40)
-        btn_c.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 6px; font-weight: bold;")
+        btn_c.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 6px; font-weight: bold;")
         btn_c.clicked.connect(self.reject)
         btns.addWidget(btn_c)
         btn_g = QPushButton("Guardar Cambios")
@@ -672,7 +672,7 @@ class VentasScreen(QWidget):
         btn_editar_ofertas = QPushButton("📝 Editar")
         btn_editar_ofertas.setFixedSize(70, 30)
         btn_editar_ofertas.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_editar_ofertas.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 6px; font-weight: bold; font-size: 11px; }} QPushButton:hover {{ background: {BORDER}; color: white; }}")
+        btn_editar_ofertas.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 6px; font-weight: bold; font-size: 11px; }} QPushButton:hover {{ background: {BORDER}; color: white; }}")
         btn_editar_ofertas.clicked.connect(self.abrir_editor_ofertas)
         lay_ofertas.addWidget(btn_editar_ofertas, alignment=Qt.AlignmentFlag.AlignVCenter)
         
@@ -715,7 +715,7 @@ class VentasScreen(QWidget):
         btn_precios = QPushButton("🔎 Verificar precio")
         btn_precios.setFixedHeight(30)
         btn_precios.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_precios.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 6px; font-size: 12px; padding: 0 10px; border: 1px solid {BORDER}; font-weight: bold;}} QPushButton:hover {{ background: {ACCENT_BOTON}; color: white; }}")
+        btn_precios.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 6px; font-size: 12px; padding: 0 10px; border: 3px solid {BORDER}; font-weight: bold;}} QPushButton:hover {{ background: {ACCENT_BOTON}; color: white; }}")
         btn_precios.clicked.connect(self.verificar_precio)
         atajos_lay.addWidget(btn_precios)
         panel_izq.addWidget(atajos_frame)
@@ -734,9 +734,9 @@ class VentasScreen(QWidget):
         self.tabla.setShowGrid(False)
         self.tabla.setAlternatingRowColors(True)
         self.tabla.setStyleSheet(f"""
-            QTableWidget {{ background: {BG_PANEL}; alternate-background-color: {BG_MAIN}; border: 1px solid {BORDER}; border-radius: 12px; gridline-color: transparent; outline: none; font-size: 18px; font-weight: bold; }}
+            QTableWidget {{ background: {BG_PANEL}; alternate-background-color: {BG_MAIN}; border: 3px solid {BORDER}; border-radius: 12px; gridline-color: transparent; outline: none; font-size: 18px; font-weight: bold; }}
             QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 10px; border: none; border-bottom: 2px solid {BORDER}; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: bold; }}
-            QTableWidget::item {{ color: #D4A017; padding: 6px 8px; border-bottom: 1px solid {BORDER}; }}
+            QTableWidget::item {{ color: #D4A017; padding: 6px 8px; border-bottom: 3px solid {BORDER}; }}
             QTableWidget::item:selected {{ background: rgba(212,160,23,0.12); }}
         """)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -811,7 +811,7 @@ class VentasScreen(QWidget):
         btn_informe = QPushButton("📋")
         btn_informe.setFixedSize(40, 40)
         btn_informe.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_informe.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 16px; border: 1px solid {BORDER}; }}")
+        btn_informe.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 16px; border: 3px solid {BORDER}; }}")
         btn_informe.clicked.connect(self.ver_informe)
         fila_btns.addWidget(btn_informe)
         total_layout.addLayout(fila_btns)
@@ -823,7 +823,7 @@ class VentasScreen(QWidget):
         self.btn_cliente = QPushButton("👤  Vincular cliente")
         self.btn_cliente.setFixedHeight(40)
         self.btn_cliente.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 1px solid {BORDER}; }}")
+        self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 3px solid {BORDER}; }}")
         self.btn_cliente.clicked.connect(self.buscar_cliente)
         total_layout.addWidget(self.btn_cliente)
 
@@ -850,7 +850,7 @@ class VentasScreen(QWidget):
         self.barra_ult = QFrame()
         self.barra_ult.setFixedHeight(38)
         self.barra_ult.setStyleSheet(
-            f"QFrame {{ background: {BG_MAIN}; border-top: 1.5px solid {BORDER}; }}"
+            f"QFrame {{ background: {BG_MAIN}; border-top: 3px solid {BORDER}; }}"
         )
         self.barra_ult.hide()
         _bl = QHBoxLayout(self.barra_ult)
@@ -952,11 +952,11 @@ class VentasScreen(QWidget):
         input_b = QLineEdit()
         input_b.setPlaceholderText("Nombre o teléfono...")
         input_b.setFixedHeight(44)
-        input_b.setStyleSheet(f"QLineEdit {{ background: {BG_PANEL}; border: 1px solid {ACCENT_BOTON}; border-radius: 8px; padding: 10px; color: {TEXT_MAIN}; font-size: 14px; }}")
+        input_b.setStyleSheet(f"QLineEdit {{ background: {BG_PANEL}; border: 3px solid {ACCENT_BOTON}; border-radius: 8px; padding: 10px; color: {TEXT_MAIN}; font-size: 14px; }}")
         lay.addWidget(input_b)
         lista = QListWidget()
         lista.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        lista.setStyleSheet(f"QListWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 8px; color: {TEXT_MAIN}; }} QListWidget::item {{ padding: 10px; }} QListWidget::item:hover {{ background: {BORDER}; }}")
+        lista.setStyleSheet(f"QListWidget {{ background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 8px; color: {TEXT_MAIN}; }} QListWidget::item {{ padding: 10px; }} QListWidget::item:hover {{ background: {BORDER}; }}")
         lista.setMinimumHeight(200)
         lay.addWidget(lista)
         clientes_encontrados = []
@@ -996,12 +996,12 @@ class VentasScreen(QWidget):
         btn_sin = QPushButton("Sin cliente")
         btn_sin.setFixedHeight(38)
         btn_sin.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_sin.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px; }}")
+        btn_sin.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; }}")
         def desvincular():
             self.cliente_actual = None
             self.lbl_cliente_info.hide()
             self.btn_cliente.setText("👤 Vincular cliente")
-            self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 12px; border: 1px solid {BORDER}; }}")
+            self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 12px; border: 3px solid {BORDER}; }}")
             dialog.accept()
         btn_sin.clicked.connect(desvincular)
         btns.addWidget(btn_sin)
@@ -1045,7 +1045,7 @@ class VentasScreen(QWidget):
         lay.addWidget(input_b)
 
         resultado_frame = QFrame()
-        resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 1px solid {BORDER}; }}")
+        resultado_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 3px solid {BORDER}; }}")
         resultado_frame.setMinimumHeight(120)
         res_lay = QVBoxLayout(resultado_frame)
         res_lay.setContentsMargins(16, 14, 16, 14)
@@ -1124,7 +1124,7 @@ class VentasScreen(QWidget):
 
         btn_cerrar = QPushButton("Cerrar")
         btn_cerrar.setFixedHeight(40)
-        btn_cerrar.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+        btn_cerrar.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px;")
         btn_cerrar.clicked.connect(dialog.accept)
         lay.addWidget(btn_cerrar)
 
@@ -1319,8 +1319,8 @@ class VentasScreen(QWidget):
 
         lista = QListWidget()
         lista.setStyleSheet(f"""
-            QListWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 8px; font-size: 15px; }}
-            QListWidget::item {{ color: {TEXT_MAIN}; padding: 10px; border-bottom: 1px solid {BORDER}; }}
+            QListWidget {{ background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 8px; font-size: 15px; }}
+            QListWidget::item {{ color: {TEXT_MAIN}; padding: 10px; border-bottom: 3px solid {BORDER}; }}
             QListWidget::item:selected {{ background: {ACCENT_BOTON}; }}
         """)
         for p in productos[:20]:
@@ -1472,7 +1472,7 @@ class VentasScreen(QWidget):
         btns = QHBoxLayout()
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setFixedHeight(44)
-        btn_cancelar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px; }}")
+        btn_cancelar.setStyleSheet(f"QPushButton {{ background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; }}")
         btn_cancelar.clicked.connect(dialog.reject)
         btns.addWidget(btn_cancelar)
         btn_confirmar = QPushButton("Agregar al ticket")
@@ -1725,7 +1725,7 @@ class VentasScreen(QWidget):
         txt.setReadOnly(True)
         txt.setPlainText(texto)
         txt.setFont(QFont("Courier New", 10))
-        txt.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MAIN}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px;")
+        txt.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MAIN}; border: 3px solid {BORDER}; border-radius: 8px; padding: 10px;")
         layout.addWidget(txt)
         btn = QPushButton("Cerrar")
         btn.setFixedHeight(36)
@@ -2009,7 +2009,7 @@ class VentasScreen(QWidget):
         row_tel = QHBoxLayout()
         in_tel = QLineEdit()
         in_tel.setPlaceholderText("Número sin 0 ni 15 — ej: 3512345678")
-        in_tel.setStyleSheet(f"background:{BG_PANEL}; color:{TEXT_MAIN}; border:1px solid {BORDER}; border-radius:8px; padding:8px; font-size:13px;")
+        in_tel.setStyleSheet(f"background:{BG_PANEL}; color:{TEXT_MAIN}; border:3px solid {BORDER}; border-radius:8px; padding:8px; font-size:13px;")
         row_tel.addWidget(in_tel)
 
         btn_wa = QPushButton("📱 Enviar")
@@ -2117,9 +2117,9 @@ class VentasScreen(QWidget):
         tabla_b.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         tabla_b.verticalHeader().setDefaultSectionSize(44)
         tabla_b.setStyleSheet(f"""
-            QTableWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 10px; font-size: 14px; }}
+            QTableWidget {{ background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 10px; font-size: 14px; }}
             QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 8px; border: none; font-size: 12px; }}
-            QTableWidget::item {{ color: {TEXT_MAIN}; padding: 6px; border-bottom: 1px solid {BORDER}; }}
+            QTableWidget::item {{ color: {TEXT_MAIN}; padding: 6px; border-bottom: 3px solid {BORDER}; }}
             QTableWidget::item:selected {{ background: {ACCENT_BOTON}; }}
         """)
         lay.addWidget(tabla_b)
@@ -2199,7 +2199,7 @@ class VentasScreen(QWidget):
         btn_row = QHBoxLayout()
         btn_c = QPushButton("Cerrar")
         btn_c.setFixedHeight(40)
-        btn_c.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+        btn_c.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px;")
         btn_c.clicked.connect(dialog.reject)
         btn_row.addWidget(btn_c)
         btn_a = QPushButton("✅  Agregar  (Enter)")
@@ -2227,7 +2227,7 @@ class VentasScreen(QWidget):
         self.cliente_actual = None
         self.lbl_cliente_info.hide()
         self.btn_cliente.setText("👤 Vincular cliente")
-        self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 1px solid {BORDER}; }}")
+        self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 3px solid {BORDER}; }}")
         self.actualizar_tabla()
         self.input_buscar.clear()
         self.input_buscar.setFocus()
@@ -2247,7 +2247,7 @@ class VentasScreen(QWidget):
         lay.addWidget(QLabel("Nombre o nota para identificar este ticket:"))
         input_nombre = QLineEdit()
         input_nombre.setPlaceholderText(f"Cliente {len(self.tickets_en_espera) + 1}")
-        input_nombre.setStyleSheet(f"background: {BG_PANEL}; border: 1px solid {ACCENT_BOTON}; padding: 8px;")
+        input_nombre.setStyleSheet(f"background: {BG_PANEL}; border: 3px solid {ACCENT_BOTON}; padding: 8px;")
         lay.addWidget(input_nombre)
 
         def confirmar():
@@ -2266,7 +2266,7 @@ class VentasScreen(QWidget):
             self.cliente_actual = None
             self.lbl_cliente_info.hide()
             self.btn_cliente.setText("👤 Vincular cliente")
-            self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 1px solid {BORDER}; }}")
+            self.btn_cliente.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 14px; border: 3px solid {BORDER}; }}")
             self.actualizar_tabla()
             
             # Actualizar botón de recuperación
@@ -2294,7 +2294,7 @@ class VentasScreen(QWidget):
         lay = QVBoxLayout(dialog)
         
         lista = QListWidget()
-        lista.setStyleSheet(f"QListWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; color: {TEXT_MAIN}; }} QListWidget::item {{ padding: 10px; border-bottom: 1px solid {BORDER}; }}")
+        lista.setStyleSheet(f"QListWidget {{ background: {BG_PANEL}; border: 3px solid {BORDER}; color: {TEXT_MAIN}; }} QListWidget::item {{ padding: 10px; border-bottom: 3px solid {BORDER}; }}")
         
         for i, t in enumerate(self.tickets_en_espera):
             total = sum(item["subtotal"] for item in t["items"])

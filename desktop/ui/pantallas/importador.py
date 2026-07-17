@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import os
 import requests
 try:
@@ -83,7 +83,7 @@ class ImportadorScreen(QWidget):
         self.tabla.setColumnWidth(5, 140)
         self.tabla.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tabla.setStyleSheet(f"""
-            QTableWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 8px; gridline-color: {BORDER}; }}
+            QTableWidget {{ background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 8px; gridline-color: {BORDER}; }}
             QHeaderView::section {{ background: {BORDER}; color: #a0a0b0; padding: 8px; border: none; font-weight: bold; }}
             QTableWidgetItem {{ color: white; padding: 6px; }}
         """)
@@ -99,7 +99,7 @@ class ImportadorScreen(QWidget):
         self.barra_progreso = QProgressBar()
         self.barra_progreso.setFixedHeight(15)
         self.barra_progreso.setStyleSheet(f"""
-            QProgressBar {{ border: 1px solid {BORDER}; border-radius: 7px; background: {BG_PANEL}; text-align: center; color: transparent; }}
+            QProgressBar {{ border: 3px solid {BORDER}; border-radius: 7px; background: {BG_PANEL}; text-align: center; color: transparent; }}
             QProgressBar::chunk {{ background-color: #27ae60; border-radius: 6px; }}
         """)
         self.barra_progreso.setValue(0)

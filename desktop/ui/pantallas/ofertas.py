@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QFrame, QScrollArea, QDialog,
@@ -91,14 +91,14 @@ class OfertasRotator(QWidget):
         nav.setContentsMargins(0, 4, 0, 0)
         self.btn_prev = QPushButton("‹")
         self.btn_prev.setFixedSize(30, 30)
-        self.btn_prev.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border-radius: 15px; font-size: 18px; border: 1px solid {BORDER};")
+        self.btn_prev.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border-radius: 15px; font-size: 18px; border: 3px solid {BORDER};")
         self.btn_prev.clicked.connect(self.anterior)
         self.lbl_num = QLabel("0 / 0")
         self.lbl_num.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         self.lbl_num.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.btn_next = QPushButton("›")
         self.btn_next.setFixedSize(30, 30)
-        self.btn_next.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border-radius: 15px; font-size: 18px; border: 1px solid {BORDER};")
+        self.btn_next.setStyleSheet(f"background: {BG_PANEL}; color: {TEXT_MUTED}; border-radius: 15px; font-size: 18px; border: 3px solid {BORDER};")
         self.btn_next.clicked.connect(self.siguiente)
         nav.addStretch()
         nav.addWidget(self.btn_prev)
@@ -211,7 +211,7 @@ class OfertasScreen(QWidget):
 
         # Intervalo
         interval_frame = QFrame()
-        interval_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 10px; border: 1px solid {BORDER}; }}")
+        interval_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 10px; border: 3px solid {BORDER}; }}")
         int_lay = QHBoxLayout(interval_frame)
         int_lay.setContentsMargins(16, 12, 16, 12)
         lbl_int = QLabel("⏱ Rotar cada:")
@@ -251,8 +251,8 @@ class OfertasScreen(QWidget):
 
         self.lista = QListWidget()
         self.lista.setStyleSheet(f"""
-            QListWidget {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 10px; padding: 4px; }}
-            QListWidget::item {{ color: {TEXT_MAIN}; padding: 12px; border-bottom: 1px solid {BORDER}; font-size: 14px; border-radius: 6px; }}
+            QListWidget {{ background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 10px; padding: 4px; }}
+            QListWidget::item {{ color: {TEXT_MAIN}; padding: 12px; border-bottom: 3px solid {BORDER}; font-size: 14px; border-radius: 6px; }}
             QListWidget::item:selected {{ background: {ACCENT}; color: white; }}
             QListWidget::item:hover {{ background: #2d3450; }}
         """)
@@ -263,13 +263,13 @@ class OfertasScreen(QWidget):
         acc_row = QHBoxLayout()
         btn_subir = QPushButton("⬆ Subir")
         btn_subir.setFixedHeight(38)
-        btn_subir.setStyleSheet(f"QPushButton {{ background: {BG_PANEL}; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px; font-size: 13px; }} QPushButton:hover {{ background: {BORDER}; color: white; }}")
+        btn_subir.setStyleSheet(f"QPushButton {{ background: {BG_PANEL}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-size: 13px; }} QPushButton:hover {{ background: {BORDER}; color: white; }}")
         btn_subir.clicked.connect(self.mover_arriba)
         acc_row.addWidget(btn_subir)
 
         btn_bajar = QPushButton("⬇ Bajar")
         btn_bajar.setFixedHeight(38)
-        btn_bajar.setStyleSheet(f"QPushButton {{ background: {BG_PANEL}; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px; font-size: 13px; }} QPushButton:hover {{ background: {BORDER}; color: white; }}")
+        btn_bajar.setStyleSheet(f"QPushButton {{ background: {BG_PANEL}; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px; font-size: 13px; }} QPushButton:hover {{ background: {BORDER}; color: white; }}")
         btn_bajar.clicked.connect(self.mover_abajo)
         acc_row.addWidget(btn_bajar)
 
@@ -382,7 +382,7 @@ class TextoOfertaDialog(QDialog):
         self.input_texto = QLineEdit()
         self.input_texto.setPlaceholderText("Ej: 2x1 en Gaseosas 🎉")
         self.input_texto.setFixedHeight(48)
-        self.input_texto.setStyleSheet(f"background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px; font-size: 16px;")
+        self.input_texto.setStyleSheet(f"background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 8px; padding: 10px; font-size: 16px;")
         self.input_texto.textChanged.connect(self.actualizar_preview)
         lay.addWidget(self.input_texto)
 
@@ -428,7 +428,7 @@ class TextoOfertaDialog(QDialog):
         row_btns = QHBoxLayout()
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setFixedHeight(42)
-        btn_cancelar.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 1px solid {BORDER}; border-radius: 8px;")
+        btn_cancelar.setStyleSheet(f"background: transparent; color: {TEXT_MUTED}; border: 3px solid {BORDER}; border-radius: 8px;")
         btn_cancelar.clicked.connect(self.reject)
         row_btns.addWidget(btn_cancelar)
         btn_ok = QPushButton("✅  Agregar oferta")
@@ -466,3 +466,4 @@ class TextoOfertaDialog(QDialog):
         self.texto   = self.input_texto.text().strip()
         self.tamanio = self.slider_size.value()
         self.accept()
+
