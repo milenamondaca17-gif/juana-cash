@@ -1,8 +1,8 @@
 {
-  "version": "4.10.19",
-  "desktop_version": "4.10.19",
+  "version": "4.10.20",
+  "desktop_version": "4.10.20",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.19/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.20/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.19 - Letras negras en tema menta pastel"
+  "notas": "v4.10.20 - Texto visible en todos los dialogos del tema menta pastel"
 }
