@@ -623,7 +623,7 @@ class VentasScreen(QWidget):
         panel_izq.setSpacing(8)
 
         busq_frame = QFrame()
-        busq_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 2px solid {ACCENT_BOTON}; }}")
+        busq_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 12px; border: 3px solid {BORDER}; }}")
         busq_layout = QHBoxLayout(busq_frame)
         busq_layout.setContentsMargins(4, 4, 4, 4)
         busq_layout.setSpacing(6)
@@ -652,7 +652,7 @@ class VentasScreen(QWidget):
 
         self.frame_ofertas = QFrame()
         self.frame_ofertas.setFixedHeight(60)
-        self.frame_ofertas.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border: 1px solid {BORDER}; border-radius: 12px; }}")
+        self.frame_ofertas.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border: 3px solid {BORDER}; border-radius: 12px; }}")
         lay_ofertas = QHBoxLayout(self.frame_ofertas)
         lay_ofertas.setContentsMargins(10, 0, 10, 0)
         
@@ -685,7 +685,7 @@ class VentasScreen(QWidget):
         self.input_buscar.installEventFilter(self)
 
         atajos_frame = QFrame()
-        atajos_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 10px; border: 1px solid {BORDER}; }}")
+        atajos_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 10px; border: 3px solid {BORDER}; }}")
         atajos_lay = QHBoxLayout(atajos_frame)
         atajos_lay.setContentsMargins(10, 6, 10, 6)
         atajos_lay.setSpacing(8)
@@ -753,7 +753,7 @@ class VentasScreen(QWidget):
 
         total_frame = QFrame()
         total_frame.setMinimumWidth(350) 
-        total_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 16px; border: 1px solid {BORDER}; }}")
+        total_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 16px; border: 3px solid {BORDER}; }}")
         total_layout = QVBoxLayout(total_frame)
         total_layout.setContentsMargins(18, 14, 18, 14)
         total_layout.setSpacing(6)
