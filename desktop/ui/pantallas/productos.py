@@ -313,9 +313,11 @@ class ProductosScreen(QWidget):
         btn_nuevo.clicked.connect(self.nuevo_producto)
         header.addWidget(btn_nuevo)
 
-        btn_act = QPushButton("🔄")
+        btn_act = QPushButton("↻")
         btn_act.setFixedSize(36, 36)
-        btn_act.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
+        btn_act.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        btn_act.setToolTip("Actualizar")
+        btn_act.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 3px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
         btn_act.clicked.connect(self.cargar_productos)
         header.addWidget(btn_act)
         layout.addLayout(header)
@@ -347,16 +349,23 @@ class ProductosScreen(QWidget):
 
     def crear_card(self, titulo, valor, color):
         card = QFrame()
-        card.setStyleSheet(f"QFrame {{ background: {_CARD}; border-radius: 12px; border-left: 5px solid {color}; border: 1.5px solid {_BOR}; border-left: 5px solid {color}; }}")
-        card.setMinimumHeight(80)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background: {_CARD};
+                border-radius: 14px;
+                border: 3px solid {color};
+            }}
+        """)
+        card.setMinimumHeight(110)
         c_layout = QVBoxLayout(card)
-        c_layout.setContentsMargins(16, 10, 16, 10)
+        c_layout.setContentsMargins(20, 14, 20, 14)
+        c_layout.setSpacing(6)
         lbl_t = QLabel(titulo)
-        lbl_t.setStyleSheet("color: #a0a0b0; font-size: 12px;")
+        lbl_t.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold; border: none;")
         c_layout.addWidget(lbl_t)
         lbl_v = QLabel(valor)
-        lbl_v.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        lbl_v.setStyleSheet(f"color: {color};")
+        lbl_v.setFont(QFont("Arial", 30, QFont.Weight.Bold))
+        lbl_v.setStyleSheet(f"color: {_TXT}; border: none;")
         c_layout.addWidget(lbl_v)
         return card, lbl_v
 
