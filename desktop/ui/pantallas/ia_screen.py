@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QFrame, QTableWidget, QTableWidgetItem,
                               QHeaderView, QDoubleSpinBox, QLineEdit, QScrollArea,
@@ -44,7 +44,7 @@ class InsightsHoyWidget(QFrame):
         self.lbl_hora_act = QLabel("")
         self.lbl_hora_act.setStyleSheet("color: #a0a0b0; font-size: 11px;")
         hdr.addWidget(self.lbl_hora_act)
-        btn_ref = QPushButton("🔄")
+        btn_ref = QPushButton("↻")
         btn_ref.setFixedSize(30, 30)
         btn_ref.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_ref.setStyleSheet("QPushButton{background:#0f3460;color:white;border-radius:6px;}"
@@ -206,7 +206,7 @@ class ComparativoWidget(QFrame):
         titulo.setStyleSheet("color: white;")
         header.addWidget(titulo)
         header.addStretch()
-        btn_act = QPushButton("🔄")
+        btn_act = QPushButton("↻")
         btn_act.setFixedSize(30, 30)
         btn_act.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_act.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 6px; } QPushButton:hover { background: #e94560; }")
@@ -340,7 +340,7 @@ class AnomaliaWidget(QFrame):
         titulo.setStyleSheet("color: white;")
         header.addWidget(titulo)
         header.addStretch()
-        btn_act = QPushButton("🔄")
+        btn_act = QPushButton("↻")
         btn_act.setFixedSize(30, 30)
         btn_act.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_act.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 6px; } QPushButton:hover { background: #e94560; }")
@@ -585,3 +585,4 @@ class IAScreen(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.cargar_todo()
+

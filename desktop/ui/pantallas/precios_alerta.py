@@ -1,4 +1,4 @@
-"""
+﻿"""
 Pantalla de Alertas de Cambio de Precios
 Reescrita para no freezar nunca:
 - Sin polling automático que acumula threads
@@ -65,7 +65,7 @@ class AlertasPrecioScreen(QWidget):
         btn_todas.clicked.connect(self.marcar_todas_vistas)
         header.addWidget(btn_todas)
 
-        self.btn_ref = QPushButton("🔄")
+        self.btn_ref = QPushButton("↻")
         self.btn_ref.setFixedSize(36, 36)
         self.btn_ref.setStyleSheet(
             "QPushButton { background: #16213e; color: white; border-radius: 8px; font-size: 16px; }"
@@ -255,3 +255,4 @@ class AlertasPrecioScreen(QWidget):
         if self.timer:
             self.timer.stop()
         super().closeEvent(event)
+

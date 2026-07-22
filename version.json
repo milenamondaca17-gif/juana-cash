@@ -1,8 +1,8 @@
 {
-  "version": "4.10.26",
-  "desktop_version": "4.10.26",
+  "version": "4.10.27",
+  "desktop_version": "4.10.27",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.26/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.27/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.26 - Cards productos mas grandes, boton actualizar arreglado"
+  "notas": "v4.10.27 - Botones emoji rotos arreglados en toda la app"
 }

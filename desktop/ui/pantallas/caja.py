@@ -294,10 +294,11 @@ class CajaScreen(QWidget):
         btn_paleta.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
         btn_paleta.clicked.connect(self.elegir_paleta)
 
-        btn_refresh = QPushButton("🔄")
+        btn_refresh = QPushButton("↻")
         btn_refresh.setFixedSize(38, BTN_H)
+        btn_refresh.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         btn_refresh.setToolTip("Actualizar")
-        btn_refresh.setStyleSheet(f"QPushButton {{ background: #0f766e; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: #0d9488; }}")
+        btn_refresh.setStyleSheet(f"QPushButton {{ background: #0f766e; color: white; border-radius: 8px; font-size: 20px; font-weight: bold; }} QPushButton:hover {{ background: #0d9488; }}")
         btn_refresh.clicked.connect(self.actualizar_ventas)
 
         # Fila 1: apertura y acciones principales
@@ -366,9 +367,10 @@ class CajaScreen(QWidget):
         lbl_hist.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
         hdr_hist.addWidget(lbl_hist)
         hdr_hist.addStretch()
-        btn_hist_ref = QPushButton("🔄")
+        btn_hist_ref = QPushButton("↻")
         btn_hist_ref.setFixedSize(34, 34)
-        btn_hist_ref.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; border: 3px solid {BORDER}; }}")
+        btn_hist_ref.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        btn_hist_ref.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; border: 3px solid {BORDER}; font-size: 18px; }}")
         btn_hist_ref.clicked.connect(self.cargar_historial)
         hdr_hist.addWidget(btn_hist_ref)
         layout.addLayout(hdr_hist)
@@ -881,7 +883,7 @@ class CajaScreen(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_historial.setItem(row, col, item)
             # Botón Ver detalle
-            btn_ver = QPushButton("📋")
+            btn_ver = QPushButton("Ver")
             btn_ver.setFixedSize(38, 26)
             btn_ver.setToolTip("Ver resumen completo")
             btn_ver.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; border: 3px solid {BORDER}; font-size: 13px; }}")
@@ -2331,3 +2333,4 @@ class CajaScreen(QWidget):
                 self.lbl_ef_caja.setText(f"💵 Efectivo en caja: {_p(ef_caja)}")
         except Exception:
             pass
+

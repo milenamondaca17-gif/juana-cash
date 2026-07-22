@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 import threading
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
@@ -546,7 +546,7 @@ class ProveedoresScreen(QWidget):
         btn_nuevo.clicked.connect(self._nuevo)
         hr.addWidget(btn_nuevo)
 
-        btn_ref = QPushButton("🔄"); btn_ref.setFixedSize(36, 36)
+        btn_ref = QPushButton("↻"); btn_ref.setFixedSize(36, 36)
         btn_ref.setStyleSheet(f"QPushButton {{ background:{_T['primary_light']}; color:{_PRI}; border-radius:8px; border:1.5px solid {_PRI}; }} QPushButton:hover {{ background:{_PRI}; color:white; }}")
         btn_ref.clicked.connect(self.cargar)
         hr.addWidget(btn_ref)
@@ -686,3 +686,4 @@ class ProveedoresScreen(QWidget):
                     detalle_dlg.accept()
             except Exception:
                 QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
+

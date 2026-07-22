@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
@@ -306,7 +306,7 @@ class ClientesScreen(QWidget):
         btn_nuevo.clicked.connect(self.nuevo_cliente)
         header.addWidget(btn_nuevo)
 
-        btn_act = QPushButton("🔄")
+        btn_act = QPushButton("↻")
         btn_act.setFixedSize(36, 36)
         btn_act.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
         btn_act.clicked.connect(self.cargar_clientes)
@@ -380,7 +380,7 @@ class ClientesScreen(QWidget):
         self.date_hasta.dateChanged.connect(self.cargar_fiados_por_dia)
         header.addWidget(self.date_hasta)
 
-        btn_ref = QPushButton("🔄")
+        btn_ref = QPushButton("↻")
         btn_ref.setFixedSize(36, 36)
         btn_ref.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
         btn_ref.clicked.connect(self.cargar_fiados_por_dia)
@@ -629,7 +629,7 @@ class ClientesScreen(QWidget):
             self.tabla.setCellWidget(i, 6, btn_acc)
 
             # ── Historial ───────────────────────────────────────────────────
-            btn_hist = QPushButton("📋")
+            btn_hist = QPushButton("Ver")
             btn_hist.setFixedSize(30, 28)
             btn_hist.setToolTip("Ver historial de fiados")
             btn_hist.setStyleSheet("QPushButton { background: #3498db; color: white; border-radius: 4px; }")
@@ -1014,3 +1014,4 @@ class ClientesScreen(QWidget):
         return [c for c in self.clientes
                 if texto.lower() in c["nombre"].lower()
                 or texto in (c.get("telefono") or "")]
+

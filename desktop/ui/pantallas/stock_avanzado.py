@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
@@ -259,7 +259,7 @@ class StockAvanzadoScreen(QWidget):
         btn_inventario.clicked.connect(self.abrir_inventario)
         header.addWidget(btn_inventario)
 
-        btn_act = QPushButton("🔄")
+        btn_act = QPushButton("↻")
         btn_act.setFixedSize(36, 36)
         btn_act.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         btn_act.setStyleSheet("QPushButton { background: #16213e; color: white; border-radius: 8px; } QPushButton:hover { background: #e94560; }")
@@ -415,3 +415,4 @@ class StockAvanzadoScreen(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.cargar_datos()
+

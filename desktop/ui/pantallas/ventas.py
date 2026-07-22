@@ -810,10 +810,13 @@ class VentasScreen(QWidget):
         btn_cancelar.clicked.connect(self.cancelar_venta)
         fila_btns.addWidget(btn_cancelar)
 
-        btn_informe = QPushButton("📋")
-        btn_informe.setFixedSize(40, 40)
+        btn_informe = QPushButton("Ver")
+        btn_informe.setFixedHeight(40)
+        btn_informe.setFixedWidth(54)
+        btn_informe.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        btn_informe.setToolTip("Ver último informe")
         btn_informe.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        btn_informe.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 16px; border: 3px solid {BORDER}; }}")
+        btn_informe.setStyleSheet(f"QPushButton {{ background: {BG_MAIN}; color: {ACCENT_BOTON}; border-radius: 8px; font-size: 11px; font-weight: bold; border: 3px solid {BORDER}; }} QPushButton:hover {{ background: {ACCENT_BOTON}; color: white; }}")
         btn_informe.clicked.connect(self.ver_informe)
         fila_btns.addWidget(btn_informe)
         total_layout.addLayout(fila_btns)
@@ -2423,3 +2426,4 @@ class VentasScreen(QWidget):
         
         dialog.exec()
         self.input_buscar.setFocus()            
+
