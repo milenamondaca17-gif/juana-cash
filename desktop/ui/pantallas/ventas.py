@@ -737,8 +737,8 @@ class VentasScreen(QWidget):
         self.tabla.setStyleSheet(f"""
             QTableWidget {{ background: {BG_PANEL}; alternate-background-color: {BG_MAIN}; border: 3px solid {BORDER}; border-radius: 12px; gridline-color: transparent; outline: none; font-size: 18px; font-weight: bold; }}
             QHeaderView::section {{ background: {BG_MAIN}; color: {TEXT_MUTED}; padding: 10px; border: none; border-bottom: 2px solid {BORDER}; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: bold; }}
-            QTableWidget::item {{ color: #D4A017; padding: 6px 8px; border-bottom: 3px solid {BORDER}; }}
-            QTableWidget::item:selected {{ background: rgba(212,160,23,0.12); }}
+            QTableWidget::item {{ color: {TEXT_MAIN}; padding: 6px 8px; border-bottom: 3px solid {BORDER}; }}
+            QTableWidget::item:selected {{ background: rgba(5,150,105,0.12); }}
         """)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -1666,8 +1666,6 @@ class VentasScreen(QWidget):
         for i, item in enumerate(self.items_venta):
             # Actualizar textos siempre
             nombre_item = QTableWidgetItem(item["nombre"])
-            if item["producto_id"] == 0:
-                nombre_item.setForeground(Qt.GlobalColor.green)
             self.tabla.setItem(i, 0, nombre_item)
             self.tabla.setItem(i, 1, QTableWidgetItem(_p(item['precio_unitario'])))
             self.tabla.setItem(i, 2, QTableWidgetItem(str(item["cantidad"])))
@@ -1917,8 +1915,9 @@ class VentasScreen(QWidget):
                 msg = f"✅ Ticket #{ticket} — {_p(total_final)} ({metodo_str})"
                 if metodo_pago == "efectivo" and vuelto > 0:
                     msg += f" — Vuelto: {_p(vuelto)}"
+                self.lbl_total.setFont(QFont("Arial", 20, QFont.Weight.Bold))
                 self.lbl_total.setText(msg)
-                self.lbl_total.setStyleSheet(f"color: #27ae60; font-size: 28px; font-weight: bold;")
+                self.lbl_total.setStyleSheet(f"color: #27ae60; letter-spacing: 0px;")
                 self.cancelar_venta()
                 QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {TEXT_MAIN}; letter-spacing: -1px;"))
             else:
