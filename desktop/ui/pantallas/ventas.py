@@ -762,11 +762,11 @@ class VentasScreen(QWidget):
         # Fila título + contador en la misma línea
         fila_titulo = QHBoxLayout()
         lbl_total_titulo = QLabel("TOTAL A COBRAR")
-        lbl_total_titulo.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; letter-spacing: 2px; font-weight: bold;")
+        lbl_total_titulo.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; letter-spacing: 2px; font-weight: bold; border: none; background: transparent;")
         fila_titulo.addWidget(lbl_total_titulo)
         fila_titulo.addStretch()
         self.lbl_items_count = QLabel("")
-        self.lbl_items_count.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; letter-spacing: 0.5px;")
+        self.lbl_items_count.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; letter-spacing: 0.5px; border: none; background: transparent;")
         fila_titulo.addWidget(self.lbl_items_count)
         total_layout.addLayout(fila_titulo)
 
@@ -1701,6 +1701,7 @@ class VentasScreen(QWidget):
                       else 22)
         self.lbl_total.setFont(QFont("Arial", _font_size, QFont.Weight.Bold))
         self.lbl_total.setText(_txt_total)
+        self.lbl_total.setStyleSheet(f"color: {TEXT_MAIN}; letter-spacing: -1px;")
         n_items = len(self.items_venta)
         self.lbl_items_count.setText(
             f"{n_items} {'ítem' if n_items == 1 else 'ítems'}" if n_items > 0 else ""
@@ -1915,11 +1916,11 @@ class VentasScreen(QWidget):
                 msg = f"✅ Ticket #{ticket} — {_p(total_final)} ({metodo_str})"
                 if metodo_pago == "efectivo" and vuelto > 0:
                     msg += f" — Vuelto: {_p(vuelto)}"
+                self.cancelar_venta()
                 self.lbl_total.setFont(QFont("Arial", 20, QFont.Weight.Bold))
                 self.lbl_total.setText(msg)
                 self.lbl_total.setStyleSheet(f"color: #27ae60; letter-spacing: 0px;")
-                self.cancelar_venta()
-                QTimer.singleShot(3000, lambda: self.lbl_total.setStyleSheet(f"color: {TEXT_MAIN}; letter-spacing: -1px;"))
+                QTimer.singleShot(3000, self.actualizar_tabla)
             else:
                 try:
                     data = r.json()

@@ -1,8 +1,8 @@
 {
-  "version": "4.10.28",
-  "desktop_version": "4.10.28",
+  "version": "4.10.29",
+  "desktop_version": "4.10.29",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.28/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.29/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.28 - Productos en negro, total siempre visible"
+  "notas": "v4.10.29 - Total siempre visible en negro despues de cobrar"
 }
