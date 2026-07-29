@@ -1913,13 +1913,13 @@ class VentasScreen(QWidget):
                     "descuento_pct": descuento_pct,
                     "recargo_monto": recargo_monto,
                 }
-                msg = f"✅ Ticket #{ticket} — {_p(total_final)} ({metodo_str})"
-                if metodo_pago == "efectivo" and vuelto > 0:
-                    msg += f" — Vuelto: {_p(vuelto)}"
                 self.cancelar_venta()
-                self.lbl_total.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-                self.lbl_total.setText(msg)
-                self.lbl_total.setStyleSheet(f"color: #27ae60; letter-spacing: 0px;")
+                _txt_cobrado = _p(total_final)
+                _fs = (44 if len(_txt_cobrado) <= 7 else 36 if len(_txt_cobrado) <= 9
+                       else 28 if len(_txt_cobrado) <= 11 else 22)
+                self.lbl_total.setFont(QFont("Arial", _fs, QFont.Weight.Bold))
+                self.lbl_total.setText(_txt_cobrado)
+                self.lbl_total.setStyleSheet(f"color: #27ae60; letter-spacing: -1px;")
                 QTimer.singleShot(3000, self.actualizar_tabla)
             else:
                 try:
