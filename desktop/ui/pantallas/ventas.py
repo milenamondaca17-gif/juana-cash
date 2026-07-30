@@ -753,7 +753,8 @@ class VentasScreen(QWidget):
         panel_der.setSpacing(8)
 
         total_frame = QFrame()
-        total_frame.setMinimumWidth(350) 
+        total_frame.setMinimumWidth(350)
+        total_frame.setMinimumHeight(320)
         total_frame.setStyleSheet(f"QFrame {{ background: {BG_PANEL}; border-radius: 16px; border: 3px solid {BORDER}; }}")
         total_layout = QVBoxLayout(total_frame)
         total_layout.setContentsMargins(18, 14, 18, 14)
@@ -772,9 +773,10 @@ class VentasScreen(QWidget):
 
         self.lbl_total = QLabel("$0")
         self.lbl_total.setFont(QFont("Arial", 44, QFont.Weight.Bold))
-        self.lbl_total.setStyleSheet(f"color: {TEXT_MAIN}; letter-spacing: -1px; margin-top: -4px;")
+        self.lbl_total.setStyleSheet(f"color: {TEXT_MAIN}; letter-spacing: -1px;")
         self.lbl_total.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.lbl_total.setMinimumWidth(260)
+        self.lbl_total.setMinimumHeight(85)
         self.lbl_total.setWordWrap(False)
         total_layout.addWidget(self.lbl_total)
 
