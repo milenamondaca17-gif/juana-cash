@@ -102,6 +102,7 @@ class ProductoDialog(QDialog):
 
         self.input_precio_compra = QDoubleSpinBox()
         self.input_precio_compra.setRange(0, 9999999)
+        self.input_precio_compra.setDecimals(0)
         self.input_precio_compra.setPrefix("$")
         self.input_precio_compra.setFixedHeight(40)
         self.input_precio_compra.setStyleSheet(f"QDoubleSpinBox {{ {estilo} }}")
@@ -109,6 +110,7 @@ class ProductoDialog(QDialog):
 
         self.input_precio_venta = QDoubleSpinBox()
         self.input_precio_venta.setRange(0, 9999999)
+        self.input_precio_venta.setDecimals(0)
         self.input_precio_venta.setPrefix("$")
         self.input_precio_venta.setFixedHeight(40)
         self.input_precio_venta.setStyleSheet(f"QDoubleSpinBox {{ {estilo} }}")
