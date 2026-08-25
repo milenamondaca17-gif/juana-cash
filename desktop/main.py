@@ -1,11 +1,34 @@
 import sys
 import os
+import traceback
+import datetime
 os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer
 from ui.main_window import MainWindow
 from ui.pantallas.splash import SplashScreen
+
+# ── Crash logger ──────────────────────────────────────────────
+_LOG_DIR  = os.path.join(os.path.expanduser("~"), "JuanaCash_Data")
+_LOG_FILE = os.path.join(_LOG_DIR, "crash_log.txt")
+
+def _handle_exception(exc_type, exc_value, exc_tb):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+        return
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    texto = (f"\n{'='*60}\n[{timestamp}]\n"
+             + "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+    try:
+        os.makedirs(_LOG_DIR, exist_ok=True)
+        with open(_LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(texto)
+    except Exception:
+        pass
+
+sys.excepthook = _handle_exception
+# ─────────────────────────────────────────────────────────────
 
 app = QApplication(sys.argv)
 app.setApplicationName("Juana Cash")
