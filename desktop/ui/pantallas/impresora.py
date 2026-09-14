@@ -164,6 +164,10 @@ def imprimir_ticket(venta, items, metodo_pago="", descuento=0, vuelto=0, cliente
 
     except Exception as e:
         _guardar_txt(texto, venta.get("numero", "0"))
+        # Códigos que indican que no hay impresora física — suprimir silenciosamente
+        _SIN_IMPRESORA = ("1411", "183", "1722", "1801", "Esta clase no existe")
+        if any(c in str(e) for c in _SIN_IMPRESORA):
+            return True, ""
         return False, f"Error impresora: {str(e)[:80]}"
 
 
