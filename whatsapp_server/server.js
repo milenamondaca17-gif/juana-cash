@@ -74,7 +74,11 @@ function formatearTel(phone) {
 // ── Enviar mensaje ────────────────────────────────────────────────────────────
 async function enviarMensaje(phone, message, usarLogo = false) {
     const tel = formatearTel(phone);
-    const chatId = tel + '@c.us';
+    const numberId = await client.getNumberId(tel);
+    if (!numberId) {
+        throw new Error(`El número ${tel} no está registrado en WhatsApp`);
+    }
+    const chatId = numberId._serialized;
     if (usarLogo) {
         await client.sendMessage(chatId, LOGO_MEDIA, { caption: message });
     } else {
