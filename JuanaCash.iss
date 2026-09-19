@@ -1,6 +1,6 @@
 [Setup]
 AppName=Juana Cash
-AppVersion=4.10.34
+AppVersion=4.10.35
 AppPublisher=CAMMUS_25
 DefaultDirName={autopf}\JuanaCash
 DefaultGroupName=Juana Cash
@@ -27,6 +27,7 @@ Source: "version.json"; DestDir: "{app}\_internal"; Flags: ignoreversion
 Source: "precios_update.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "precios_update.json"; DestDir: "{app}\_internal"; Flags: ignoreversion
 Source: "whatsapp_server\server.js"; DestDir: "C:\JuanaCash\whatsapp"; Flags: ignoreversion
+Source: "whatsapp_server\package.json"; DestDir: "C:\JuanaCash\whatsapp"; Flags: ignoreversion
 Source: "updater.py"; DestDir: "{app}"; Flags: ignoreversion
 ; Base de datos inicial con usuarios cargados (solo si no existe una ya)
 Source: "juana_cash.db"; DestDir: "{userdocs}\..\JuanaCash_Data"; Flags: ignoreversion onlyifdoesntexist uninsneveruninstall
@@ -51,6 +52,7 @@ end;
 
 [Run]
 Filename: "schtasks"; Parameters: "/delete /tn ""JuanaCash WhatsApp"" /f"; Flags: runhidden waituntilterminated; StatusMsg: "Configurando servidor WhatsApp..."
+Filename: "cmd.exe"; Parameters: "/c cd /d C:\JuanaCash\whatsapp && npm install --prefer-offline 2>nul"; Flags: runhidden waituntilterminated; StatusMsg: "Actualizando WhatsApp..."
 Filename: "schtasks"; Parameters: "/create /tn ""JuanaCash WhatsApp"" /tr ""cmd /c cd /d C:\JuanaCash\whatsapp && node server.js"" /sc onlogon /rl highest /f /delay 0000:30"; Flags: runhidden waituntilterminated
 Filename: "schtasks"; Parameters: "/delete /tn ""JuanaCash Reporte Nocturno"" /f"; Flags: runhidden waituntilterminated; StatusMsg: "Configurando reporte nocturno..."
 Filename: "schtasks"; Parameters: "/create /tn ""JuanaCash Reporte Nocturno"" /tr ""{app}\JuanaCash.exe --solo-reporte"" /sc daily /st 22:20 /rl highest /f"; Flags: runhidden waituntilterminated

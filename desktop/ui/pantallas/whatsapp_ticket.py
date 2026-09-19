@@ -94,7 +94,7 @@ def enviar_ticket_whatsapp(telefono, mensaje):
     try:
         r = requests.post(
             f"{WHATSAPP_SERVER}/send",
-            json={"phone": telefono, "message": mensaje, "logo": True},
+            json={"phone": telefono, "message": mensaje, "logo": False},
             timeout=10
         )
         data = r.json()
