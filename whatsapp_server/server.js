@@ -84,7 +84,11 @@ async function enviarMensaje(phone, message, usarLogo = false) {
     }
     const chatId = numberId._serialized;
     if (usarLogo) {
-        await client.sendMessage(chatId, LOGO_MEDIA, { caption: message });
+        try {
+            await client.sendMessage(chatId, LOGO_MEDIA, { caption: message });
+        } catch (_) {
+            await client.sendMessage(chatId, message);
+        }
     } else {
         await client.sendMessage(chatId, message);
     }

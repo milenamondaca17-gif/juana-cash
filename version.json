@@ -1,8 +1,8 @@
 {
-  "version": "4.10.35",
-  "desktop_version": "4.10.35",
+  "version": "4.10.36",
+  "desktop_version": "4.10.36",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.35/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.36/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.35 - Fix WhatsApp: tickets sin imagen para evitar error de compatibilidad"
+  "notas": "v4.10.36 - Fix WhatsApp: logo con fallback automatico a texto si falla"
 }
