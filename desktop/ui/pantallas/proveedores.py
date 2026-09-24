@@ -1,10 +1,12 @@
 ﻿import requests
 import threading
+import calendar
+from datetime import date as _date_type
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
     QFrame, QHeaderView, QTableWidget, QTableWidgetItem, QMessageBox,
     QDialog, QFormLayout, QComboBox, QDoubleSpinBox, QTabWidget,
-    QTextEdit, QScrollArea
+    QTextEdit, QScrollArea, QGridLayout
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
@@ -407,22 +409,76 @@ class DetalleProveedorDialog(QDialog):
         pagl.addWidget(self.tabla_pagos)
         tabs.addTab(tab_pagos, "💵 Pagos")
 
+        # Tab Almanaque
+        self._alm_anio = _date_type.today().year
+        self._alm_mes  = _date_type.today().month
+        self._alm_movs = []
+        tab_alm = QWidget(); tab_alm.setStyleSheet(f"background:{_CARD};")
+        alm_lay = QVBoxLayout(tab_alm); alm_lay.setContentsMargins(12, 10, 12, 10); alm_lay.setSpacing(8)
+
+        # Totales
+        self._lbl_alm_compras = QLabel("Total comprado: —")
+        self._lbl_alm_compras.setStyleSheet("color:#e74c3c; font-size:12px;")
+        self._lbl_alm_pagos = QLabel("Total pagado: —")
+        self._lbl_alm_pagos.setStyleSheet("color:#27ae60; font-size:12px;")
+        tot_row = QHBoxLayout()
+        tot_row.addWidget(self._lbl_alm_compras)
+        tot_row.addSpacing(20)
+        tot_row.addWidget(self._lbl_alm_pagos)
+        tot_row.addStretch()
+        alm_lay.addLayout(tot_row)
+
+        # Navegación mes
+        nav_row = QHBoxLayout()
+        btn_prev = QPushButton("←"); btn_prev.setFixedSize(30, 28)
+        btn_prev.setStyleSheet(f"QPushButton{{background:{_BG};color:{_TXT};border:1px solid {_BOR};border-radius:5px;}}")
+        btn_prev.clicked.connect(self._alm_mes_anterior)
+        self._lbl_alm_mes = QLabel()
+        self._lbl_alm_mes.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._lbl_alm_mes.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self._lbl_alm_mes.setStyleSheet(f"color:{_TXT};")
+        btn_next = QPushButton("→"); btn_next.setFixedSize(30, 28)
+        btn_next.setStyleSheet(btn_prev.styleSheet())
+        btn_next.clicked.connect(self._alm_mes_siguiente)
+        nav_row.addWidget(btn_prev); nav_row.addStretch()
+        nav_row.addWidget(self._lbl_alm_mes); nav_row.addStretch()
+        nav_row.addWidget(btn_next)
+        alm_lay.addLayout(nav_row)
+
+        # Grilla del almanaque
+        self._alm_grid_frame = QFrame()
+        self._alm_grid_frame.setStyleSheet(f"background:{_BG}; border-radius:8px;")
+        self._alm_grid = QGridLayout(self._alm_grid_frame)
+        self._alm_grid.setSpacing(3); self._alm_grid.setContentsMargins(6, 6, 6, 6)
+        alm_lay.addWidget(self._alm_grid_frame)
+
+        # Detalle
+        self._alm_detalle = QLabel("Tocá un día marcado para ver el detalle.")
+        self._alm_detalle.setWordWrap(True)
+        self._alm_detalle.setMinimumHeight(60)
+        self._alm_detalle.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self._alm_detalle.setStyleSheet(f"background:{_BG}; border-radius:6px; padding:10px; color:{_TXT}; font-size:12px;")
+        alm_lay.addWidget(self._alm_detalle)
+
+        tabs.addTab(tab_alm, "📅 Almanaque")
+
         lay.addWidget(tabs)
 
     def _cargar_todo(self):
         def _fetch():
             try:
                 pid = self.pid
-                prods = requests.get(f"{API_URL}/proveedores/{pid}/productos", timeout=5).json()
+                prods   = requests.get(f"{API_URL}/proveedores/{pid}/productos", timeout=5).json()
                 compras = requests.get(f"{API_URL}/proveedores/{pid}/compras", timeout=5).json()
-                pagos = requests.get(f"{API_URL}/proveedores/{pid}/pagos", timeout=5).json()
-                saldo = requests.get(f"{API_URL}/proveedores/{pid}/saldo", timeout=5).json().get("saldo", 0)
-                QTimer.singleShot(0, lambda: self._aplicar(prods, compras, pagos, saldo))
+                pagos   = requests.get(f"{API_URL}/proveedores/{pid}/pagos", timeout=5).json()
+                saldo   = requests.get(f"{API_URL}/proveedores/{pid}/saldo", timeout=5).json().get("saldo", 0)
+                movs    = requests.get(f"{API_URL}/proveedores/{pid}/movimientos", timeout=5).json()
+                QTimer.singleShot(0, lambda: self._aplicar(prods, compras, pagos, saldo, movs))
             except Exception:
                 pass
         threading.Thread(target=_fetch, daemon=True).start()
 
-    def _aplicar(self, prods, compras, pagos, saldo):
+    def _aplicar(self, prods, compras, pagos, saldo, movs=None):
         if saldo > 0:
             self.lbl_saldo.setText(f"Deuda: {_p(saldo)}")
         else:
@@ -458,6 +514,95 @@ class DetalleProveedorDialog(QDialog):
             self.tabla_pagos.setItem(i, 3, QTableWidgetItem(pg.get("referencia") or "—"))
             self.tabla_pagos.setItem(i, 4, QTableWidgetItem(pg.get("notas") or "—"))
             self.tabla_pagos.setRowHeight(i, 30)
+
+        if movs:
+            self._alm_movs = movs.get("movimientos", [])
+            tc = movs.get("total_compras", 0)
+            tp = movs.get("total_pagos", 0)
+            self._lbl_alm_compras.setText(f"Total comprado: {_p(tc)}")
+            self._lbl_alm_pagos.setText(f"Total pagado: {_p(tp)}")
+            self._alm_dibujar()
+
+    def _alm_dibujar(self):
+        while self._alm_grid.count():
+            item = self._alm_grid.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        meses_es = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+        self._lbl_alm_mes.setText(f"{meses_es[self._alm_mes - 1]}  {self._alm_anio}")
+
+        for col, d in enumerate(["Lu","Ma","Mi","Ju","Vi","Sa","Do"]):
+            lbl = QLabel(d)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setStyleSheet(f"color:{_MUT}; font-size:10px; font-weight:bold;")
+            self._alm_grid.addWidget(lbl, 0, col)
+
+        eventos_dia = {}
+        for m in self._alm_movs:
+            f = m.get("fecha", "")[:10]
+            try:
+                y, mo, d = int(f[:4]), int(f[5:7]), int(f[8:10])
+            except Exception:
+                continue
+            if y == self._alm_anio and mo == self._alm_mes:
+                eventos_dia.setdefault(d, {"compra": [], "pago": []})
+                eventos_dia[d][m["tipo"]].append(m)
+
+        primer_dia, total_dias = calendar.monthrange(self._alm_anio, self._alm_mes)
+        fila, col = 1, primer_dia
+        for dia in range(1, total_dias + 1):
+            ev = eventos_dia.get(dia, {})
+            tiene_compra = bool(ev.get("compra"))
+            tiene_pago   = bool(ev.get("pago"))
+
+            btn = QPushButton(str(dia))
+            btn.setFixedSize(42, 34)
+            btn.setFont(QFont("Arial", 10))
+
+            if tiene_compra and tiene_pago:
+                bg, fg = "#b8860b", "white"
+            elif tiene_compra:
+                bg, fg = "#c0392b", "white"
+            elif tiene_pago:
+                bg, fg = "#27ae60", "white"
+            else:
+                bg, fg = _BG, _MUT
+
+            btn.setStyleSheet(f"QPushButton{{background:{bg};color:{fg};border-radius:5px;border:1px solid {_BOR};}}")
+            if tiene_compra or tiene_pago:
+                btn.clicked.connect(lambda _, d=dia, e=ev: self._alm_detalle_dia(d, e))
+            else:
+                btn.setEnabled(False)
+            self._alm_grid.addWidget(btn, fila, col)
+            col += 1
+            if col > 6:
+                col = 0; fila += 1
+
+    def _alm_detalle_dia(self, dia, eventos):
+        lineas = [f"<b>{dia:02d}/{self._alm_mes:02d}/{self._alm_anio}</b><br>"]
+        for m in eventos.get("compra", []):
+            lineas.append(f"🔴 <b>Compra:</b> {m['descripcion']} — <b>{_p(m['monto'])}</b>")
+        for m in eventos.get("pago", []):
+            lineas.append(f"🟢 <b>Pago:</b> {m['descripcion']} — <b>{_p(m['monto'])}</b>")
+        self._alm_detalle.setText("<br>".join(lineas))
+
+    def _alm_mes_anterior(self):
+        if self._alm_mes == 1:
+            self._alm_mes = 12; self._alm_anio -= 1
+        else:
+            self._alm_mes -= 1
+        self._alm_detalle.setText("Tocá un día marcado para ver el detalle.")
+        self._alm_dibujar()
+
+    def _alm_mes_siguiente(self):
+        if self._alm_mes == 12:
+            self._alm_mes = 1; self._alm_anio += 1
+        else:
+            self._alm_mes += 1
+        self._alm_detalle.setText("Tocá un día marcado para ver el detalle.")
+        self._alm_dibujar()
 
     def _registrar_compra(self):
         dlg = CompraDialog(self, self.proveedor["nombre"])
@@ -511,7 +656,7 @@ class DetalleProveedorDialog(QDialog):
 # ── Pantalla principal ────────────────────────────────────────────────────────
 
 class ProveedoresScreen(QWidget):
-    _proveedores_listos = pyqtSignal(list)
+    _proveedores_listos = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
@@ -554,10 +699,11 @@ class ProveedoresScreen(QWidget):
 
         # Cards resumen
         self._cards_row = QHBoxLayout(); self._cards_row.setSpacing(12)
-        self.card_total = self._card("🏭 Proveedores", "0", _PRI)
-        self.card_deuda = self._card("💰 Deuda total", "$0", _WARN)
-        self.card_hoy   = self._card("📅 Visitan hoy", "0", _OK)
-        for c in [self.card_total, self.card_deuda, self.card_hoy]:
+        self.card_total  = self._card("🏭 Proveedores", "0", _PRI)
+        self.card_deuda  = self._card("💰 Deuda total", "$0", _WARN)
+        self.card_hoy    = self._card("📅 Visitan hoy", "0", _OK)
+        self.card_gastado = self._card("💸 Pagado hoy", "$0", _DGR)
+        for c in [self.card_total, self.card_deuda, self.card_hoy, self.card_gastado]:
             self._cards_row.addWidget(c[0])
         lay.addLayout(self._cards_row)
 
@@ -592,26 +738,31 @@ class ProveedoresScreen(QWidget):
         def _fetch():
             try:
                 r = requests.get(f"{API_URL}/proveedores/", timeout=8)
-                if r.status_code == 200:
-                    self._proveedores_listos.emit(r.json())
+                proveedores = r.json() if r.status_code == 200 else []
+                try:
+                    g = requests.get(f"{API_URL}/proveedores/gastos-hoy", timeout=5).json()
+                    pagado_hoy = g.get("pagos_hoy", 0)
+                except Exception:
+                    pagado_hoy = 0
+                self._proveedores_listos.emit((proveedores, pagado_hoy))
             except Exception:
                 pass
         threading.Thread(target=_fetch, daemon=True).start()
 
-    def _aplicar(self, proveedores):
+    def _aplicar(self, datos):
         from datetime import datetime
+        proveedores, pagado_hoy = datos if isinstance(datos, tuple) else (datos, 0)
         self.proveedores = proveedores
         self._mostrar(proveedores)
-        # Cards
         self.card_total[1].setText(str(len(proveedores)))
         deuda_total = sum(float(p.get("saldo_pendiente", 0)) for p in proveedores)
         self.card_deuda[1].setText(_p(deuda_total))
-        hoy = datetime.now().strftime("%A").capitalize()
         dias_es = {"Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miércoles",
                    "Thursday": "Jueves", "Friday": "Viernes", "Saturday": "Sábado", "Sunday": "Domingo"}
         hoy_es = dias_es.get(datetime.now().strftime("%A"), "")
         visitan_hoy = sum(1 for p in proveedores if p.get("dia_visita") == hoy_es)
         self.card_hoy[1].setText(str(visitan_hoy))
+        self.card_gastado[1].setText(_p(pagado_hoy))
 
     def _mostrar(self, proveedores):
         self.tabla.setRowCount(len(proveedores))

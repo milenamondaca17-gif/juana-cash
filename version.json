@@ -1,8 +1,8 @@
 {
-  "version": "4.10.37",
-  "desktop_version": "4.10.37",
+  "version": "4.10.38",
+  "desktop_version": "4.10.38",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.37/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.38/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.37 - Historial de fiados: almanaque con dias de compras y pagos"
+  "notas": "v4.10.38 - Proveedores: almanaque de compras y pagos + card pagado hoy"
 }

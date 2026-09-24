@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, time
 from ..database import get_db
 from ..models.proveedor import Proveedor, CompraProveedor, PagoProveedor
 from ..models.producto import Producto
@@ -181,3 +181,67 @@ def registrar_pago(pid: int, datos: PagoSchema, db: Session = Depends(get_db)):
 @router.get("/{pid}/saldo")
 def saldo(pid: int, db: Session = Depends(get_db)):
     return {"saldo": _saldo(pid, db)}
+
+@router.get("/gastos-hoy")
+def gastos_hoy(db: Session = Depends(get_db)):
+    hoy = datetime.now().date()
+    desde = datetime.combine(hoy, time.min)
+    hasta = datetime.combine(hoy, time.max)
+    pagos = db.query(func.sum(PagoProveedor.monto)).filter(
+        PagoProveedor.fecha >= desde, PagoProveedor.fecha <= hasta
+    ).scalar() or 0
+    compras = db.query(func.sum(CompraProveedor.monto_total)).filter(
+        CompraProveedor.fecha >= desde, CompraProveedor.fecha <= hasta
+    ).scalar() or 0
+    return {"pagos_hoy": float(pagos), "compras_hoy": float(compras)}
+
+@router.get("/{pid}/movimientos")
+def movimientos_proveedor(pid: int, db: Session = Depends(get_db)):
+    """Estado de cuenta cronológico del proveedor: compras y pagos mezclados."""
+    prov = db.query(Proveedor).filter(Proveedor.id == pid).first()
+    if not prov:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+
+    movimientos = []
+
+    for c in db.query(CompraProveedor).filter(CompraProveedor.proveedor_id == pid).all():
+        desc = f"Factura {c.nro_factura}" if c.nro_factura else "Compra sin factura"
+        if c.notas:
+            desc += f" — {c.notas}"
+        movimientos.append({
+            "fecha": str(c.fecha),
+            "tipo": "compra",
+            "descripcion": desc,
+            "monto": float(c.monto_total),
+        })
+
+    for p in db.query(PagoProveedor).filter(PagoProveedor.proveedor_id == pid).all():
+        desc = f"Pago — {p.metodo_pago.capitalize()}"
+        if p.referencia:
+            desc += f" ({p.referencia})"
+        if p.notas:
+            desc += f" — {p.notas}"
+        movimientos.append({
+            "fecha": str(p.fecha),
+            "tipo": "pago",
+            "descripcion": desc,
+            "monto": float(p.monto),
+        })
+
+    movimientos.sort(key=lambda x: x["fecha"])
+
+    saldo = 0.0
+    for m in movimientos:
+        saldo = saldo + m["monto"] if m["tipo"] == "compra" else saldo - m["monto"]
+        m["saldo"] = round(saldo, 2)
+
+    total_compras = sum(m["monto"] for m in movimientos if m["tipo"] == "compra")
+    total_pagos   = sum(m["monto"] for m in movimientos if m["tipo"] == "pago")
+
+    return {
+        "proveedor": {"id": prov.id, "nombre": prov.nombre},
+        "movimientos": movimientos,
+        "total_compras": total_compras,
+        "total_pagos": total_pagos,
+        "saldo_actual": round(total_compras - total_pagos, 2),
+    }
