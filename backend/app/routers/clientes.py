@@ -6,6 +6,8 @@ from datetime import date
 from ..database import get_db
 from ..models.cliente import Cliente
 from ..models.fiado import Fiado, PagoFiado
+from ..models.venta import Venta, ItemVenta
+from ..models.producto import Producto
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
@@ -91,41 +93,74 @@ def listar_clientes(db: Session = Depends(get_db)):
 
 @router.get("/{id}/historial")
 def historial_cliente(id: int, db: Session = Depends(get_db)):
-    """Historial de fiados y pagos de un cliente."""
+    """Estado de cuenta cronológico: compras y pagos mezclados con saldo acumulado."""
     c = db.query(Cliente).filter(Cliente.id == id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    fiados = db.query(Fiado).filter(
-        Fiado.cliente_id == id
-    ).order_by(Fiado.created_at.desc()).all()
-    historial = []
+
+    fiados = db.query(Fiado).filter(Fiado.cliente_id == id).all()
+
+    movimientos = []
+
     for f in fiados:
-        pagos_f = db.query(PagoFiado).filter(PagoFiado.fiado_id == f.id).all()
-        historial.append({
-            "id": f.id,
-            "monto": float(f.monto),
-            "saldo": float(f.saldo),
+        # Armar descripción de la compra
+        if f.venta_id:
+            venta = db.query(Venta).filter(Venta.id == f.venta_id).first()
+            if venta:
+                items = db.query(ItemVenta, Producto).join(
+                    Producto, ItemVenta.producto_id == Producto.id
+                ).filter(ItemVenta.venta_id == venta.id).all()
+                detalle = ", ".join(
+                    f"{float(it.cantidad):g}x {pr.nombre}" for it, pr in items
+                ) or "Venta"
+                descripcion = f"Ticket #{venta.numero} — {detalle}"
+            else:
+                descripcion = f.descripcion or "Compra"
+        else:
+            descripcion = f.descripcion or "Compra registrada manualmente"
+
+        movimientos.append({
             "fecha": str(f.created_at),
-            "estado": f.estado or "pendiente",
-            "descripcion": f.descripcion or "",
-            "vencimiento": str(f.vencimiento) if f.vencimiento else None,
-            "pagos": [
-                {"monto": float(p.monto), "fecha": str(p.fecha),
-                 "metodo": p.metodo or "efectivo",
-                 "usuario_id": p.usuario_id}
-                for p in pagos_f
-            ]
+            "tipo": "compra",
+            "descripcion": descripcion,
+            "monto": float(f.monto),
         })
+
+        # Pagos de este fiado
+        for p in db.query(PagoFiado).filter(PagoFiado.fiado_id == f.id).all():
+            movimientos.append({
+                "fecha": str(p.fecha),
+                "tipo": "pago",
+                "descripcion": f"Pago — {(p.metodo or 'efectivo').capitalize()}" + (f" ({p.observacion})" if p.observacion else ""),
+                "monto": float(p.monto),
+            })
+
+    # Ordenar cronológicamente
+    movimientos.sort(key=lambda x: x["fecha"])
+
+    # Calcular saldo acumulado
+    saldo = 0.0
+    for m in movimientos:
+        if m["tipo"] == "compra":
+            saldo += m["monto"]
+        else:
+            saldo -= m["monto"]
+        m["saldo"] = round(saldo, 2)
+
+    total_compras = sum(m["monto"] for m in movimientos if m["tipo"] == "compra")
+    total_pagos   = sum(m["monto"] for m in movimientos if m["tipo"] == "pago")
+
     return {
         "cliente": {
             "id": c.id,
             "nombre": c.nombre,
             "puntos": float(c.puntos) if c.puntos else 0,
-            "deuda_actual": float(c.deuda_actual) if c.deuda_actual else 0
+            "deuda_actual": float(c.deuda_actual) if c.deuda_actual else 0,
         },
-        "historial": historial,
-        "total_fiado": sum(float(f.monto) for f in fiados),
-        "total_registros": len(fiados)
+        "movimientos": movimientos,
+        "total_compras": total_compras,
+        "total_pagos": total_pagos,
+        "saldo_actual": round(total_compras - total_pagos, 2),
     }
 
 @router.post("/{id}/canjear-puntos")

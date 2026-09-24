@@ -1,12 +1,14 @@
 ﻿import requests
+import calendar
+from datetime import date as _date_type
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
                               QDialog, QFormLayout, QDoubleSpinBox, QMenu, QComboBox,
-                              QTabWidget, QDateEdit)
-from PyQt6.QtCore import QDate
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+                              QTabWidget, QDateEdit, QGridLayout, QScrollArea,
+                              QSizePolicy, QSplitter)
+from PyQt6.QtCore import QDate, Qt, QSize
+from PyQt6.QtGui import QFont, QColor
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -130,111 +132,209 @@ class HistorialDialog(QDialog):
     def __init__(self, parent=None, cliente_id=None, nombre=""):
         super().__init__(parent)
         self.cliente_id = cliente_id
-        self.setWindowTitle(f"📋 Historial — {nombre}")
-        self.setMinimumSize(620, 500)
-        self.setStyleSheet("background-color: #1a1a2e; color: white;")
-        self.setup_ui()
-        self.cargar()
+        self.nombre     = nombre
+        self._movimientos = []
+        self._anio  = _date_type.today().year
+        self._mes   = _date_type.today().month
+        self.setWindowTitle(f"Historial — {nombre}")
+        self.setMinimumSize(780, 600)
+        self.setStyleSheet(f"background: {_BG}; color: {_TXT};")
+        self._setup_ui()
+        self._cargar()
 
-    def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+    # ── UI ────────────────────────────────────────────────────────────────────
+    def _setup_ui(self):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(20, 16, 20, 16)
+        root.setSpacing(12)
 
-        titulo = QLabel(f"📋 Historial de fiados")
-        titulo.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        titulo.setStyleSheet("color: #3498db;")
-        layout.addWidget(titulo)
-
-        # Resumen
-        self.resumen_frame = QFrame()
-        self.resumen_frame.setStyleSheet("QFrame { background: #16213e; border-radius: 8px; }")
-        resumen_layout = QHBoxLayout(self.resumen_frame)
-        resumen_layout.setContentsMargins(16, 10, 16, 10)
-
-        self.lbl_puntos = QLabel("⭐ 0 puntos")
-        self.lbl_puntos.setStyleSheet("color: #f39c12; font-size: 14px; font-weight: bold;")
-        resumen_layout.addWidget(self.lbl_puntos)
-        resumen_layout.addStretch()
-        self.lbl_deuda = QLabel("💸 Deuda: $0.00")
+        # Encabezado
+        hdr = QHBoxLayout()
+        lbl_titulo = QLabel(f"📋  {self.nombre}")
+        lbl_titulo.setFont(QFont("Arial", 15, QFont.Weight.Bold))
+        lbl_titulo.setStyleSheet(f"color: {_PRI};")
+        hdr.addWidget(lbl_titulo)
+        hdr.addStretch()
+        self.lbl_deuda = QLabel("Deuda: —")
         self.lbl_deuda.setStyleSheet("color: #e94560; font-size: 14px; font-weight: bold;")
-        resumen_layout.addWidget(self.lbl_deuda)
-        resumen_layout.addStretch()
-        self.lbl_total_f = QLabel("📊 Total fiado: $0.00")
-        self.lbl_total_f.setStyleSheet("color: #a0a0b0; font-size: 13px;")
-        resumen_layout.addWidget(self.lbl_total_f)
-        layout.addWidget(self.resumen_frame)
+        hdr.addWidget(self.lbl_deuda)
+        root.addLayout(hdr)
 
-        # Tabla de historial
-        self.tabla = QTableWidget()
-        self.tabla.setColumnCount(5)
-        self.tabla.setHorizontalHeaderLabels(["Fecha", "Descripción", "Monto", "Estado", "Pagos"])
-        self.tabla.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.tabla.setColumnWidth(0, 110)
-        self.tabla.setColumnWidth(2, 100)
-        self.tabla.setColumnWidth(3, 90)
-        self.tabla.setColumnWidth(4, 100)
-        self.tabla.setStyleSheet("""
-            QTableWidget { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; gridline-color: #0f3460; }
-            QHeaderView::section { background: #0f3460; color: #a0a0b0; padding: 6px; border: none; }
-            QTableWidgetItem { color: white; padding: 6px; }
-        """)
-        self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        layout.addWidget(self.tabla)
+        # Totales
+        tot = QHBoxLayout()
+        self.lbl_compras = QLabel("Total comprado: —")
+        self.lbl_compras.setStyleSheet(f"color: #e74c3c; font-size: 12px;")
+        self.lbl_pagos_tot = QLabel("Total pagado: —")
+        self.lbl_pagos_tot.setStyleSheet(f"color: #2ecc71; font-size: 12px;")
+        tot.addWidget(self.lbl_compras)
+        tot.addSpacing(24)
+        tot.addWidget(self.lbl_pagos_tot)
+        tot.addStretch()
+        root.addLayout(tot)
 
-        self.lbl_vacio = QLabel("Sin registros de fiado para este cliente.")
-        self.lbl_vacio.setStyleSheet("color: #555; font-size: 13px; padding: 20px;")
-        self.lbl_vacio.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_vacio.hide()
-        layout.addWidget(self.lbl_vacio)
+        sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet(f"color: {_BOR};"); root.addWidget(sep)
+
+        # ── Navegación de mes ─────────────────────────────────────────────────
+        nav = QHBoxLayout()
+        btn_prev = QPushButton("←")
+        btn_prev.setFixedSize(32, 32)
+        btn_prev.setStyleSheet(f"QPushButton{{background:{_CARD};color:{_TXT};border:1px solid {_BOR};border-radius:6px;font-size:16px;}} QPushButton:hover{{background:{_T['bg_hover']};}}")
+        btn_prev.clicked.connect(self._mes_anterior)
+        self.lbl_mes = QLabel()
+        self.lbl_mes.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_mes.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        self.lbl_mes.setStyleSheet(f"color: {_TXT};")
+        btn_next = QPushButton("→")
+        btn_next.setFixedSize(32, 32)
+        btn_next.setStyleSheet(btn_prev.styleSheet())
+        btn_next.clicked.connect(self._mes_siguiente)
+        nav.addWidget(btn_prev)
+        nav.addStretch()
+        nav.addWidget(self.lbl_mes)
+        nav.addStretch()
+        nav.addWidget(btn_next)
+        root.addLayout(nav)
+
+        # ── Almanaque ─────────────────────────────────────────────────────────
+        self._grid_frame = QFrame()
+        self._grid_frame.setStyleSheet(f"background:{_CARD}; border-radius:10px;")
+        self._grid_layout = QGridLayout(self._grid_frame)
+        self._grid_layout.setSpacing(4)
+        self._grid_layout.setContentsMargins(10, 10, 10, 10)
+        root.addWidget(self._grid_frame)
+
+        sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
+        sep2.setStyleSheet(f"color: {_BOR};"); root.addWidget(sep2)
+
+        # ── Panel de detalle ──────────────────────────────────────────────────
+        lbl_det = QLabel("Detalle del día:")
+        lbl_det.setStyleSheet(f"color:{_MUT}; font-size:12px;")
+        root.addWidget(lbl_det)
+
+        self._detalle = QLabel("Tocá un día marcado para ver el detalle.")
+        self._detalle.setWordWrap(True)
+        self._detalle.setMinimumHeight(80)
+        self._detalle.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self._detalle.setStyleSheet(f"background:{_CARD}; border-radius:8px; padding:12px; color:{_TXT}; font-size:13px;")
+        root.addWidget(self._detalle)
 
         btn_cerrar = QPushButton("Cerrar")
-        btn_cerrar.setFixedHeight(40)
-        btn_cerrar.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 8px; font-size: 13px; }")
+        btn_cerrar.setFixedHeight(38)
+        btn_cerrar.setStyleSheet(f"QPushButton{{background:{_CARD};color:{_TXT};border:1px solid {_BOR};border-radius:8px;font-size:13px;}} QPushButton:hover{{background:{_T['bg_hover']};}}")
         btn_cerrar.clicked.connect(self.accept)
-        layout.addWidget(btn_cerrar)
+        root.addWidget(btn_cerrar)
 
-    def cargar(self):
+    # ── Datos ─────────────────────────────────────────────────────────────────
+    def _cargar(self):
         try:
             r = requests.get(f"{API_URL}/clientes/{self.cliente_id}/historial", timeout=5)
-            if r.status_code == 200:
-                data = r.json()
-                c = data.get("cliente", {})
-                self.lbl_puntos.setText(f"⭐ {int(float(c.get('puntos', 0)))} puntos")
-                self.lbl_deuda.setText(f"💸 Deuda: {_p(float(c.get('deuda_actual', 0)))}")
-                self.lbl_total_f.setText(f"📊 Total fiado: {_p(data.get('total_fiado', 0))}")
-
-                historial = data.get("historial", [])
-                if not historial:
-                    self.tabla.hide()
-                    self.lbl_vacio.show()
-                    return
-
-                self.tabla.setRowCount(len(historial))
-                for i, f in enumerate(historial):
-                    fecha = str(f.get("fecha", ""))[:10]
-                    self.tabla.setItem(i, 0, QTableWidgetItem(fecha))
-                    self.tabla.setItem(i, 1, QTableWidgetItem(f.get("descripcion", "")))
-
-                    item_monto = QTableWidgetItem(_p(float(f.get('monto', 0))))
-                    item_monto.setForeground(Qt.GlobalColor.red)
-                    self.tabla.setItem(i, 2, item_monto)
-
-                    estado = f.get("estado", "pendiente")
-                    item_estado = QTableWidgetItem(estado.capitalize())
-                    if estado == "pagado":
-                        item_estado.setForeground(Qt.GlobalColor.green)
-                    else:
-                        item_estado.setForeground(Qt.GlobalColor.yellow)
-                    self.tabla.setItem(i, 3, item_estado)
-
-                    pagos = f.get("pagos", [])
-                    total_pagado = sum(float(p.get("monto", 0)) for p in pagos)
-                    lbl_pagos = QTableWidgetItem(f"{_p(total_pagado)} ({len(pagos)} pago{'s' if len(pagos) != 1 else ''})")
-                    lbl_pagos.setForeground(Qt.GlobalColor.green)
-                    self.tabla.setItem(i, 4, lbl_pagos)
+            if r.status_code != 200:
+                return
+            data = r.json()
+            c = data.get("cliente", {})
+            self.lbl_deuda.setText(f"Deuda: {_p(c.get('deuda_actual', 0))}")
+            self.lbl_compras.setText(f"Total comprado: {_p(data.get('total_compras', 0))}")
+            self.lbl_pagos_tot.setText(f"Total pagado: {_p(data.get('total_pagos', 0))}")
+            self._movimientos = data.get("movimientos", [])
+            self._dibujar_mes()
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo cargar el historial\n{str(e)}")
+            QMessageBox.critical(self, "Error", f"No se pudo cargar el historial\n{e}")
+
+    # ── Almanaque ─────────────────────────────────────────────────────────────
+    def _dibujar_mes(self):
+        # Limpiar grilla
+        while self._grid_layout.count():
+            item = self._grid_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        meses_es = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+        self.lbl_mes.setText(f"{meses_es[self._mes - 1]}  {self._anio}")
+
+        dias_sem = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"]
+        for col, d in enumerate(dias_sem):
+            lbl = QLabel(d)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setStyleSheet(f"color:{_MUT}; font-size:11px; font-weight:bold;")
+            self._grid_layout.addWidget(lbl, 0, col)
+
+        # Agrupar movimientos del mes por día
+        eventos_dia = {}   # dia_int -> {"compra": [...], "pago": [...]}
+        for m in self._movimientos:
+            f = m.get("fecha", "")[:10]
+            try:
+                y, mo, d = int(f[:4]), int(f[5:7]), int(f[8:10])
+            except Exception:
+                continue
+            if y == self._anio and mo == self._mes:
+                eventos_dia.setdefault(d, {"compra": [], "pago": []})
+                eventos_dia[d][m["tipo"]].append(m)
+
+        # Primer día de la semana del mes (lunes=0)
+        primer_dia, total_dias = calendar.monthrange(self._anio, self._mes)
+
+        fila = 1
+        col  = primer_dia
+        for dia in range(1, total_dias + 1):
+            ev = eventos_dia.get(dia, {})
+            tiene_compra = bool(ev.get("compra"))
+            tiene_pago   = bool(ev.get("pago"))
+
+            btn = QPushButton(str(dia))
+            btn.setFixedSize(46, 38)
+            btn.setFont(QFont("Arial", 11))
+
+            if tiene_compra and tiene_pago:
+                bg, fg = "#b8860b", "white"
+            elif tiene_compra:
+                bg, fg = "#c0392b", "white"
+            elif tiene_pago:
+                bg, fg = "#27ae60", "white"
+            else:
+                bg, fg = _CARD, _MUT
+
+            btn.setStyleSheet(
+                f"QPushButton{{background:{bg};color:{fg};border-radius:6px;"
+                f"border:1px solid {_BOR};}}"
+                f"QPushButton:hover{{opacity:0.85;}}"
+            )
+
+            if tiene_compra or tiene_pago:
+                btn.clicked.connect(lambda _, d=dia, e=ev: self._mostrar_detalle(d, e))
+            else:
+                btn.setEnabled(False)
+
+            self._grid_layout.addWidget(btn, fila, col)
+            col += 1
+            if col > 6:
+                col = 0
+                fila += 1
+
+    def _mostrar_detalle(self, dia, eventos):
+        lineas = [f"<b>{dia:02d}/{self._mes:02d}/{self._anio}</b><br>"]
+        for m in eventos.get("compra", []):
+            lineas.append(f"🔴 <b>Compra:</b> {m['descripcion']} — <b>{_p(m['monto'])}</b>")
+        for m in eventos.get("pago", []):
+            lineas.append(f"🟢 <b>Pago:</b> {m['descripcion']} — <b>{_p(m['monto'])}</b>")
+        self._detalle.setText("<br>".join(lineas))
+
+    def _mes_anterior(self):
+        if self._mes == 1:
+            self._mes = 12; self._anio -= 1
+        else:
+            self._mes -= 1
+        self._detalle.setText("Tocá un día marcado para ver el detalle.")
+        self._dibujar_mes()
+
+    def _mes_siguiente(self):
+        if self._mes == 12:
+            self._mes = 1; self._anio += 1
+        else:
+            self._mes += 1
+        self._detalle.setText("Tocá un día marcado para ver el detalle.")
+        self._dibujar_mes()
 
 
 class ClientesScreen(QWidget):
