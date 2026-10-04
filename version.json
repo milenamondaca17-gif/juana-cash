@@ -1,8 +1,8 @@
 {
-  "version": "4.10.38",
-  "desktop_version": "4.10.38",
+  "version": "4.10.39",
+  "desktop_version": "4.10.39",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.38/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.39/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.38 - Proveedores: almanaque de compras y pagos + card pagado hoy"
+  "notas": "v4.10.39 - Clientes WA: registro automático al enviar ticket con nombre opcional"
 }

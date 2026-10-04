@@ -1088,6 +1088,15 @@ class VentasScreen(QWidget):
                 if ok:
                     lbl_status.setText("✅ ¡Ticket enviado!")
                     QTimer.singleShot(1500, dialog.accept)
+                    import threading as _th
+                    _th.Thread(
+                        target=lambda: requests.post(
+                            "http://127.0.0.1:8000/clientes/registrar-whatsapp",
+                            json={"telefono": tel, "nombre": ""},
+                            timeout=4
+                        ),
+                        daemon=True
+                    ).start()
                 else:
                     lbl_status.setText(f"❌ Error: {resp}")
             except Exception as e:
@@ -2109,6 +2118,22 @@ class VentasScreen(QWidget):
         row_tel.addWidget(btn_wa)
         lay.addLayout(row_tel)
 
+        # Campo nombre — aparece al escribir el teléfono, oculto si hay cliente
+        in_nombre_wa = QLineEdit()
+        in_nombre_wa.setPlaceholderText("📝 Nombre para agendar (opcional)")
+        in_nombre_wa.setStyleSheet(f"background:{BG_PANEL}; color:{TEXT_MAIN}; border:2px solid {BORDER}; border-radius:8px; padding:7px; font-size:12px;")
+        in_nombre_wa.setVisible(False)
+        lay.addWidget(in_nombre_wa)
+
+        if cliente_nombre:
+            in_nombre_wa.setText(cliente_nombre)
+
+        def _tel_cambiado(texto):
+            tiene_tel = bool(texto.strip())
+            in_nombre_wa.setVisible(tiene_tel and not cliente_nombre)
+
+        in_tel.textChanged.connect(_tel_cambiado)
+
         lbl_wa_status = QLabel("")
         lbl_wa_status.setStyleSheet("font-size:12px;")
         lay.addWidget(lbl_wa_status)
@@ -2128,6 +2153,7 @@ class VentasScreen(QWidget):
             btn_wa.setEnabled(False)
             from PyQt6.QtWidgets import QApplication
             QApplication.processEvents()
+            nombre_agendar = (in_nombre_wa.text().strip() if in_nombre_wa.isVisible() else "") or cliente_nombre or ""
             ticket_texto = formatear_ticket_whatsapp(
                 {"numero": ticket, "total": total_final},
                 self.items_venta,
@@ -2141,6 +2167,15 @@ class VentasScreen(QWidget):
             if ok:
                 lbl_wa_status.setText("✅ Ticket enviado por WhatsApp!")
                 lbl_wa_status.setStyleSheet("font-size:12px; color:#10B981;")
+                import threading as _th
+                _th.Thread(
+                    target=lambda: requests.post(
+                        "http://127.0.0.1:8000/clientes/registrar-whatsapp",
+                        json={"telefono": tel, "nombre": nombre_agendar},
+                        timeout=4
+                    ),
+                    daemon=True
+                ).start()
             else:
                 lbl_wa_status.setText(f"❌ {respuesta}")
                 lbl_wa_status.setStyleSheet("font-size:12px; color:#EF4444;")
@@ -2148,6 +2183,7 @@ class VentasScreen(QWidget):
 
         btn_wa.clicked.connect(_enviar_wa)
         in_tel.returnPressed.connect(_enviar_wa)
+        in_nombre_wa.returnPressed.connect(_enviar_wa)
 
         btn_ok = QPushButton("OK")
         btn_ok.setFixedHeight(40)

@@ -237,3 +237,24 @@ def eliminar_cliente(id: int, db: Session = Depends(get_db)):
     c.activo = False
     db.commit()
     return {"ok": True}
+
+class RegistrarWASchema(BaseModel):
+    telefono: str
+    nombre: Optional[str] = None
+
+@router.post("/registrar-whatsapp")
+def registrar_desde_whatsapp(datos: RegistrarWASchema, db: Session = Depends(get_db)):
+    """Registra un cliente a partir del teléfono usado en un ticket de WhatsApp.
+    Si ya existe ese teléfono no hace nada. Devuelve si fue creado o ya existía."""
+    tel = datos.telefono.strip()
+    if not tel:
+        return {"ok": False, "motivo": "telefono vacio"}
+    existente = db.query(Cliente).filter(Cliente.telefono == tel).first()
+    if existente:
+        return {"ok": True, "creado": False, "id": existente.id, "nombre": existente.nombre}
+    nombre = datos.nombre.strip() if datos.nombre and datos.nombre.strip() else f"Cliente WA {tel}"
+    nuevo = Cliente(nombre=nombre, telefono=tel, activo=True)
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return {"ok": True, "creado": True, "id": nuevo.id, "nombre": nuevo.nombre}
