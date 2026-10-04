@@ -662,9 +662,18 @@ class ProductosScreen(QWidget):
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def get_productos_visibles(self):
-        texto = self.input_buscar.text()
+        texto = self.input_buscar.text().strip()
         if not texto:
             return self.productos
-        return [p for p in self.productos
-                if texto.lower() in p["nombre"].lower()
-                or texto in (p.get("codigo_barra") or "")]
+        t = texto.lower()
+        def _coincide(p):
+            if t in p["nombre"].lower():
+                return True
+            if texto in (p.get("codigo_barra") or ""):
+                return True
+            for ex in (p.get("codigos_extra") or []):
+                cod = ex.get("codigo", "") if isinstance(ex, dict) else str(ex)
+                if texto in cod:
+                    return True
+            return False
+        return [p for p in self.productos if _coincide(p)]
