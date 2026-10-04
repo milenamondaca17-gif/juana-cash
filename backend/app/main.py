@@ -34,6 +34,7 @@ with engine.connect() as _conn:
         ("caja_aportes", "metodo",           "TEXT DEFAULT 'efectivo'"),
         ("pagos_fiado",  "metodo",           "TEXT DEFAULT 'efectivo'"),
         ("productos",    "proveedor_id",     "INTEGER"),
+        ("clientes",     "origen",           "TEXT"),
     ]:
         try:
             tablas = _inspector.get_table_names()

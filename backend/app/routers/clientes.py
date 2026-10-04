@@ -78,6 +78,18 @@ def deudores(db: Session = Depends(get_db)):
         for c in clientes
     ]
 
+@router.get("/contactos-wa")
+def contactos_wa(db: Session = Depends(get_db)):
+    """Clientes registrados desde WhatsApp."""
+    clientes = db.query(Cliente).filter(
+        Cliente.activo == True,
+        Cliente.origen == "wa"
+    ).order_by(Cliente.id.desc()).all()
+    return [
+        {"id": c.id, "nombre": c.nombre, "telefono": c.telefono or ""}
+        for c in clientes
+    ]
+
 @router.get("/buscar")
 def buscar_cliente(q: str, db: Session = Depends(get_db)):
     return db.query(Cliente).filter(
@@ -253,7 +265,7 @@ def registrar_desde_whatsapp(datos: RegistrarWASchema, db: Session = Depends(get
     if existente:
         return {"ok": True, "creado": False, "id": existente.id, "nombre": existente.nombre}
     nombre = datos.nombre.strip() if datos.nombre and datos.nombre.strip() else f"Cliente WA {tel}"
-    nuevo = Cliente(nombre=nombre, telefono=tel, activo=True)
+    nuevo = Cliente(nombre=nombre, telefono=tel, activo=True, origen="wa")
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)

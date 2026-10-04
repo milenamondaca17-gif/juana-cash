@@ -406,6 +406,17 @@ class ClientesScreen(QWidget):
         btn_nuevo.clicked.connect(self.nuevo_cliente)
         header.addWidget(btn_nuevo)
 
+        self.btn_wa = QPushButton("📱 Contactos WA")
+        self.btn_wa.setFixedHeight(36)
+        self.btn_wa.setCheckable(True)
+        self.btn_wa.setStyleSheet("""
+            QPushButton { background: #25D366; color: white; border-radius: 8px; padding: 0 14px; font-weight: bold; font-size: 12px; }
+            QPushButton:checked { background: #128C7E; }
+            QPushButton:hover { background: #1ebe57; }
+        """)
+        self.btn_wa.toggled.connect(self._toggle_filtro_wa)
+        header.addWidget(self.btn_wa)
+
         btn_act = QPushButton("↻")
         btn_act.setFixedSize(36, 36)
         btn_act.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
@@ -649,10 +660,27 @@ class ClientesScreen(QWidget):
             r = requests.get(f"{API_URL}/clientes/", timeout=5)
             if r.status_code == 200:
                 self.clientes = sorted(r.json(), key=lambda c: c.get("nombre", "").lower())
-                self.mostrar_clientes(self.clientes)
+                if self.btn_wa.isChecked():
+                    self._mostrar_solo_wa()
+                else:
+                    self.mostrar_clientes(self.clientes)
                 self.actualizar_resumen()
         except Exception:
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
+
+    def _toggle_filtro_wa(self, activo):
+        if activo:
+            self._mostrar_solo_wa()
+        else:
+            self.filtrar(self.input_buscar.text())
+
+    def _mostrar_solo_wa(self):
+        try:
+            r = requests.get(f"{API_URL}/clientes/contactos-wa", timeout=5)
+            if r.status_code == 200:
+                self.mostrar_clientes(r.json())
+        except Exception:
+            pass
 
     def actualizar_resumen(self):
         total      = len(self.clientes)
@@ -663,6 +691,8 @@ class ClientesScreen(QWidget):
         self.card_puntos[1].setText(str(con_puntos))
 
     def filtrar(self, texto):
+        if self.btn_wa.isChecked():
+            return
         if not texto:
             self.mostrar_clientes(self.clientes)
             return

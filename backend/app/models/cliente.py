@@ -18,5 +18,6 @@ class Cliente(Base):
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, default=datetime.now)
     notas = Column(String, nullable=True)
+    origen = Column(String, nullable=True)
 
     fiados = relationship("Fiado", back_populates="cliente")
