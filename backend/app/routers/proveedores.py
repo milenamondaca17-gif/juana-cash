@@ -174,7 +174,11 @@ def registrar_pago(pid: int, datos: PagoSchema, db: Session = Depends(get_db)):
     if datos.compra_id:
         compra = db.query(CompraProveedor).filter(CompraProveedor.id == datos.compra_id).first()
         if compra:
-            compra.pagado = True
+            pagado_anterior = db.query(func.sum(PagoProveedor.monto)).filter(
+                PagoProveedor.compra_id == datos.compra_id
+            ).scalar() or 0
+            if float(pagado_anterior) + datos.monto >= float(compra.monto_total):
+                compra.pagado = True
     db.commit(); db.refresh(pg)
     return {"id": pg.id, "ok": True}
 
