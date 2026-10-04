@@ -2100,13 +2100,23 @@ class VentasScreen(QWidget):
 
         # Panel WhatsApp
         from ui.pantallas.whatsapp_ticket import servidor_activo, formatear_ticket_whatsapp, enviar_ticket_whatsapp
+        from PyQt6.QtWidgets import QListWidget, QListWidgetItem
         lbl_wa_titulo = QLabel("📱 Enviar ticket por WhatsApp")
         lbl_wa_titulo.setStyleSheet("font-size:13px; font-weight:bold; color:#25D366; margin-top:8px;")
         lay.addWidget(lbl_wa_titulo)
 
+        # Cargar contactos WA en background para autocompletado
+        _contactos_wa = []
+        try:
+            _r = requests.get("http://127.0.0.1:8000/clientes/contactos-wa", timeout=2)
+            if _r.status_code == 200:
+                _contactos_wa = _r.json()
+        except Exception:
+            pass
+
         row_tel = QHBoxLayout()
         in_tel = QLineEdit()
-        in_tel.setPlaceholderText("Número sin 0 ni 15 — ej: 3512345678")
+        in_tel.setPlaceholderText("Nombre o número del cliente...")
         in_tel.setStyleSheet(f"background:{BG_PANEL}; color:{TEXT_MAIN}; border:3px solid {BORDER}; border-radius:8px; padding:8px; font-size:13px;")
         row_tel.addWidget(in_tel)
 
@@ -2118,19 +2128,63 @@ class VentasScreen(QWidget):
         row_tel.addWidget(btn_wa)
         lay.addLayout(row_tel)
 
-        # Campo nombre — aparece al escribir el teléfono, oculto si hay cliente
+        # Lista de sugerencias de autocompletado
+        lista_sugerencias = QListWidget()
+        lista_sugerencias.setVisible(False)
+        lista_sugerencias.setMaximumHeight(130)
+        lista_sugerencias.setStyleSheet(f"""
+            QListWidget {{ background:{BG_PANEL}; color:{TEXT_MAIN}; border:2px solid #25D366;
+                           border-radius:8px; font-size:12px; }}
+            QListWidget::item {{ padding:6px 10px; }}
+            QListWidget::item:selected {{ background:#25D366; color:white; }}
+            QListWidget::item:hover {{ background:#1ebe5730; }}
+        """)
+        lay.addWidget(lista_sugerencias)
+
+        # Campo nombre — aparece al escribir número nuevo, oculto si hay cliente o se seleccionó uno
         in_nombre_wa = QLineEdit()
         in_nombre_wa.setPlaceholderText("📝 Nombre para agendar (opcional)")
         in_nombre_wa.setStyleSheet(f"background:{BG_PANEL}; color:{TEXT_MAIN}; border:2px solid {BORDER}; border-radius:8px; padding:7px; font-size:12px;")
         in_nombre_wa.setVisible(False)
         lay.addWidget(in_nombre_wa)
 
+        _tel_seleccionado = {"valor": "", "nombre": cliente_nombre or ""}
+
         if cliente_nombre:
             in_nombre_wa.setText(cliente_nombre)
 
+        def _seleccionar_contacto(item):
+            datos = item.data(Qt.ItemDataRole.UserRole)
+            in_tel.blockSignals(True)
+            in_tel.setText(datos["telefono"])
+            in_tel.blockSignals(False)
+            _tel_seleccionado["valor"] = datos["telefono"]
+            _tel_seleccionado["nombre"] = datos["nombre"]
+            lista_sugerencias.setVisible(False)
+            in_nombre_wa.setVisible(False)
+            in_nombre_wa.setText(datos["nombre"])
+
+        lista_sugerencias.itemClicked.connect(_seleccionar_contacto)
+
         def _tel_cambiado(texto):
-            tiene_tel = bool(texto.strip())
-            in_nombre_wa.setVisible(tiene_tel and not cliente_nombre)
+            texto = texto.strip()
+            _tel_seleccionado["valor"] = ""
+            # Buscar coincidencias en contactos WA
+            if texto and _contactos_wa:
+                t = texto.lower()
+                coincidencias = [c for c in _contactos_wa
+                                 if t in c["nombre"].lower() or t in c["telefono"]]
+                if coincidencias:
+                    lista_sugerencias.clear()
+                    for c in coincidencias[:6]:
+                        item = QListWidgetItem(f"📱 {c['nombre']}  —  {c['telefono']}")
+                        item.setData(Qt.ItemDataRole.UserRole, c)
+                        lista_sugerencias.addItem(item)
+                    lista_sugerencias.setVisible(True)
+                    in_nombre_wa.setVisible(False)
+                    return
+            lista_sugerencias.setVisible(False)
+            in_nombre_wa.setVisible(bool(texto) and not cliente_nombre)
 
         in_tel.textChanged.connect(_tel_cambiado)
 
@@ -2139,7 +2193,12 @@ class VentasScreen(QWidget):
         lay.addWidget(lbl_wa_status)
 
         def _enviar_wa():
-            tel = in_tel.text().strip()
+            # Si hay sugerencias visibles, seleccionar la primera con Enter
+            if lista_sugerencias.isVisible() and lista_sugerencias.count() > 0:
+                lista_sugerencias.setCurrentRow(0)
+                _seleccionar_contacto(lista_sugerencias.currentItem())
+                return
+            tel = _tel_seleccionado["valor"] or in_tel.text().strip()
             if not tel:
                 lbl_wa_status.setText("⚠️ Ingresá el número primero")
                 lbl_wa_status.setStyleSheet("font-size:12px; color:#F59E0B;")
@@ -2153,7 +2212,7 @@ class VentasScreen(QWidget):
             btn_wa.setEnabled(False)
             from PyQt6.QtWidgets import QApplication
             QApplication.processEvents()
-            nombre_agendar = (in_nombre_wa.text().strip() if in_nombre_wa.isVisible() else "") or cliente_nombre or ""
+            nombre_agendar = _tel_seleccionado["nombre"] or (in_nombre_wa.text().strip() if in_nombre_wa.isVisible() else "") or cliente_nombre or ""
             ticket_texto = formatear_ticket_whatsapp(
                 {"numero": ticket, "total": total_final},
                 self.items_venta,

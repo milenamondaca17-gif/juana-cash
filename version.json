@@ -1,8 +1,8 @@
 {
-  "version": "4.10.40",
-  "desktop_version": "4.10.40",
+  "version": "4.10.41",
+  "desktop_version": "4.10.41",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.40/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.41/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.40 - Contactos WA: filtro en clientes + campo origen"
+  "notas": "v4.10.41 - WA: autocompletado de contactos al enviar ticket"
 }
