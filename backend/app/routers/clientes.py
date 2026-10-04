@@ -45,8 +45,13 @@ def cumpleanos(db: Session = Depends(get_db)):
             tipo = None
             if mes == hoy.month and dia == hoy.day:
                 tipo = "hoy"
-            elif mes == hoy.month and 0 < (dia - hoy.day) <= 7:
-                tipo = "proximo"
+            else:
+                from datetime import timedelta
+                for d in range(1, 8):
+                    futuro = hoy + timedelta(days=d)
+                    if mes == futuro.month and dia == futuro.day:
+                        tipo = "proximo"
+                        break
             if tipo:
                 resultado.append({
                     "id": c.id,

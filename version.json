@@ -1,8 +1,8 @@
 {
-  "version": "4.10.42",
-  "desktop_version": "4.10.42",
+  "version": "4.10.43",
+  "desktop_version": "4.10.43",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.42/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.43/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.42 - Fix: editar producto buscado por código de barras"
+  "notas": "v4.10.43 - Fix: acciones de clientes WA y parsing de monto en pagos"
 }

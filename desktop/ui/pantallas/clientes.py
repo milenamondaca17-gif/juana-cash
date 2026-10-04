@@ -341,6 +341,7 @@ class ClientesScreen(QWidget):
     def __init__(self):
         super().__init__()
         self.clientes = []
+        self._clientes_visibles = []
         self.usuario_actual = {}
         self.setup_ui()
 
@@ -702,6 +703,7 @@ class ClientesScreen(QWidget):
         self.mostrar_clientes(filtrados)
 
     def mostrar_clientes(self, clientes):
+        self._clientes_visibles = clientes
         self.tabla.setRowCount(len(clientes))
         for i, c in enumerate(clientes):
             self.tabla.setItem(i, 0, QTableWidgetItem(c["nombre"]))
@@ -1068,7 +1070,7 @@ class ClientesScreen(QWidget):
             btn_ok.setEnabled(False)
             txt = input_monto.text().strip()
             try:
-                monto_pago = float(txt) if txt else deuda
+                monto_pago = float(txt.replace(".", "").replace(",", ".")) if txt else deuda
             except ValueError:
                 btn_ok.setEnabled(True)
                 QMessageBox.warning(dialog, "Error", "Ingresá un monto válido")
@@ -1138,10 +1140,5 @@ class ClientesScreen(QWidget):
                 QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def get_clientes_visibles(self):
-        texto = self.input_buscar.text()
-        if not texto:
-            return self.clientes
-        return [c for c in self.clientes
-                if texto.lower() in c["nombre"].lower()
-                or texto in (c.get("telefono") or "")]
+        return self._clientes_visibles
 

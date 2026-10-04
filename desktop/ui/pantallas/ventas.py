@@ -1080,23 +1080,22 @@ class VentasScreen(QWidget):
                 ticket_texto = formatear_ticket_whatsapp(
                     {"numero": datos["numero"], "total": datos["total"]},
                     datos["items"],
-                    metodo=datos["metodo"],
-                    descuento_pct=datos["descuento_pct"],
-                    recargo=datos["recargo_monto"],
+                    metodo_pago=datos.get("metodo", "efectivo"),
+                    recargo=datos.get("recargo_monto", 0),
                 )
                 ok, resp = enviar_ticket_whatsapp(tel, ticket_texto)
+                import threading as _th
+                _th.Thread(
+                    target=lambda: requests.post(
+                        "http://127.0.0.1:8000/clientes/registrar-whatsapp",
+                        json={"telefono": tel, "nombre": ""},
+                        timeout=4
+                    ),
+                    daemon=True
+                ).start()
                 if ok:
                     lbl_status.setText("✅ ¡Ticket enviado!")
                     QTimer.singleShot(1500, dialog.accept)
-                    import threading as _th
-                    _th.Thread(
-                        target=lambda: requests.post(
-                            "http://127.0.0.1:8000/clientes/registrar-whatsapp",
-                            json={"telefono": tel, "nombre": ""},
-                            timeout=4
-                        ),
-                        daemon=True
-                    ).start()
                 else:
                     lbl_status.setText(f"❌ Error: {resp}")
             except Exception as e:
@@ -2223,9 +2222,7 @@ class VentasScreen(QWidget):
                 recargo=recargo_monto,
             )
             ok, respuesta = enviar_ticket_whatsapp(tel, ticket_texto)
-            if ok:
-                lbl_wa_status.setText("✅ Ticket enviado por WhatsApp!")
-                lbl_wa_status.setStyleSheet("font-size:12px; color:#10B981;")
+            if tel:
                 import threading as _th
                 _th.Thread(
                     target=lambda: requests.post(
@@ -2235,6 +2232,9 @@ class VentasScreen(QWidget):
                     ),
                     daemon=True
                 ).start()
+            if ok:
+                lbl_wa_status.setText("✅ Ticket enviado por WhatsApp!")
+                lbl_wa_status.setStyleSheet("font-size:12px; color:#10B981;")
             else:
                 lbl_wa_status.setText(f"❌ {respuesta}")
                 lbl_wa_status.setStyleSheet("font-size:12px; color:#EF4444;")

@@ -150,7 +150,7 @@ def pagar_fiado(datos: PagoFiadoCrear, db: Session = Depends(get_db)):
     if cliente:
         cliente.deuda_actual = max(0, float(cliente.deuda_actual or 0) - monto_aplicado)
     pago = PagoFiado(fiado_id=datos.fiado_id, usuario_id=datos.usuario_id,
-                     monto=datos.monto, metodo=datos.metodo, observacion=datos.observacion)
+                     monto=monto_aplicado, metodo=datos.metodo, observacion=datos.observacion)
     db.add(pago)
     db.commit()
     return {"mensaje": "Pago registrado", "saldo_restante": float(fiado.saldo)}
