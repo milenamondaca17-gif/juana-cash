@@ -620,8 +620,15 @@ class ReportesScreen(QWidget):
         prom    = total / tickets if tickets > 0 else 0
         desglose = {}
         for v in ventas:
-            m = v.get("metodo_pago", "efectivo")
-            desglose[m] = desglose.get(m, 0.0) + float(v["total"])
+            m1 = v.get("metodo_pago", "efectivo")
+            m2 = v.get("metodo_secundario")
+            if m2:
+                monto2 = float(v.get("monto_secundario", 0))
+                monto1 = float(v["total"]) - monto2
+                desglose[m1] = desglose.get(m1, 0.0) + monto1
+                desglose[m2] = desglose.get(m2, 0.0) + monto2
+            else:
+                desglose[m1] = desglose.get(m1, 0.0) + float(v["total"])
 
         doc = SimpleDocTemplate(ruta, pagesize=A4,
                                 leftMargin=1.5*cm, rightMargin=1.5*cm,
