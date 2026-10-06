@@ -53,6 +53,7 @@ class AlertasPrecioScreen(QWidget):
             "background: #e74c3c; color: white; border-radius: 12px; "
             "padding: 4px 12px; font-weight: bold; font-size: 13px;"
         )
+        self.lbl_pendientes.hide()
         header.addWidget(self.lbl_pendientes)
 
         btn_todas = QPushButton("✅ Marcar todas como vistas")

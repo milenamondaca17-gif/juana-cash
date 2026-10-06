@@ -1,8 +1,8 @@
 {
-  "version": "4.10.46",
-  "desktop_version": "4.10.46",
+  "version": "4.10.47",
+  "desktop_version": "4.10.47",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.46/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.47/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.46 - Fix: desglose de métodos de pago en PDF de reportes para ventas mixtas"
+  "notas": "v4.10.47 - Rediseño Caja: layout 2 columnas, fix botón Deuda clientes, fix badge alertas"
 }

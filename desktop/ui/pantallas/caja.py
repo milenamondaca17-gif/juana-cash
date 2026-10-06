@@ -162,6 +162,8 @@ class CajaScreen(QWidget):
 
     def setup_ui(self):
         self.setStyleSheet(f"background-color: {BG_MAIN}; color: {TEXT_MAIN};")
+        from PyQt6.QtWidgets import QGridLayout
+
         _outer = QVBoxLayout(self)
         _outer.setContentsMargins(0, 0, 0, 0)
         _outer.setSpacing(0)
@@ -176,166 +178,213 @@ class CajaScreen(QWidget):
         """)
         _cont = QWidget()
         _cont.setStyleSheet(f"background: {BG_MAIN};")
-        layout = QVBoxLayout(_cont)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(12)
+        root = QVBoxLayout(_cont)
+        root.setContentsMargins(20, 16, 20, 16)
+        root.setSpacing(14)
         _scroll.setWidget(_cont)
         _outer.addWidget(_scroll)
 
         titulo = QLabel("🏧 Caja")
         titulo.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
         titulo.setStyleSheet(f"color: {TEXT_MAIN}; background: transparent;")
-        layout.addWidget(titulo)
+        root.addWidget(titulo)
+
+        body = QHBoxLayout()
+        body.setSpacing(16)
+        body.setContentsMargins(0, 0, 0, 0)
+
+        # ── PANEL IZQUIERDO (300px) ───────────────────────────────────
+        left = QWidget()
+        left.setFixedWidth(300)
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(10)
 
         # Card estado
-        from PyQt6.QtWidgets import QGridLayout
         self.card_estado = QFrame()
         self.card_estado.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 14px; border: 3px solid {BORDER}; }}")
-        self.card_estado.setMinimumHeight(100)
         outer_card = QHBoxLayout(self.card_estado)
         outer_card.setContentsMargins(0, 0, 0, 0)
         outer_card.setSpacing(0)
-
-        # Barra de color izquierda (widget real, no CSS)
         self._card_barra = QFrame()
         self._card_barra.setFixedWidth(6)
         self._card_barra.setStyleSheet(f"background: {DANGER}; border-radius: 4px;")
         outer_card.addWidget(self._card_barra)
-
-        card_layout = QGridLayout()
-        card_layout.setContentsMargins(20, 14, 20, 14)
-        card_layout.setHorizontalSpacing(24)
-        card_layout.setVerticalSpacing(4)
-        outer_card.addLayout(card_layout)
-
+        card_vlay = QVBoxLayout()
+        card_vlay.setContentsMargins(14, 12, 14, 12)
+        card_vlay.setSpacing(3)
+        outer_card.addLayout(card_vlay)
         self.lbl_estado = QLabel("⚪ Caja cerrada")
-        self.lbl_estado.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        self.lbl_estado.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
         self.lbl_estado.setStyleSheet(f"color: {TEXT_MUTED};")
-        card_layout.addWidget(self.lbl_estado, 0, 0)
-
-        self.lbl_total_caja = QLabel("Total acumulado: $0")
-        self.lbl_total_caja.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        card_vlay.addWidget(self.lbl_estado)
+        self.lbl_total_caja = QLabel("Total: $0")
+        self.lbl_total_caja.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         self.lbl_total_caja.setStyleSheet(f"color: {DANGER};")
-        card_layout.addWidget(self.lbl_total_caja, 0, 1)
-
-        self.lbl_apertura = QLabel("")
-        self.lbl_apertura.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
-        card_layout.addWidget(self.lbl_apertura, 1, 0)
-
+        card_vlay.addWidget(self.lbl_total_caja)
         self.lbl_ef_caja = QLabel("💵 Efectivo en caja: —")
-        self.lbl_ef_caja.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.lbl_ef_caja.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.lbl_ef_caja.setStyleSheet("color: #16a34a;")
-        card_layout.addWidget(self.lbl_ef_caja, 1, 1)
+        card_vlay.addWidget(self.lbl_ef_caja)
+        self.lbl_apertura = QLabel("")
+        self.lbl_apertura.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
+        card_vlay.addWidget(self.lbl_apertura)
+        left_layout.addWidget(self.card_estado)
 
-        card_layout.setColumnStretch(0, 1)
-        card_layout.setColumnStretch(1, 1)
-        layout.addWidget(self.card_estado)
-
-        # Desglose por método
+        # Desglose métodos — grid 3 filas × 2 columnas
         desglose_frame = QFrame()
         desglose_frame.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 12px; border: 3px solid {BORDER}; }}")
-        desglose_layout = QHBoxLayout(desglose_frame)
-        desglose_layout.setContentsMargins(16, 12, 16, 12)
-        desglose_layout.setSpacing(8)
+        dsg_grid = QGridLayout(desglose_frame)
+        dsg_grid.setContentsMargins(10, 8, 10, 8)
+        dsg_grid.setSpacing(6)
         self.cards_metodo = {}
         metodos = [
-            ("💵", "Efectivo",    "efectivo",       "#16a34a"),
-            ("🏧", "Débito",      "debito",          "#10b981"),
-            ("💳", "Tarjeta",     "tarjeta",         "#2563eb"),
-            ("📱", "QR / MP",     "mercadopago_qr",  "#0284c7"),
-            ("🏦", "Transf.",     "transferencia",   "#7c3aed"),
-            ("💸", "Fiado",       "fiado",           "#dc2626"),
+            ("💵", "Efectivo",   "efectivo",       "#16a34a"),
+            ("🏧", "Débito",     "debito",          "#10b981"),
+            ("💳", "Tarjeta",    "tarjeta",         "#2563eb"),
+            ("📱", "QR / MP",    "mercadopago_qr",  "#0284c7"),
+            ("🏦", "Transf.",    "transferencia",   "#7c3aed"),
+            ("💸", "Fiado",      "fiado",           "#dc2626"),
         ]
-        for icono, nombre, key, color in metodos:
+        for i, (icono, nombre, key, color) in enumerate(metodos):
+            row, col = divmod(i, 2)
             card = QFrame()
-            card.setStyleSheet(f"QFrame {{ background: {BG_MAIN}; border-radius: 10px; border-left: 4px solid {color}; }}")
-            c_layout = QVBoxLayout(card)
-            c_layout.setContentsMargins(12, 10, 12, 10)
+            card.setStyleSheet(f"QFrame {{ background: {BG_MAIN}; border-radius: 8px; border-left: 3px solid {color}; }}")
+            c_lay = QVBoxLayout(card)
+            c_lay.setContentsMargins(8, 6, 8, 6)
+            c_lay.setSpacing(1)
             lbl_n = QLabel(f"{icono} {nombre}")
-            lbl_n.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: bold; background: transparent;")
-            c_layout.addWidget(lbl_n)
-            lbl_v = QLabel("$0.00")
-            lbl_v.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+            lbl_n.setStyleSheet(f"color: {color}; font-size: 10px; font-weight: bold; background: transparent;")
+            c_lay.addWidget(lbl_n)
+            lbl_v = QLabel("$0")
+            lbl_v.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
             lbl_v.setStyleSheet(f"color: {color}; background: transparent;")
-            c_layout.addWidget(lbl_v)
-            desglose_layout.addWidget(card)
+            c_lay.addWidget(lbl_v)
+            dsg_grid.addWidget(card, row, col)
             self.cards_metodo[key] = lbl_v
-        dsg_scroll = QScrollArea()
-        dsg_scroll.setWidget(desglose_frame)
-        dsg_scroll.setWidgetResizable(True)
-        dsg_scroll.setFixedHeight(90)
-        dsg_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        dsg_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        dsg_scroll.setStyleSheet(f"QScrollArea {{ border: 3px solid {BORDER}; border-radius: 12px; background: {BG_CARD}; }} QScrollBar:horizontal {{ height: 4px; background: transparent; }} QScrollBar::handle:horizontal {{ background: {BORDER}; border-radius: 2px; }}")
-        layout.addWidget(dsg_scroll)
+        left_layout.addWidget(desglose_frame)
 
-        # Botones de acción — 2 filas para no amontonar
-        BTN_H = 38
+        BTN_H = 36
 
         def _btn(texto, color_bg, slot, enabled=True):
             b = QPushButton(texto)
             b.setFixedHeight(BTN_H)
-            b.setStyleSheet(f"QPushButton {{ background: {color_bg}; color: white; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ opacity: 0.85; }} QPushButton:disabled {{ background: {BORDER}; color: {TEXT_MUTED}; }}")
+            b.setStyleSheet(
+                f"QPushButton {{ background: {color_bg}; color: white; border-radius: 8px; "
+                f"padding: 0 8px; font-size: 12px; font-weight: bold; }} "
+                f"QPushButton:hover {{ opacity: 0.85; }} "
+                f"QPushButton:disabled {{ background: {BORDER}; color: {TEXT_MUTED}; }}"
+            )
             b.clicked.connect(slot)
             b.setEnabled(enabled)
             return b
 
-        self.btn_abrir  = _btn("🔓 Abrir caja",    SUCCESS,   self.abrir_caja)
-        self.btn_cerrar = _btn("🔒 Cerrar caja",    DANGER,    self.cerrar_caja, enabled=False)
-        btn_gasto       = _btn("💸 Gasto",          "#7c3aed", self.registrar_gasto)
-        btn_retiro      = _btn("💰 Retiro",         "#dc2626", self.registrar_retiro)
-        btn_empleados   = _btn("👥 Empleados",      "#ea580c", self.ver_historial_empleados)
-        btn_histef      = _btn("💵 Efectivo",       SUCCESS,   self.ver_historial_efectivo)
-        btn_email_cfg   = _btn("📧 Email",          "#2563eb", self.ver_config_email)
-        self.btn_aporte = _btn("💰 Aporte",         "#b45309", self.registrar_aporte, enabled=False)
+        def _sec_label(texto):
+            lbl = QLabel(texto)
+            lbl.setStyleSheet(
+                f"color: {TEXT_MUTED}; font-size: 10px; font-weight: bold; "
+                f"letter-spacing: 1px; background: transparent; padding: 2px 0;"
+            )
+            return lbl
 
-        btn_paleta = QPushButton("🎨 Paleta")
-        btn_paleta.setFixedHeight(BTN_H)
-        btn_paleta.setStyleSheet(f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
-        btn_paleta.clicked.connect(self.elegir_paleta)
-
-        btn_refresh = QPushButton("↻")
-        btn_refresh.setFixedSize(38, BTN_H)
-        btn_refresh.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        btn_refresh.setToolTip("Actualizar")
-        btn_refresh.setStyleSheet(f"QPushButton {{ background: #0f766e; color: white; border-radius: 8px; font-size: 20px; font-weight: bold; }} QPushButton:hover {{ background: #0d9488; }}")
-        btn_refresh.clicked.connect(self.actualizar_ventas)
-
-        # Fila 1: apertura y acciones principales
-        fila1 = QHBoxLayout()
-        fila1.setSpacing(8)
-        lbl_monto = QLabel("Monto inicial $:")
-        lbl_monto.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 13px; background: transparent;")
-        fila1.addWidget(lbl_monto)
+        # Sección TURNO
+        sec_turno = QFrame()
+        sec_turno.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 10px; border: 2px solid {BORDER}; }}")
+        st_lay = QVBoxLayout(sec_turno)
+        st_lay.setContentsMargins(12, 8, 12, 10)
+        st_lay.setSpacing(6)
+        st_lay.addWidget(_sec_label("TURNO"))
+        row_monto = QHBoxLayout()
+        row_monto.setSpacing(6)
+        lbl_monto = QLabel("Inicio $")
+        lbl_monto.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; background: transparent;")
+        row_monto.addWidget(lbl_monto)
         self.input_monto = QLineEdit()
         self.input_monto.setPlaceholderText("5000")
-        self.input_monto.setFixedWidth(100)
         self.input_monto.setFixedHeight(BTN_H)
-        fila1.addWidget(self.input_monto)
-        fila1.addWidget(self.btn_abrir)
-        fila1.addWidget(self.btn_cerrar)
-        fila1.addWidget(btn_gasto)
-        fila1.addWidget(btn_retiro)
-        fila1.addWidget(self.btn_aporte)
-        fila1.addWidget(btn_empleados)
-        fila1.addStretch()
-        fila1.addWidget(btn_refresh)
-        layout.addLayout(fila1)
+        self.input_monto.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        row_monto.addWidget(self.input_monto, 1)
+        st_lay.addLayout(row_monto)
+        self.btn_abrir  = _btn("🔓 Abrir caja",  SUCCESS, self.abrir_caja)
+        self.btn_cerrar = _btn("🔒 Cerrar caja", DANGER,  self.cerrar_caja, enabled=False)
+        st_lay.addWidget(self.btn_abrir)
+        st_lay.addWidget(self.btn_cerrar)
+        left_layout.addWidget(sec_turno)
 
-        # Fila 2: herramientas secundarias
-        fila2 = QHBoxLayout()
-        fila2.setSpacing(8)
-        fila2.addWidget(btn_histef)
-        fila2.addWidget(btn_email_cfg)
-        fila2.addWidget(btn_paleta)
-        fila2.addStretch()
-        layout.addLayout(fila2)
+        # Sección MOVIMIENTOS
+        sec_mov = QFrame()
+        sec_mov.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 10px; border: 2px solid {BORDER}; }}")
+        sm_lay = QVBoxLayout(sec_mov)
+        sm_lay.setContentsMargins(12, 8, 12, 10)
+        sm_lay.setSpacing(6)
+        sm_lay.addWidget(_sec_label("MOVIMIENTOS"))
+        btn_gasto    = _btn("💸 Gasto",    "#7c3aed", self.registrar_gasto)
+        btn_retiro   = _btn("💰 Retiro",   "#dc2626", self.registrar_retiro)
+        self.btn_aporte = _btn("💰 Aporte", "#b45309", self.registrar_aporte, enabled=False)
+        btn_empleados = _btn("👥 Empleados", "#ea580c", self.ver_historial_empleados)
+        row_m1 = QHBoxLayout()
+        row_m1.setSpacing(6)
+        row_m1.addWidget(btn_gasto)
+        row_m1.addWidget(btn_retiro)
+        sm_lay.addLayout(row_m1)
+        row_m2 = QHBoxLayout()
+        row_m2.setSpacing(6)
+        row_m2.addWidget(self.btn_aporte)
+        row_m2.addWidget(btn_empleados)
+        sm_lay.addLayout(row_m2)
+        left_layout.addWidget(sec_mov)
 
-        # Label y tabla ventas turno
+        # Sección HERRAMIENTAS
+        sec_her = QFrame()
+        sec_her.setStyleSheet(f"QFrame {{ background: {BG_CARD}; border-radius: 10px; border: 2px solid {BORDER}; }}")
+        sh_lay = QVBoxLayout(sec_her)
+        sh_lay.setContentsMargins(12, 8, 12, 10)
+        sh_lay.setSpacing(6)
+        sh_lay.addWidget(_sec_label("HERRAMIENTAS"))
+        btn_histef    = _btn("💵 Efectivo", SUCCESS,   self.ver_historial_efectivo)
+        btn_email_cfg = _btn("📧 Email",    "#2563eb", self.ver_config_email)
+        btn_paleta = QPushButton("🎨 Paleta")
+        btn_paleta.setFixedHeight(BTN_H)
+        btn_paleta.setStyleSheet(
+            f"QPushButton {{ background: {PRIMARY}; color: white; border-radius: 8px; "
+            f"padding: 0 8px; font-size: 12px; font-weight: bold; }} "
+            f"QPushButton:hover {{ background: {_T['primary_hover']}; }}"
+        )
+        btn_paleta.clicked.connect(self.elegir_paleta)
+        btn_refresh = QPushButton("↻")
+        btn_refresh.setFixedSize(36, BTN_H)
+        btn_refresh.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        btn_refresh.setToolTip("Actualizar")
+        btn_refresh.setStyleSheet(
+            f"QPushButton {{ background: #0f766e; color: white; border-radius: 8px; font-size: 18px; font-weight: bold; }} "
+            f"QPushButton:hover {{ background: #0d9488; }}"
+        )
+        btn_refresh.clicked.connect(self.actualizar_ventas)
+        row_h1 = QHBoxLayout()
+        row_h1.setSpacing(6)
+        row_h1.addWidget(btn_histef)
+        row_h1.addWidget(btn_email_cfg)
+        sh_lay.addLayout(row_h1)
+        row_h2 = QHBoxLayout()
+        row_h2.setSpacing(6)
+        row_h2.addWidget(btn_paleta)
+        row_h2.addWidget(btn_refresh)
+        sh_lay.addLayout(row_h2)
+        left_layout.addWidget(sec_her)
+
+        left_layout.addStretch()
+        body.addWidget(left)
+
+        # ── PANEL DERECHO (stretch) ───────────────────────────────────
+        right = QWidget()
+        right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(10)
+
         lbl_resumen = QLabel("Ventas del turno")
         lbl_resumen.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         lbl_resumen.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
-        layout.addWidget(lbl_resumen)
+        right_layout.addWidget(lbl_resumen)
 
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(9)
@@ -348,18 +397,17 @@ class CajaScreen(QWidget):
         self.tabla.setColumnWidth(5, 60)
         self.tabla.setColumnWidth(6, 90)
         self.tabla.setColumnWidth(7, 50)
+        self.tabla.setColumnWidth(8, 50)
         self.tabla.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         self.tabla.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
+        self.tabla.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabla.setMinimumHeight(200)
-        self.tabla.setMaximumHeight(400)
-        layout.addWidget(self.tabla)
+        right_layout.addWidget(self.tabla, 1)
 
-        # Historial de cierres
         sep_h = QFrame()
         sep_h.setFixedHeight(1)
         sep_h.setStyleSheet(f"background: {BORDER}; border: none;")
-        layout.addWidget(sep_h)
+        right_layout.addWidget(sep_h)
 
         hdr_hist = QHBoxLayout()
         lbl_hist = QLabel("📋 Historial de cierres")
@@ -368,12 +416,15 @@ class CajaScreen(QWidget):
         hdr_hist.addWidget(lbl_hist)
         hdr_hist.addStretch()
         btn_hist_ref = QPushButton("↻")
-        btn_hist_ref.setFixedSize(34, 34)
-        btn_hist_ref.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        btn_hist_ref.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; border: 3px solid {BORDER}; font-size: 18px; }}")
+        btn_hist_ref.setFixedSize(32, 32)
+        btn_hist_ref.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        btn_hist_ref.setStyleSheet(
+            f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; "
+            f"border: 2px solid {BORDER}; font-size: 16px; }}"
+        )
         btn_hist_ref.clicked.connect(self.cargar_historial)
         hdr_hist.addWidget(btn_hist_ref)
-        layout.addLayout(hdr_hist)
+        right_layout.addLayout(hdr_hist)
 
         self.tabla_historial = QTableWidget()
         self.tabla_historial.setColumnCount(10)
@@ -393,10 +444,12 @@ class CajaScreen(QWidget):
         self.tabla_historial.setColumnWidth(7, 80)
         self.tabla_historial.setColumnWidth(8, 90)
         self.tabla_historial.setColumnWidth(9, 50)
-        self.tabla_historial.setMaximumHeight(260)
         self.tabla_historial.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla_historial.setAlternatingRowColors(True)
-        layout.addWidget(self.tabla_historial)
+        right_layout.addWidget(self.tabla_historial, 1)
+
+        body.addWidget(right, 1)
+        root.addLayout(body, 1)
 
 
 

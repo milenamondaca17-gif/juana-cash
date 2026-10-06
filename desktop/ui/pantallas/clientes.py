@@ -447,7 +447,7 @@ class ClientesScreen(QWidget):
         self.tabla.setColumnWidth(5, 100)
         self.tabla.setColumnWidth(6, 110)
         self.tabla.setColumnWidth(7, 90)
-        self.tabla.setColumnWidth(8, 32)
+        self.tabla.setColumnWidth(8, 80)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         layout.addWidget(self.tabla)
