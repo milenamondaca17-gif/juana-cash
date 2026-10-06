@@ -188,7 +188,7 @@ def turno_actual(usuario_id: int, db: Session = Depends(get_db)):
 
 @router.get("/historial")
 def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
-    from ..models.venta import Pago
+    from ..models.venta import Pago, ItemVenta
     from ..models.gasto import Gasto
     from ..models.caja_aporte import CajaAporte
     from ..models.usuario import Usuario
@@ -219,6 +219,19 @@ def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
                 if m in desglose:
                     desglose[m] += float(p.monto or 0)
 
+        # Desglose por departamento
+        dept = {"carniceria": 0.0, "fiambreria": 0.0, "mercaderia": 0.0}
+        if ids_ventas:
+            items = db.query(ItemVenta).filter(ItemVenta.venta_id.in_(ids_ventas)).all()
+            for item in items:
+                sub = float(item.subtotal or 0)
+                if item.producto_id == 3:
+                    dept["carniceria"] += sub
+                elif item.producto_id == 11:
+                    dept["fiambreria"] += sub
+                else:
+                    dept["mercaderia"] += sub
+
         # Gastos del turno: solo por rango de tiempo (igual que el cierre)
         total_gastos = sum(float(g.monto) for g in db.query(Gasto).filter(
             Gasto.fecha >= t.apertura, Gasto.fecha <= hasta).all())
@@ -247,6 +260,9 @@ def historial_cierres(limite: int = 30, db: Session = Depends(get_db)):
             "transferencia":          desglose["transferencia"],
             "fiado":                  desglose["fiado"],
             "cantidad_ventas":        len(ventas),
+            "carniceria":             dept["carniceria"],
+            "fiambreria":             dept["fiambreria"],
+            "mercaderia":             dept["mercaderia"],
         })
     return resultado
 

@@ -1,8 +1,8 @@
 {
-  "version": "4.10.53",
-  "desktop_version": "4.10.53",
+  "version": "4.10.54",
+  "desktop_version": "4.10.54",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.53/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.54/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.53 - Buscador de tickets por fecha en Caja"
+  "notas": "v4.10.54 - Desglose departamentos en cierre de turno"
 }

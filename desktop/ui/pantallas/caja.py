@@ -1088,6 +1088,44 @@ class CajaScreen(QWidget):
         lay.addWidget(sep2)
         fila("💰 Total vendido",     _p(total),                      "#f59e0b")
 
+        carn  = float(c.get("carniceria", 0))
+        fiam  = float(c.get("fiambreria", 0))
+        merc  = float(c.get("mercaderia", 0))
+        if carn + fiam + merc > 0:
+            from PyQt6.QtWidgets import QProgressBar
+            sep3 = QFrame(); sep3.setFixedHeight(1); sep3.setStyleSheet(f"background:{BORDER}; border:none;")
+            lay.addWidget(sep3)
+            titulo("Venta por departamento")
+            total_dept = carn + fiam + merc
+
+            def barra_dept(icono, nombre, monto, color):
+                row_d = QHBoxLayout(); row_d.setSpacing(8)
+                lbl_n = QLabel(f"{icono} {nombre}")
+                lbl_n.setFixedWidth(110)
+                lbl_n.setStyleSheet(f"color:{TEXT_MUTED}; font-size:12px; background:transparent;")
+                row_d.addWidget(lbl_n)
+                bar = QProgressBar()
+                bar.setRange(0, 1000)
+                bar.setValue(int(1000 * monto / total_dept) if total_dept > 0 else 0)
+                bar.setFixedHeight(14)
+                bar.setTextVisible(False)
+                bar.setStyleSheet(
+                    f"QProgressBar {{ background:{BORDER}; border-radius:7px; border:none; }}"
+                    f"QProgressBar::chunk {{ background:{color}; border-radius:7px; }}"
+                )
+                row_d.addWidget(bar, 1)
+                pct = int(100 * monto / total_dept) if total_dept > 0 else 0
+                lbl_v = QLabel(f"{_p(monto)}  {pct}%")
+                lbl_v.setFixedWidth(120)
+                lbl_v.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                lbl_v.setStyleSheet(f"color:{color}; font-size:12px; font-weight:bold; background:transparent;")
+                row_d.addWidget(lbl_v)
+                lay.addLayout(row_d)
+
+            barra_dept("🛒", "Mercadería", merc, "#3b82f6")
+            barra_dept("🥩", "Carnicería", carn, "#ef4444")
+            barra_dept("🍖", "Fiambrería", fiam, "#f59e0b")
+
         titulo("Caja")
         fila("Monto inicial",        _p(c.get("monto_apertura", 0)), "#94a3b8")
         if c.get("total_aportes", 0):
