@@ -1,8 +1,8 @@
 {
-  "version": "4.10.44",
-  "desktop_version": "4.10.44",
+  "version": "4.10.45",
+  "desktop_version": "4.10.45",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.44/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.45/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.44 - Fix: pagos parciales a proveedores no marcaban la compra como pagada incorrectamente"
+  "notas": "v4.10.45 - Fix: total empleados en caja con separador de miles; botón fiado se reactivaba al superar límite"
 }

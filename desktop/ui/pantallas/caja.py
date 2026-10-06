@@ -599,7 +599,7 @@ class CajaScreen(QWidget):
             for in_n, in_m in filas_emp:
                 try:
                     if in_n.text().strip():
-                        total += float(in_m.text() or 0)
+                        total += float(in_m.text().strip().replace(".", "").replace(",", ".") or 0)
                 except ValueError:
                     pass
             lbl_total_emp.setText(f"Total a pagar: ${total:,.0f}")

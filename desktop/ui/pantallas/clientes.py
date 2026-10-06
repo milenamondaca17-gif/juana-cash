@@ -991,6 +991,7 @@ class ClientesScreen(QWidget):
                 QMessageBox.warning(dialog, "Error", "El monto debe ser mayor a cero")
                 return
             if limite > 0 and (deuda + monto) > limite:
+                btn_ok.setEnabled(True)
                 QMessageBox.warning(dialog, "⚠️ Límite",
                     f"Este fiado supera el límite de crédito de {_p(limite)}")
                 return
