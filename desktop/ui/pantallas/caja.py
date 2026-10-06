@@ -444,7 +444,7 @@ class CajaScreen(QWidget):
         self.tabla_historial.setColumnWidth(6, 80)
         self.tabla_historial.setColumnWidth(7, 80)
         self.tabla_historial.setColumnWidth(8, 90)
-        self.tabla_historial.setColumnWidth(9, 68)
+        self.tabla_historial.setColumnWidth(9, 46)
         self.tabla_historial.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla_historial.setAlternatingRowColors(True)
         right_layout.addWidget(self.tabla_historial, 1)
@@ -937,10 +937,10 @@ class CajaScreen(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_historial.setItem(row, col, item)
             # Botón Ver detalle
-            btn_ver = QPushButton("👁 Ver")
-            btn_ver.setFixedSize(58, 28)
-            btn_ver.setToolTip("Ver resumen completo")
-            btn_ver.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 6px; font-size: 12px; font-weight: bold; border: 2px solid #1e5a9e; } QPushButton:hover { background: #1a4a8a; }")
+            btn_ver = QPushButton("👁")
+            btn_ver.setFixedSize(36, 28)
+            btn_ver.setToolTip("Ver resumen del cierre")
+            btn_ver.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 6px; font-size: 16px; border: 2px solid #1e5a9e; } QPushButton:hover { background: #1a4a8a; }")
             btn_ver.clicked.connect(lambda _, datos=c: self._ver_detalle_cierre(datos))
             self.tabla_historial.setCellWidget(row, 9, btn_ver)
 

@@ -1,8 +1,8 @@
 {
-  "version": "4.10.49",
-  "desktop_version": "4.10.49",
+  "version": "4.10.50",
+  "desktop_version": "4.10.50",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.49/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.50/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.49 - Fix: boton Ver historial con ojito visible y bordeado"
+  "notas": "v4.10.50 - Fix: boton Ver caja solo ojito, boton informe ventas no se corta"
 }
