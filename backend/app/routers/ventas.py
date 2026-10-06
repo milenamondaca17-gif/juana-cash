@@ -120,6 +120,35 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
         "total": float(venta.total)
     }
 
+@router.get("/por-fecha")
+def ventas_por_fecha(fecha: str, db: Session = Depends(get_db)):
+    """Ventas de un día. fecha=YYYY-MM-DD"""
+    from datetime import date, time
+    try:
+        d = date.fromisoformat(fecha)
+    except Exception:
+        raise HTTPException(status_code=400, detail="fecha inválida, usar YYYY-MM-DD")
+    desde = datetime.combine(d, time.min)
+    hasta = datetime.combine(d, time.max)
+    ventas = db.query(Venta).filter(
+        Venta.fecha >= desde,
+        Venta.fecha <= hasta
+    ).order_by(Venta.fecha.asc()).all()
+    result = []
+    for v in ventas:
+        metodo = v.pagos[0].metodo if v.pagos else "efectivo"
+        cajero = v.usuario.nombre if v.usuario else ""
+        result.append({
+            "id": v.id,
+            "numero": v.numero,
+            "hora": v.fecha.strftime("%H:%M"),
+            "cajero": cajero,
+            "total": float(v.total),
+            "metodo": metodo,
+            "estado": v.estado,
+        })
+    return result
+
 @router.get("/")
 def listar_ventas(db: Session = Depends(get_db)):
     ventas = db.query(Venta).order_by(Venta.fecha.desc()).limit(50).all()

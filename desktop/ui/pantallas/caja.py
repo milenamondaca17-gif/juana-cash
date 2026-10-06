@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QFrame, QMessageBox,
                               QTableWidget, QTableWidgetItem, QHeaderView,
                               QDialog, QComboBox, QScrollArea, QSizePolicy,
-                              QSpinBox, QCheckBox)
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+                              QSpinBox, QCheckBox, QDateEdit)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QDate
 from PyQt6.QtGui import QFont
 from datetime import datetime
 
@@ -448,6 +448,63 @@ class CajaScreen(QWidget):
         self.tabla_historial.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabla_historial.setAlternatingRowColors(True)
         right_layout.addWidget(self.tabla_historial, 1)
+
+        # ── BUSCAR TICKETS POR FECHA ──────────────────────────────────────────
+        sep_h2 = QFrame()
+        sep_h2.setFixedHeight(1)
+        sep_h2.setStyleSheet(f"background: {BORDER}; border: none;")
+        right_layout.addWidget(sep_h2)
+
+        hdr_buscar = QHBoxLayout()
+        lbl_buscar = QLabel("🗓 Tickets por fecha")
+        lbl_buscar.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        lbl_buscar.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
+        hdr_buscar.addWidget(lbl_buscar)
+        hdr_buscar.addStretch()
+
+        self.date_picker = QDateEdit()
+        self.date_picker.setCalendarPopup(True)
+        self.date_picker.setDate(QDate.currentDate())
+        self.date_picker.setDisplayFormat("dd/MM/yyyy")
+        self.date_picker.setFixedHeight(32)
+        self.date_picker.setFixedWidth(130)
+        self.date_picker.setStyleSheet(
+            f"QDateEdit {{ background: {BG_CARD}; color: {TEXT_MAIN}; border: 1.5px solid {BORDER};"
+            f" border-radius: 6px; padding: 2px 6px; font-size: 12px; }}"
+        )
+        hdr_buscar.addWidget(self.date_picker)
+
+        btn_buscar_fecha = QPushButton("Buscar")
+        btn_buscar_fecha.setFixedHeight(32)
+        btn_buscar_fecha.setFixedWidth(72)
+        btn_buscar_fecha.setStyleSheet(
+            "QPushButton { background: #0f3460; color: white; border-radius: 6px;"
+            " font-size: 12px; font-weight: bold; border: none; }"
+            "QPushButton:hover { background: #1a4a8a; }"
+        )
+        btn_buscar_fecha.clicked.connect(self._buscar_tickets_fecha)
+        hdr_buscar.addWidget(btn_buscar_fecha)
+        right_layout.addLayout(hdr_buscar)
+
+        self.lbl_resumen_fecha = QLabel("")
+        self.lbl_resumen_fecha.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; background: transparent;")
+        right_layout.addWidget(self.lbl_resumen_fecha)
+
+        self.tabla_tickets_fecha = QTableWidget()
+        self.tabla_tickets_fecha.setColumnCount(6)
+        self.tabla_tickets_fecha.setHorizontalHeaderLabels(
+            ["Ticket", "Hora", "Cajero", "Total", "Método", "Estado"]
+        )
+        self.tabla_tickets_fecha.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.tabla_tickets_fecha.setColumnWidth(0, 70)
+        self.tabla_tickets_fecha.setColumnWidth(1, 58)
+        self.tabla_tickets_fecha.setColumnWidth(3, 105)
+        self.tabla_tickets_fecha.setColumnWidth(4, 100)
+        self.tabla_tickets_fecha.setColumnWidth(5, 85)
+        self.tabla_tickets_fecha.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla_tickets_fecha.setAlternatingRowColors(True)
+        self.tabla_tickets_fecha.setMinimumHeight(80)
+        right_layout.addWidget(self.tabla_tickets_fecha, 1)
 
         body.addWidget(right, 1)
         root.addLayout(body, 1)
@@ -944,6 +1001,51 @@ class CajaScreen(QWidget):
             btn_ver.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 6px; border: none; } QPushButton:hover { background: #1a4a8a; }")
             btn_ver.clicked.connect(lambda _, datos=c: self._ver_detalle_cierre(datos))
             self.tabla_historial.setCellWidget(row, 9, btn_ver)
+
+    def _buscar_tickets_fecha(self):
+        from PyQt6.QtGui import QColor
+        fecha_str = self.date_picker.date().toString("yyyy-MM-dd")
+        try:
+            r = requests.get(f"{API_URL}/ventas/por-fecha?fecha={fecha_str}", timeout=5)
+            ventas = r.json() if r.status_code == 200 else []
+        except Exception:
+            ventas = []
+        nombres_metodo = {
+            "efectivo": "Efectivo", "debito": "Débito", "tarjeta": "Tarjeta",
+            "mercadopago_qr": "QR/MP", "transferencia": "Transfer.", "fiado": "Fiado",
+        }
+        self.tabla_tickets_fecha.setRowCount(0)
+        total_dia = sum(float(v.get("total", 0)) for v in ventas if v.get("estado") != "anulada")
+        cant = len([v for v in ventas if v.get("estado") != "anulada"])
+        anuladas = len([v for v in ventas if v.get("estado") == "anulada"])
+        resumen = f"{cant} tickets · Total: {_p(total_dia)}"
+        if anuladas:
+            resumen += f" · {anuladas} anulado(s)"
+        self.lbl_resumen_fecha.setText(resumen)
+        for v in ventas:
+            row = self.tabla_tickets_fecha.rowCount()
+            self.tabla_tickets_fecha.insertRow(row)
+            self.tabla_tickets_fecha.setRowHeight(row, 26)
+            item_num = QTableWidgetItem(f"#{v['numero']}")
+            item_num.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tabla_tickets_fecha.setItem(row, 0, item_num)
+            item_hora = QTableWidgetItem(v.get("hora", ""))
+            item_hora.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tabla_tickets_fecha.setItem(row, 1, item_hora)
+            self.tabla_tickets_fecha.setItem(row, 2, QTableWidgetItem(v.get("cajero", "")))
+            total = float(v.get("total", 0))
+            item_total = QTableWidgetItem(_p(total))
+            item_total.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.tabla_tickets_fecha.setItem(row, 3, item_total)
+            metodo_raw = v.get("metodo", "")
+            self.tabla_tickets_fecha.setItem(row, 4, QTableWidgetItem(
+                nombres_metodo.get(metodo_raw, metodo_raw.capitalize())
+            ))
+            estado = v.get("estado", "")
+            item_estado = QTableWidgetItem(estado.capitalize())
+            if estado == "anulada":
+                item_estado.setForeground(QColor("#ef4444"))
+            self.tabla_tickets_fecha.setItem(row, 5, item_estado)
 
     def _ver_detalle_cierre(self, c):
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout
