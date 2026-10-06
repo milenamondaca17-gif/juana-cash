@@ -1,8 +1,8 @@
 {
-  "version": "4.10.47",
-  "desktop_version": "4.10.47",
+  "version": "4.10.48",
+  "desktop_version": "4.10.48",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.47/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.48/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.47 - Rediseño Caja: layout 2 columnas, fix botón Deuda clientes, fix badge alertas"
+  "notas": "v4.10.48 - Fix: botones Ver/reimprimir caja ahora visibles con emoji"
 }

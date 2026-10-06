@@ -415,12 +415,13 @@ class CajaScreen(QWidget):
         lbl_hist.setStyleSheet(f"color: {TEXT_MUTED}; background: transparent;")
         hdr_hist.addWidget(lbl_hist)
         hdr_hist.addStretch()
-        btn_hist_ref = QPushButton("↻")
+        btn_hist_ref = QPushButton("🔄")
         btn_hist_ref.setFixedSize(32, 32)
         btn_hist_ref.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        btn_hist_ref.setToolTip("Actualizar historial")
         btn_hist_ref.setStyleSheet(
-            f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 8px; "
-            f"border: 2px solid {BORDER}; font-size: 16px; }}"
+            "QPushButton { background: #0f766e; color: white; border-radius: 8px; font-size: 15px; }"
+            "QPushButton:hover { background: #0d9488; }"
         )
         btn_hist_ref.clicked.connect(self.cargar_historial)
         hdr_hist.addWidget(btn_hist_ref)
@@ -936,10 +937,10 @@ class CajaScreen(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tabla_historial.setItem(row, col, item)
             # Botón Ver detalle
-            btn_ver = QPushButton("Ver")
+            btn_ver = QPushButton("🔍")
             btn_ver.setFixedSize(38, 26)
             btn_ver.setToolTip("Ver resumen completo")
-            btn_ver.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; border: 3px solid {BORDER}; font-size: 13px; }}")
+            btn_ver.setStyleSheet("QPushButton { background: #0f3460; color: white; border-radius: 4px; font-size: 14px; } QPushButton:hover { background: #1a4a8a; }")
             btn_ver.clicked.connect(lambda _, datos=c: self._ver_detalle_cierre(datos))
             self.tabla_historial.setCellWidget(row, 9, btn_ver)
 
@@ -2340,7 +2341,7 @@ class CajaScreen(QWidget):
                     btn_reimp = QPushButton("🖨")
                     btn_reimp.setFixedHeight(26)
                     btn_reimp.setToolTip("Reimprimir ticket")
-                    btn_reimp.setStyleSheet(f"QPushButton {{ background: {BG_CARD}; color: {TEXT_MAIN}; border-radius: 4px; font-size: 13px; border: 3px solid {BORDER}; }}")
+                    btn_reimp.setStyleSheet("QPushButton { background: #374151; color: white; border-radius: 4px; font-size: 13px; } QPushButton:hover { background: #4b5563; }")
                     btn_reimp.clicked.connect(lambda _, vid=v["id"], num=v["numero"]: self.reimprimir_ticket(vid, num))
                     self.tabla.setCellWidget(i, 7, btn_reimp)
 
