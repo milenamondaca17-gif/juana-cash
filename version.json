@@ -1,8 +1,8 @@
 {
-  "version": "4.10.48",
-  "desktop_version": "4.10.48",
+  "version": "4.10.49",
+  "desktop_version": "4.10.49",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.48/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.49/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.48 - Fix: botones Ver/reimprimir caja ahora visibles con emoji"
+  "notas": "v4.10.49 - Fix: boton Ver historial con ojito visible y bordeado"
 }
