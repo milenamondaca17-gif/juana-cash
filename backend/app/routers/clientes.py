@@ -268,6 +268,9 @@ def registrar_desde_whatsapp(datos: RegistrarWASchema, db: Session = Depends(get
         return {"ok": False, "motivo": "telefono vacio"}
     existente = db.query(Cliente).filter(Cliente.telefono == tel).first()
     if existente:
+        if not existente.origen:
+            existente.origen = "wa"
+            db.commit()
         return {"ok": True, "creado": False, "id": existente.id, "nombre": existente.nombre}
     nombre = datos.nombre.strip() if datos.nombre and datos.nombre.strip() else f"Cliente WA {tel}"
     nuevo = Cliente(nombre=nombre, telefono=tel, activo=True, origen="wa")
