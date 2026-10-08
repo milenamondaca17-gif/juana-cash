@@ -6,7 +6,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QTableWidget, QTableWidgetItem, QHeaderView,
                               QDialog, QFormLayout, QDoubleSpinBox, QMenu, QComboBox,
                               QTabWidget, QDateEdit, QGridLayout, QScrollArea,
-                              QSizePolicy, QSplitter)
+                              QSizePolicy, QSplitter, QTextEdit, QProgressBar,
+                              QApplication)
 from PyQt6.QtCore import QDate, Qt, QSize
 from PyQt6.QtGui import QFont, QColor
 
@@ -418,6 +419,16 @@ class ClientesScreen(QWidget):
         self.btn_wa.toggled.connect(self._toggle_filtro_wa)
         header.addWidget(self.btn_wa)
 
+        self.btn_difusion = QPushButton("📢 Difusión")
+        self.btn_difusion.setFixedHeight(36)
+        self.btn_difusion.setVisible(False)
+        self.btn_difusion.setStyleSheet("""
+            QPushButton { background: #075E54; color: white; border-radius: 8px; padding: 0 14px; font-weight: bold; font-size: 12px; }
+            QPushButton:hover { background: #128C7E; }
+        """)
+        self.btn_difusion.clicked.connect(self._difusion_wa)
+        header.addWidget(self.btn_difusion)
+
         btn_act = QPushButton("↻")
         btn_act.setFixedSize(36, 36)
         btn_act.setStyleSheet(f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 8px; border: 1.5px solid {_PRI}; }} QPushButton:hover {{ background: {_PRI}; color: white; }}")
@@ -670,6 +681,7 @@ class ClientesScreen(QWidget):
             QMessageBox.critical(self, "Error", "No se puede conectar al servidor")
 
     def _toggle_filtro_wa(self, activo):
+        self.btn_difusion.setVisible(activo)
         if activo:
             self._mostrar_solo_wa()
         else:
@@ -736,7 +748,7 @@ class ClientesScreen(QWidget):
                 QPushButton:hover {{ background: {_T['primary_hover']}; }}
             """)
 
-            def _hacer_menu(idx=i, pts=puntos, deu=deuda):
+            def _hacer_menu(idx=i, pts=puntos, deu=deuda, tel=c.get("telefono", "")):
                 menu = QMenu()
                 menu.setStyleSheet(f"""
                     QMenu {{ background: {_CARD}; border: 1px solid {_BOR};
@@ -752,6 +764,8 @@ class ClientesScreen(QWidget):
                 if pts >= 100:
                     menu.addAction("⭐  Canjear puntos", lambda: self.canjear_puntos(idx))
                 menu.addAction("🎟️  Generar cupón",     lambda: self.generar_cupon(idx))
+                if tel:
+                    menu.addAction("📲  Enviar WhatsApp", lambda: self._enviar_wa_individual(idx))
                 menu.addSeparator()
                 menu.addAction("🗑️  Eliminar cliente",  lambda: self.eliminar_cliente(
                     self.get_clientes_visibles()[idx]["id"]))
@@ -1142,4 +1156,150 @@ class ClientesScreen(QWidget):
 
     def get_clientes_visibles(self):
         return self._clientes_visibles
+
+    def _enviar_wa_individual(self, idx):
+        from ui.pantallas.whatsapp_ticket import servidor_activo, enviar_ticket_whatsapp
+        c = self.get_clientes_visibles()[idx]
+        tel = c.get("telefono", "")
+        if not tel:
+            QMessageBox.warning(self, "Sin teléfono", f"{c['nombre']} no tiene teléfono registrado.")
+            return
+        if not servidor_activo():
+            QMessageBox.warning(self, "WhatsApp inactivo", "El servidor de WhatsApp no está corriendo.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"📲 Mensaje a {c['nombre']}")
+        dialog.setMinimumWidth(420)
+        dialog.setStyleSheet(f"background: {_BG}; color: {_TXT};")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(12)
+        lay.setContentsMargins(20, 18, 20, 18)
+
+        lbl = QLabel(f"Para: <b>{c['nombre']}</b> — {tel}")
+        lbl.setStyleSheet(f"color: {_TXT}; font-size: 14px;")
+        lay.addWidget(lbl)
+
+        txt = QTextEdit()
+        txt.setPlaceholderText("Escribí tu mensaje...")
+        txt.setMinimumHeight(120)
+        txt.setStyleSheet(f"QTextEdit {{ background: {_CARD}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 14px; }}")
+        lay.addWidget(txt)
+
+        btns = QHBoxLayout()
+        btn_c = QPushButton("Cancelar")
+        btn_c.setFixedHeight(38)
+        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {_MUT}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 0 16px; }}")
+        btn_c.clicked.connect(dialog.reject)
+        btn_env = QPushButton("📲 Enviar")
+        btn_env.setFixedHeight(38)
+        btn_env.setStyleSheet("QPushButton { background: #25D366; color: white; border-radius: 8px; font-weight: bold; padding: 0 16px; } QPushButton:hover { background: #128C7E; }")
+        btns.addWidget(btn_c)
+        btns.addWidget(btn_env)
+        lay.addLayout(btns)
+
+        def enviar():
+            msg = txt.toPlainText().strip()
+            if not msg:
+                return
+            ok, resp = enviar_ticket_whatsapp(tel, msg)
+            if ok:
+                dialog.accept()
+                QMessageBox.information(self, "✅ Enviado", f"Mensaje enviado a {c['nombre']}")
+            else:
+                QMessageBox.warning(dialog, "Error al enviar", resp)
+
+        btn_env.clicked.connect(enviar)
+        dialog.exec()
+
+    def _difusion_wa(self):
+        import time
+        from ui.pantallas.whatsapp_ticket import servidor_activo, enviar_ticket_whatsapp
+        if not servidor_activo():
+            QMessageBox.warning(self, "WhatsApp inactivo", "El servidor de WhatsApp no está corriendo.")
+            return
+        try:
+            r = requests.get(f"{API_URL}/clientes/contactos-wa", timeout=5)
+            contactos = [c for c in r.json() if c.get("telefono")] if r.status_code == 200 else []
+        except Exception:
+            QMessageBox.critical(self, "Error", "No se pudo obtener los contactos")
+            return
+        if not contactos:
+            QMessageBox.information(self, "Sin contactos", "No hay contactos WA con teléfono registrado.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("📢 Difusión WhatsApp")
+        dialog.setMinimumWidth(460)
+        dialog.setStyleSheet(f"background: {_BG}; color: {_TXT};")
+        lay = QVBoxLayout(dialog)
+        lay.setSpacing(12)
+        lay.setContentsMargins(20, 18, 20, 18)
+
+        lbl_info = QLabel(f"📱 Se enviará a <b>{len(contactos)}</b> contactos WA")
+        lbl_info.setStyleSheet(f"color: {_TXT}; font-size: 14px;")
+        lay.addWidget(lbl_info)
+
+        txt = QTextEdit()
+        txt.setPlaceholderText("Escribí el mensaje para todos los contactos...")
+        txt.setMinimumHeight(140)
+        txt.setStyleSheet(f"QTextEdit {{ background: {_CARD}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 8px; color: {_TXT}; font-size: 14px; }}")
+        lay.addWidget(txt)
+
+        lbl_estado = QLabel("")
+        lbl_estado.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
+        lay.addWidget(lbl_estado)
+
+        barra = QProgressBar()
+        barra.setRange(0, len(contactos))
+        barra.setValue(0)
+        barra.setVisible(False)
+        barra.setFixedHeight(12)
+        barra.setStyleSheet(f"QProgressBar {{ border-radius: 6px; background: {_CARD}; border: none; }} QProgressBar::chunk {{ background: #25D366; border-radius: 6px; }}")
+        lay.addWidget(barra)
+
+        btns = QHBoxLayout()
+        btn_c = QPushButton("Cancelar")
+        btn_c.setFixedHeight(38)
+        btn_c.setStyleSheet(f"QPushButton {{ background: transparent; color: {_MUT}; border: 1.5px solid {_BOR}; border-radius: 8px; padding: 0 16px; }}")
+        btn_c.clicked.connect(dialog.reject)
+        btn_env = QPushButton(f"📢 Enviar a {len(contactos)} contactos")
+        btn_env.setFixedHeight(38)
+        btn_env.setStyleSheet("QPushButton { background: #075E54; color: white; border-radius: 8px; font-weight: bold; padding: 0 16px; } QPushButton:hover { background: #128C7E; }")
+        btns.addWidget(btn_c)
+        btns.addWidget(btn_env)
+        lay.addLayout(btns)
+
+        def enviar():
+            msg = txt.toPlainText().strip()
+            if not msg:
+                QMessageBox.warning(dialog, "Error", "Escribí un mensaje primero")
+                return
+            btn_env.setEnabled(False)
+            btn_c.setEnabled(False)
+            txt.setEnabled(False)
+            barra.setVisible(True)
+            enviados = errores = 0
+            for i, c in enumerate(contactos):
+                lbl_estado.setText(f"Enviando a {c['nombre']}... ({i + 1}/{len(contactos)})")
+                QApplication.processEvents()
+                ok, _ = enviar_ticket_whatsapp(c["telefono"], msg)
+                if ok:
+                    enviados += 1
+                else:
+                    errores += 1
+                barra.setValue(i + 1)
+                QApplication.processEvents()
+                if i < len(contactos) - 1:
+                    time.sleep(2)
+            lbl_estado.setText(
+                f"✅ Enviado a {enviados}/{len(contactos)}" +
+                (f"  —  ❌ {errores} con error" if errores else "")
+            )
+            lbl_estado.setStyleSheet("color: #25D366; font-size: 12px; font-weight: bold;")
+            btn_c.setEnabled(True)
+            btn_c.setText("Cerrar")
+
+        btn_env.clicked.connect(enviar)
+        dialog.exec()
 
