@@ -120,6 +120,29 @@ def crear_venta(datos: VentaCrear, db: Session = Depends(get_db)):
         "total": float(venta.total)
     }
 
+@router.get("/por-producto")
+def ventas_por_producto(producto_id: int, fecha: str = None, db: Session = Depends(get_db)):
+    from datetime import date, time
+    q = db.query(ItemVenta).filter(ItemVenta.producto_id == producto_id)
+    if fecha:
+        try:
+            d = date.fromisoformat(fecha)
+        except Exception:
+            raise HTTPException(status_code=400, detail="fecha inválida, usar YYYY-MM-DD")
+        desde = datetime.combine(d, time.min)
+        hasta = datetime.combine(d, time.max)
+        q = q.join(Venta).filter(Venta.fecha >= desde, Venta.fecha <= hasta, Venta.estado != 'anulada')
+    else:
+        from datetime import date as dt
+        hoy = dt.today()
+        desde = datetime.combine(hoy, time.min)
+        hasta = datetime.combine(hoy, time.max)
+        q = q.join(Venta).filter(Venta.fecha >= desde, Venta.fecha <= hasta, Venta.estado != 'anulada')
+    items = q.all()
+    total_kg  = sum(float(i.cantidad) for i in items)
+    total_pesos = sum(float(i.subtotal) for i in items)
+    return { "producto_id": producto_id, "fecha": fecha or str(dt.today()), "cantidad_kg": round(total_kg, 3), "total_pesos": round(total_pesos, 2), "tickets": len(items) }
+
 @router.get("/por-fecha")
 def ventas_por_fecha(fecha: str, db: Session = Depends(get_db)):
     """Ventas de un día. fecha=YYYY-MM-DD"""

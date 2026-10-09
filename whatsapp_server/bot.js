@@ -172,6 +172,18 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
             input_schema: { type: "object", properties: {} }
         },
         {
+            name: "ver_ventas_departamento",
+            description: "Ventas de carnicería (producto_id=3) o fiambrería (producto_id=11) del día o una fecha específica. Devuelve kg vendidos y total en pesos.",
+            input_schema: {
+                type: "object",
+                properties: {
+                    producto_id: { type: "number", description: "3=carnicería, 11=fiambrería" },
+                    fecha:       { type: "string",  description: "Fecha YYYY-MM-DD, opcional (default hoy)" }
+                },
+                required: ["producto_id"]
+            }
+        },
+        {
             name: "enviar_difusion_wa",
             description: "Enviar mensaje a todos los contactos WA del negocio",
             input_schema: {
@@ -240,6 +252,11 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                 const g = r.data||[];
                 return { total: g.reduce((s,x)=>s+parseFloat(x.monto),0),
                          gastos: g.slice(0,15).map(x=>({ desc:x.descripcion, monto:x.monto })) };
+            }
+            case "ver_ventas_departamento": {
+                const qs = params.fecha ? `?producto_id=${params.producto_id}&fecha=${params.fecha}` : `?producto_id=${params.producto_id}`;
+                const r = await api('GET', `/ventas/por-producto${qs}`);
+                return r.data;
             }
             case "enviar_difusion_wa": {
                 const r = await api('GET', `/clientes/contactos-wa`);

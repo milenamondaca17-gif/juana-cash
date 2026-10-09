@@ -1,8 +1,8 @@
 {
-  "version": "4.10.57",
-  "desktop_version": "4.10.57",
+  "version": "4.10.58",
+  "desktop_version": "4.10.58",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.57/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.58/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.57 - Bot IA: soporte de imágenes (listas de precios de proveedor)"
+  "notas": "v4.10.58 - Bot IA: ventas por departamento (carnicería/fiambrería), fuzzy matching"
 }
