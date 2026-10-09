@@ -273,11 +273,11 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
             const chat = await msg.getChat();
             await chat.sendStateTyping();
             const respuesta = await procesarMensaje(texto);
-            await enviarMensaje(remitente, respuesta);
+            await msg.reply(respuesta);
             console.log(`✅ [BOT] Respuesta enviada\n`);
         } catch(e) {
             console.error('❌ [BOT] Error:', e.message);
-            try { await enviarMensaje(remitente, `❌ Error: ${e.message}`); } catch(_) {}
+            try { await msg.reply(`❌ Error: ${e.message}`); } catch(_) {}
         }
     });
 
