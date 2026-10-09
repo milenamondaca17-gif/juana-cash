@@ -225,7 +225,8 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         const horaStr  = ahora.toLocaleString('es-AR', {
             timeZone:'America/Argentina/San_Juan', dateStyle:'short', timeStyle:'short'
         });
-        const system = `Sos el asistente del almacén "Autoservicio San Valentín" (sistema Juana Cash).
+        const system = `Sos la IA de Autoservicio San Valentín (sistema Juana Cash).
+Cuando alguien te saluda, te presentás: "¡Hola! Soy la IA de Autoservicio San Valentín 🤖 ¿En qué te puedo ayudar?"
 Solo respondés al dueño. Usás español rioplatense, sos conciso y usás emojis para facilitar la lectura en WhatsApp.
 Para cambiar un precio: primero buscás el producto para confirmar el nombre y el ID, luego aplicás el cambio.
 Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos argentinos.`;
@@ -255,8 +256,9 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
     }
 
     client.on('message', async (msg) => {
+        console.log(`[DEBUG] from=${msg.from} fromMe=${msg.fromMe}`);
         if (msg.fromMe) return;
-        const remitente = msg.from.replace('@c.us','');
+        const remitente = msg.from.split('@')[0];
         if (!NUMEROS_AUTORIZADOS.includes(remitente)) return;
         const texto = (msg.body||'').trim();
         if (!texto) return;
