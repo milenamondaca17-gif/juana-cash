@@ -219,7 +219,7 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         }
     }
 
-    async function procesarMensaje(texto) {
+    async function procesarMensaje(texto, mediaData = null) {
         const ahora   = new Date();
         const fechaHoy = ahora.toISOString().split('T')[0];
         const horaStr  = ahora.toLocaleString('es-AR', {
@@ -240,13 +240,24 @@ CAPACIDADES:
 Podés consultar ventas, caja, precios, stock, deudas de clientes y registrar gastos usando las herramientas disponibles.
 Cuando te preguntan algo del negocio, usás las herramientas para obtener datos reales del sistema.
 Para cambiar un precio: primero buscás el producto para confirmar el nombre y el ID, luego aplicás el cambio.
+Si recibís una imagen de lista de precios de proveedor, leés los productos y precios, buscás cada uno en el sistema y actualizás el precio aplicando el margen que te indiquen (o preguntás el margen si no te lo dijeron).
 
 Usás español rioplatense, sos conciso y usás emojis para facilitar la lectura en WhatsApp.
 Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos argentinos.`;
 
-        const messages = [{ role:'user', content:texto }];
+        let userContent;
+        if (mediaData) {
+            userContent = [
+                { type:'image', source:{ type:'base64', media_type:mediaData.mimetype, data:mediaData.data } },
+                { type:'text', text: texto || 'Analizá esta imagen.' }
+            ];
+        } else {
+            userContent = texto;
+        }
+
+        const messages = [{ role:'user', content:userContent }];
         let resp = await anthropic.messages.create({
-            model:'claude-haiku-4-5-20251001', max_tokens:1024, system, tools:TOOLS, messages
+            model:'claude-haiku-4-5-20251001', max_tokens:2048, system, tools:TOOLS, messages
         });
 
         while (resp.stop_reason === 'tool_use') {
@@ -280,12 +291,26 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
         console.log(`[DEBUG] remitente=${remitente}`);
         if (!NUMEROS_AUTORIZADOS.includes(remitente)) return;
         const texto = (msg.body||'').trim();
-        if (!texto) return;
-        console.log(`\n🤖 [BOT] ${remitente}: "${texto}"`);
+        if (!texto && !msg.hasMedia) return;
+        console.log(`\n🤖 [BOT] ${remitente}: "${texto || '[imagen]'}"`);
+
+        let mediaData = null;
+        if (msg.hasMedia) {
+            try {
+                const media = await msg.downloadMedia();
+                if (media && media.mimetype && media.mimetype.startsWith('image/')) {
+                    mediaData = { mimetype: media.mimetype, data: media.data };
+                    console.log(`📷 [BOT] Imagen recibida (${media.mimetype})`);
+                }
+            } catch(e) {
+                console.error('⚠️ [BOT] Error descargando imagen:', e.message);
+            }
+        }
+
         try {
             const chat = await msg.getChat();
             await chat.sendStateTyping();
-            const respuesta = await procesarMensaje(texto);
+            const respuesta = await procesarMensaje(texto, mediaData);
             await msg.reply(respuesta);
             console.log(`✅ [BOT] Respuesta enviada\n`);
         } catch(e) {
