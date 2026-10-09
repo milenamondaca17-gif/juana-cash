@@ -1,8 +1,8 @@
 {
-  "version": "4.10.55",
-  "desktop_version": "4.10.55",
+  "version": "4.10.56",
+  "desktop_version": "4.10.56",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.55/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.56/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.55 - WhatsApp: envío individual y difusión a contactos WA"
+  "notas": "v4.10.56 - Bot IA WhatsApp: comandos por chat desde el cel del dueño"
 }

@@ -222,3 +222,5 @@ app.listen(PORT, '127.0.0.1', () => {
 });
 
 client.initialize();
+
+require('./bot')(client, enviarMensaje, BACKEND_PORT, http);

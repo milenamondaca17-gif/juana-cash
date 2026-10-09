@@ -2,6 +2,7 @@
 dist/
 build/
 __pycache__/
+bot_config.json
 *.pyc
 mobile/juana_cash.db
 instalador_output/
