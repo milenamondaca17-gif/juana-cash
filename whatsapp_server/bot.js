@@ -25,6 +25,25 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
 
     const anthropic = new Anthropic({ apiKey: BOT_API_KEY });
 
+    // Historial de conversación por usuario (en memoria, se limpia si pasan 20 min sin actividad)
+    const conversaciones  = new Map();
+    const ultimaActividad = new Map();
+    const TIMEOUT_MS = 20 * 60 * 1000;
+    const MAX_TURNOS = 10; // máximo de intercambios guardados por usuario
+
+    function getHistorial(remitente) {
+        const ahora = Date.now();
+        const ultima = ultimaActividad.get(remitente) || 0;
+        if (ahora - ultima > TIMEOUT_MS) conversaciones.delete(remitente);
+        ultimaActividad.set(remitente, ahora);
+        return conversaciones.get(remitente) || [];
+    }
+
+    function setHistorial(remitente, historial) {
+        // Guardar solo texto (sin media/tool_calls) para no acumular tokens
+        conversaciones.set(remitente, historial.slice(-(MAX_TURNOS * 2)));
+    }
+
     function api(method, ruta, body = null) {
         return new Promise((resolve, reject) => {
             const data = body ? JSON.stringify(body) : null;
@@ -200,7 +219,7 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         }
     }
 
-    async function procesarMensaje(texto, mediaData = null) {
+    async function procesarMensaje(texto, mediaData, historial) {
         const ahora    = new Date();
         const fechaHoy = ahora.toISOString().split('T')[0];
         const horaStr  = ahora.toLocaleString('es-AR', {
@@ -218,22 +237,24 @@ DATOS DEL NEGOCIO:
 - Cajeras: Fernanda (turno mañana), Natalia (turno tarde)
 - Fiado: solo a clientes registrados en la base de datos
 
-CAPACIDADES:
-Podés consultar ventas, caja, precios, deudas de clientes y registrar gastos usando las herramientas disponibles.
-Cuando te preguntan algo del negocio, usás las herramientas para obtener datos reales del sistema.
-Para cambiar un precio: primero buscás el producto para confirmar el ID, luego aplicás el cambio.
+CONVERSACIÓN:
+Tenés memoria de los mensajes anteriores. Si el usuario dice un número solo, es el precio del producto que estaban hablando. Si dice "ese" o "ese producto", se refiere al último producto mencionado. Mantené el contexto sin pedir que repitan información.
+
+ACCIONES:
+- Consultar ventas, caja, precios, deudas y registrar gastos con las herramientas disponibles.
+- Para cambiar un precio: buscás el producto, confirmás el ID y aplicás el cambio.
+- Si el usuario ya dijo el producto antes y ahora solo manda el precio, hacé el cambio directamente.
 
 ACTUALIZACIÓN DE PRECIOS POR IMAGEN O PDF:
 Cuando recibís una foto o PDF de lista de precios de proveedor:
-1. Leés todos los productos y precios visibles en la imagen/PDF.
-2. Por cada producto, buscás en el sistema usando buscar_producto.
-3. Si el nombre coincide en un 70% o más, actualizás el precio DIRECTAMENTE con cambiar_precio, sin pedir confirmación.
-4. Si el usuario indicó un margen (ej: "30% de ganancia"), calculás: precio_venta = precio_proveedor * (1 + margen/100), redondeado al peso.
+1. Leés todos los productos y precios visibles.
+2. Por cada producto, buscás en el sistema con buscar_producto.
+3. Si el nombre coincide en un 70% o más, actualizás el precio con cambiar_precio SIN pedir confirmación.
+4. Si el usuario indicó margen (ej: "30% de ganancia"): precio_venta = precio_proveedor * (1 + margen/100), redondeado al peso.
 5. Si NO indicó margen, actualizás con el precio exacto de la lista.
-6. Al terminar, respondés con un resumen: cuántos actualizaste, cuáles no encontraste, y los precios nuevos.
-7. NO preguntes sobre stock. NO pedís confirmación antes de actualizar.
+6. Al terminar, resumís: cuántos actualizaste y cuáles no encontraste.
 
-Usás español rioplatense, sos conciso y usás emojis para facilitar la lectura en WhatsApp.
+Usás español rioplatense, sos conciso y usás emojis. Sin mencionar stock.
 Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos argentinos.`;
 
         let userContent;
@@ -243,13 +264,15 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
                 : { type:'image',    source:{ type:'base64', media_type:mediaData.mimetype,  data:mediaData.data } };
             userContent = [
                 mediaBlock,
-                { type:'text', text: texto || 'Actualizá los precios de la base de datos con los de esta lista.' }
+                { type:'text', text: texto || 'Actualizá los precios con los de esta lista.' }
             ];
         } else {
             userContent = texto;
         }
 
-        const messages = [{ role:'user', content:userContent }];
+        // Construir mensajes con historial previo
+        const messages = [...historial, { role:'user', content:userContent }];
+
         let resp = await anthropic.messages.create({
             model:'claude-haiku-4-5-20251001', max_tokens:4096, system, tools:TOOLS, messages
         });
@@ -269,8 +292,18 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
                 model:'claude-haiku-4-5-20251001', max_tokens:4096, system, tools:TOOLS, messages
             });
         }
+
         const bloque = resp.content.find(b=>b.type==='text');
-        return bloque ? bloque.text : '❌ Sin respuesta';
+        const respuesta = bloque ? bloque.text : '❌ Sin respuesta';
+
+        // Guardar solo texto en el historial (sin media ni tool_calls para no acumular tokens)
+        const historialNuevo = [
+            ...historial,
+            { role:'user',      content: mediaData ? (texto || '[imagen/PDF]') : texto },
+            { role:'assistant', content: respuesta }
+        ];
+
+        return { respuesta, historialNuevo };
     }
 
     client.on('message', async (msg) => {
@@ -303,10 +336,13 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
             }
         }
 
+        const historial = getHistorial(remitente);
+
         try {
             const chat = await msg.getChat();
             await chat.sendStateTyping();
-            const respuesta = await procesarMensaje(texto, mediaData);
+            const { respuesta, historialNuevo } = await procesarMensaje(texto, mediaData, historial);
+            setHistorial(remitente, historialNuevo);
             await msg.reply(respuesta);
             console.log(`✅ [BOT] Respuesta enviada\n`);
         } catch(e) {
