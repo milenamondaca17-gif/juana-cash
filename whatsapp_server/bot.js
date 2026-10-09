@@ -256,9 +256,15 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
     }
 
     client.on('message', async (msg) => {
-        console.log(`[DEBUG] from=${msg.from} fromMe=${msg.fromMe}`);
         if (msg.fromMe) return;
-        const remitente = msg.from.split('@')[0];
+        let remitente;
+        try {
+            const contact = await msg.getContact();
+            remitente = contact.number || msg.from.split('@')[0];
+        } catch(e) {
+            remitente = msg.from.split('@')[0];
+        }
+        console.log(`[DEBUG] remitente=${remitente}`);
         if (!NUMEROS_AUTORIZADOS.includes(remitente)) return;
         const texto = (msg.body||'').trim();
         if (!texto) return;
