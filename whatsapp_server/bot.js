@@ -25,6 +25,36 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
 
     const anthropic = new Anthropic({ apiKey: BOT_API_KEY });
 
+    // Cache de productos para búsqueda fuzzy local
+    let productosCache = null;
+    let cacheTs = 0;
+    const CACHE_TTL = 5 * 60 * 1000;
+
+    async function getProductos() {
+        if (productosCache && Date.now() - cacheTs < CACHE_TTL) return productosCache;
+        const r = await api('GET', '/productos/');
+        productosCache = r.data || [];
+        cacheTs = Date.now();
+        return productosCache;
+    }
+
+    // Similaridad por palabras clave (0 a 1)
+    function similaridad(query, nombre) {
+        const norm = s => s.toLowerCase()
+            .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i')
+            .replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
+            .replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+        const q = norm(query);
+        const n = norm(nombre);
+        if (q === n) return 1;
+        if (n.includes(q) || q.includes(n)) return 0.9;
+        const wq = q.split(' ').filter(w => w.length > 1);
+        const wn = n.split(' ').filter(w => w.length > 1);
+        if (wq.length === 0) return 0;
+        const matches = wq.filter(w => wn.some(x => x.includes(w) || w.includes(x)));
+        return matches.length / wq.length;
+    }
+
     // Historial de conversación por usuario (en memoria, se limpia si pasan 20 min sin actividad)
     const conversaciones  = new Map();
     const ultimaActividad = new Map();
@@ -173,8 +203,15 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                 return r.data;
             }
             case "buscar_producto": {
-                const r = await api('GET', `/productos/buscar?q=${encodeURIComponent(params.nombre)}`);
-                return (r.data||[]).slice(0,6).map(p => ({ id:p.id, nombre:p.nombre, precio:p.precio }));
+                const todos = await getProductos();
+                const resultados = todos
+                    .map(p => ({ id:p.id, nombre:p.nombre, precio:p.precio, sim: similaridad(params.nombre, p.nombre) }))
+                    .filter(p => p.sim >= 0.5)
+                    .sort((a,b) => b.sim - a.sim)
+                    .slice(0, 5)
+                    .map(p => ({ id:p.id, nombre:p.nombre, precio:p.precio, coincidencia: Math.round(p.sim*100)+'%' }));
+                console.log(`🔍 buscar "${params.nombre}" → ${resultados.map(p=>p.nombre+'('+p.coincidencia+')').join(', ')||'sin resultados'}`);
+                return resultados;
             }
             case "cambiar_precio": {
                 const r = await api('POST', `/productos/${params.producto_id}/cambiar-precio`,
@@ -248,11 +285,12 @@ ACCIONES:
 ACTUALIZACIÓN DE PRECIOS POR IMAGEN O PDF:
 Cuando recibís una foto o PDF de lista de precios de proveedor:
 1. Leés todos los productos y precios visibles.
-2. Por cada producto, buscás en el sistema con buscar_producto.
-3. Si el nombre coincide en un 70% o más, actualizás el precio con cambiar_precio SIN pedir confirmación.
-4. Si el usuario indicó margen (ej: "30% de ganancia"): precio_venta = precio_proveedor * (1 + margen/100), redondeado al peso.
-5. Si NO indicó margen, actualizás con el precio exacto de la lista.
-6. Al terminar, resumís: cuántos actualizaste y cuáles no encontraste.
+2. Por cada producto, buscás con buscar_producto. La herramienta ya hace el matching fuzzy y devuelve el porcentaje de coincidencia.
+3. Si el primer resultado tiene coincidencia >= 70%, actualizás el precio con cambiar_precio SIN pedir confirmación.
+4. Si coincidencia < 70% o no hay resultados, lo anotás como "no encontrado".
+5. Si el usuario indicó margen (ej: "30% de ganancia"): precio_venta = precio_proveedor * (1 + margen/100), redondeado al peso.
+6. Si NO indicó margen, actualizás con el precio exacto de la lista.
+7. Al terminar, resumís: cuántos actualizaste y cuáles no encontraste.
 
 Usás español rioplatense, sos conciso y usás emojis. Sin mencionar stock.
 Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos argentinos.`;
