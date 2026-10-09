@@ -127,14 +127,6 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
             input_schema: { type: "object", properties: {} }
         },
         {
-            name: "ver_stock_bajo",
-            description: "Productos con stock bajo o agotado",
-            input_schema: {
-                type: "object",
-                properties: { minimo: { type: "number", description: "Stock mínimo, default 5" } }
-            }
-        },
-        {
             name: "enviar_difusion_wa",
             description: "Enviar mensaje a todos los contactos WA del negocio",
             input_schema: {
@@ -196,13 +188,6 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                 const g = r.data||[];
                 return { total: g.reduce((s,x)=>s+parseFloat(x.monto),0),
                          gastos: g.slice(0,15).map(x=>({ desc:x.descripcion, monto:x.monto })) };
-            }
-            case "ver_stock_bajo": {
-                const r = await api('GET', `/productos/`);
-                const min = params.minimo !== undefined ? params.minimo : 5;
-                return (r.data||[]).filter(p=>parseFloat(p.stock_actual)<=min)
-                    .sort((a,b)=>parseFloat(a.stock_actual)-parseFloat(b.stock_actual))
-                    .slice(0,15).map(p=>({ nombre:p.nombre, stock:p.stock_actual, precio:p.precio }));
             }
             case "enviar_difusion_wa": {
                 const r = await api('GET', `/clientes/contactos-wa`);
