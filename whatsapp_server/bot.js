@@ -6,19 +6,17 @@ const fs        = require('fs');
 
 module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
 
-    // Leer configuración local (nunca va al repositorio)
     const configPath = path.join('C:\\JuanaCash\\whatsapp', 'bot_config.json');
     let config;
     try {
         config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     } catch(e) {
         console.log('⚠️  Bot desactivado: no se encontró bot_config.json en C:\\JuanaCash\\whatsapp\\');
-        console.log('   Creá ese archivo con api_key y numeros_autorizados para activar el bot.');
         return;
     }
 
-    const BOT_API_KEY          = config.api_key;
-    const NUMEROS_AUTORIZADOS  = config.numeros_autorizados || [];
+    const BOT_API_KEY         = config.api_key;
+    const NUMEROS_AUTORIZADOS = config.numeros_autorizados || [];
 
     if (!BOT_API_KEY || BOT_API_KEY === 'PONER_API_KEY_AQUI') {
         console.log('⚠️  Bot desactivado: completá la api_key en bot_config.json');
@@ -27,7 +25,6 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
 
     const anthropic = new Anthropic({ apiKey: BOT_API_KEY });
 
-    // Petición HTTP al backend
     function api(method, ruta, body = null) {
         return new Promise((resolve, reject) => {
             const data = body ? JSON.stringify(body) : null;
@@ -50,7 +47,6 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         });
     }
 
-    // Herramientas disponibles para Claude
     const TOOLS = [
         {
             name: "ver_ventas_hoy",
@@ -73,7 +69,7 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         },
         {
             name: "buscar_producto",
-            description: "Buscar productos por nombre: precio, stock e ID",
+            description: "Buscar productos por nombre: devuelve id, nombre y precio actual",
             input_schema: {
                 type: "object",
                 properties: { nombre: { type: "string", description: "Nombre o parte del nombre" } },
@@ -159,7 +155,7 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
             }
             case "buscar_producto": {
                 const r = await api('GET', `/productos/buscar?q=${encodeURIComponent(params.nombre)}`);
-                return (r.data||[]).slice(0,6).map(p => ({ id:p.id, nombre:p.nombre, precio:p.precio, stock:p.stock_actual }));
+                return (r.data||[]).slice(0,6).map(p => ({ id:p.id, nombre:p.nombre, precio:p.precio }));
             }
             case "cambiar_precio": {
                 const r = await api('POST', `/productos/${params.producto_id}/cambiar-precio`,
@@ -205,11 +201,12 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
     }
 
     async function procesarMensaje(texto, mediaData = null) {
-        const ahora   = new Date();
+        const ahora    = new Date();
         const fechaHoy = ahora.toISOString().split('T')[0];
         const horaStr  = ahora.toLocaleString('es-AR', {
             timeZone:'America/Argentina/San_Juan', dateStyle:'short', timeStyle:'short'
         });
+
         const system = `Sos el asistente de gestión del almacén "Autoservicio San Valentín" (sistema Juana Cash).
 Hablás directamente con el dueño (Lucas) o su familia para ayudarlos a gestionar el negocio.
 
@@ -222,19 +219,31 @@ DATOS DEL NEGOCIO:
 - Fiado: solo a clientes registrados en la base de datos
 
 CAPACIDADES:
-Podés consultar ventas, caja, precios, stock, deudas de clientes y registrar gastos usando las herramientas disponibles.
+Podés consultar ventas, caja, precios, deudas de clientes y registrar gastos usando las herramientas disponibles.
 Cuando te preguntan algo del negocio, usás las herramientas para obtener datos reales del sistema.
-Para cambiar un precio: primero buscás el producto para confirmar el nombre y el ID, luego aplicás el cambio.
-Si recibís una imagen de lista de precios de proveedor, leés los productos y precios, buscás cada uno en el sistema y actualizás el precio aplicando el margen que te indiquen (o preguntás el margen si no te lo dijeron).
+Para cambiar un precio: primero buscás el producto para confirmar el ID, luego aplicás el cambio.
+
+ACTUALIZACIÓN DE PRECIOS POR IMAGEN O PDF:
+Cuando recibís una foto o PDF de lista de precios de proveedor:
+1. Leés todos los productos y precios visibles en la imagen/PDF.
+2. Por cada producto, buscás en el sistema usando buscar_producto.
+3. Si el nombre coincide en un 70% o más, actualizás el precio DIRECTAMENTE con cambiar_precio, sin pedir confirmación.
+4. Si el usuario indicó un margen (ej: "30% de ganancia"), calculás: precio_venta = precio_proveedor * (1 + margen/100), redondeado al peso.
+5. Si NO indicó margen, actualizás con el precio exacto de la lista.
+6. Al terminar, respondés con un resumen: cuántos actualizaste, cuáles no encontraste, y los precios nuevos.
+7. NO preguntes sobre stock. NO pedís confirmación antes de actualizar.
 
 Usás español rioplatense, sos conciso y usás emojis para facilitar la lectura en WhatsApp.
 Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos argentinos.`;
 
         let userContent;
         if (mediaData) {
+            const mediaBlock = mediaData.mimetype === 'application/pdf'
+                ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data:mediaData.data } }
+                : { type:'image',    source:{ type:'base64', media_type:mediaData.mimetype,  data:mediaData.data } };
             userContent = [
-                { type:'image', source:{ type:'base64', media_type:mediaData.mimetype, data:mediaData.data } },
-                { type:'text', text: texto || 'Analizá esta imagen.' }
+                mediaBlock,
+                { type:'text', text: texto || 'Actualizá los precios de la base de datos con los de esta lista.' }
             ];
         } else {
             userContent = texto;
@@ -242,7 +251,7 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
 
         const messages = [{ role:'user', content:userContent }];
         let resp = await anthropic.messages.create({
-            model:'claude-haiku-4-5-20251001', max_tokens:2048, system, tools:TOOLS, messages
+            model:'claude-haiku-4-5-20251001', max_tokens:4096, system, tools:TOOLS, messages
         });
 
         while (resp.stop_reason === 'tool_use') {
@@ -257,7 +266,7 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
             messages.push({ role:'assistant', content:resp.content });
             messages.push({ role:'user', content:results });
             resp = await anthropic.messages.create({
-                model:'claude-haiku-4-5-20251001', max_tokens:1024, system, tools:TOOLS, messages
+                model:'claude-haiku-4-5-20251001', max_tokens:4096, system, tools:TOOLS, messages
             });
         }
         const bloque = resp.content.find(b=>b.type==='text');
@@ -277,18 +286,20 @@ Fecha/hora actual: ${horaStr}. Hoy es: ${fechaHoy}. Los montos son en pesos arge
         if (!NUMEROS_AUTORIZADOS.includes(remitente)) return;
         const texto = (msg.body||'').trim();
         if (!texto && !msg.hasMedia) return;
-        console.log(`\n🤖 [BOT] ${remitente}: "${texto || '[imagen]'}"`);
+        console.log(`\n🤖 [BOT] ${remitente}: "${texto || '[archivo]'}"`);
 
         let mediaData = null;
         if (msg.hasMedia) {
             try {
                 const media = await msg.downloadMedia();
-                if (media && media.mimetype && media.mimetype.startsWith('image/')) {
-                    mediaData = { mimetype: media.mimetype, data: media.data };
-                    console.log(`📷 [BOT] Imagen recibida (${media.mimetype})`);
+                if (media && media.mimetype) {
+                    if (media.mimetype.startsWith('image/') || media.mimetype === 'application/pdf') {
+                        mediaData = { mimetype: media.mimetype, data: media.data };
+                        console.log(`📎 [BOT] Archivo recibido (${media.mimetype})`);
+                    }
                 }
             } catch(e) {
-                console.error('⚠️ [BOT] Error descargando imagen:', e.message);
+                console.error('⚠️ [BOT] Error descargando archivo:', e.message);
             }
         }
 
