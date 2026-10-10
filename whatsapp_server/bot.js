@@ -172,6 +172,15 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
             input_schema: { type: "object", properties: {} }
         },
         {
+            name: "ver_historial_cliente",
+            description: "Estado de cuenta completo de un cliente: todas sus compras fiadas, pagos realizados y saldo acumulado cronológico",
+            input_schema: {
+                type: "object",
+                properties: { nombre: { type: "string", description: "Nombre o parte del nombre del cliente" } },
+                required: ["nombre"]
+            }
+        },
+        {
             name: "ver_ventas_departamento",
             description: "Ventas de carnicería (producto_id=3) o fiambrería (producto_id=11) del día o una fecha específica. Devuelve total en pesos y cantidad de tickets.",
             input_schema: {
@@ -252,6 +261,27 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                 const g = r.data||[];
                 return { total: g.reduce((s,x)=>s+parseFloat(x.monto),0),
                          gastos: g.slice(0,15).map(x=>({ desc:x.descripcion, monto:x.monto })) };
+            }
+            case "ver_historial_cliente": {
+                const r = await api('GET', `/clientes/buscar?q=${encodeURIComponent(params.nombre)}`);
+                const clientes = r.data || [];
+                if (!clientes.length) return { error: `No se encontró ningún cliente con nombre "${params.nombre}"` };
+                const cliente = clientes[0];
+                const h = await api('GET', `/clientes/${cliente.id}/historial`);
+                const d = h.data;
+                return {
+                    cliente: d.cliente.nombre,
+                    deuda_actual: d.cliente.deuda_actual,
+                    total_compras: d.total_compras,
+                    total_pagos: d.total_pagos,
+                    movimientos: d.movimientos.slice(-30).map(m => ({
+                        fecha: m.fecha.slice(0,10),
+                        tipo: m.tipo,
+                        descripcion: m.descripcion,
+                        monto: m.monto,
+                        saldo: m.saldo
+                    }))
+                };
             }
             case "ver_ventas_departamento": {
                 const qs = params.fecha ? `?producto_id=${params.producto_id}&fecha=${params.fecha}` : `?producto_id=${params.producto_id}`;
