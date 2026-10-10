@@ -173,7 +173,7 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         },
         {
             name: "ver_ventas_departamento",
-            description: "Ventas de carnicería (producto_id=3) o fiambrería (producto_id=11) del día o una fecha específica. Devuelve kg vendidos y total en pesos.",
+            description: "Ventas de carnicería (producto_id=3) o fiambrería (producto_id=11) del día o una fecha específica. Devuelve total en pesos y cantidad de tickets.",
             input_schema: {
                 type: "object",
                 properties: {

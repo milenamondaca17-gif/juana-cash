@@ -139,9 +139,8 @@ def ventas_por_producto(producto_id: int, fecha: str = None, db: Session = Depen
         hasta = datetime.combine(hoy, time.max)
         q = q.join(Venta).filter(Venta.fecha >= desde, Venta.fecha <= hasta, Venta.estado != 'anulada')
     items = q.all()
-    total_kg  = sum(float(i.cantidad) for i in items)
     total_pesos = sum(float(i.subtotal) for i in items)
-    return { "producto_id": producto_id, "fecha": fecha or str(dt.today()), "cantidad_kg": round(total_kg, 3), "total_pesos": round(total_pesos, 2), "tickets": len(items) }
+    return { "producto_id": producto_id, "fecha": fecha or str(dt.today()), "total_pesos": round(total_pesos, 2), "tickets": len(items) }
 
 @router.get("/por-fecha")
 def ventas_por_fecha(fecha: str, db: Session = Depends(get_db)):
