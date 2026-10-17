@@ -112,6 +112,19 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
             }
         },
         {
+            name: "ver_tickets_horario",
+            description: "Tickets de venta de un rango horario. Muestra número de ticket, hora, cajero, total y método de pago. Útil para ver qué se vendió entre dos horas.",
+            input_schema: {
+                type: "object",
+                properties: {
+                    hora_desde: { type: "string", description: "Hora de inicio HH:MM (ej: 10:00)" },
+                    hora_hasta: { type: "string", description: "Hora de fin HH:MM (ej: 11:00)" },
+                    fecha:      { type: "string", description: "Fecha YYYY-MM-DD, opcional (default hoy)" }
+                },
+                required: ["hora_desde", "hora_hasta"]
+            }
+        },
+        {
             name: "ver_caja_actual",
             description: "Estado del turno activo: efectivo esperado, ventas y gastos",
             input_schema: { type: "object", properties: {} }
@@ -218,6 +231,30 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                 return { fecha: params.fecha, tickets: v.length,
                          total: v.reduce((s,x) => s+x.total, 0),
                          anuladas: v.filter(x => x.estado==='anulada').length };
+            }
+            case "ver_tickets_horario": {
+                const fecha = params.fecha || new Date().toISOString().split('T')[0];
+                const r = await api('GET', `/ventas/por-fecha?fecha=${fecha}`);
+                const todos = (r.data || []).filter(v => v.estado !== 'anulada');
+                const filtrados = todos.filter(v => {
+                    const h = v.hora || '';
+                    return h >= params.hora_desde && h <= params.hora_hasta;
+                });
+                const total = filtrados.reduce((s,v) => s + parseFloat(v.total||0), 0);
+                return {
+                    fecha,
+                    desde: params.hora_desde,
+                    hasta: params.hora_hasta,
+                    cantidad: filtrados.length,
+                    total: Math.round(total),
+                    tickets: filtrados.map(v => ({
+                        numero: v.numero,
+                        hora: v.hora,
+                        cajero: v.cajero,
+                        total: v.total,
+                        metodo: v.metodo
+                    }))
+                };
             }
             case "ver_caja_actual": {
                 const r = await api('GET', `/caja/resumen-rapido?usuario_id=1`);
