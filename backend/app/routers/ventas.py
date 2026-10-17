@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date
 from ..database import get_db
 from ..models.venta import Venta, ItemVenta, Pago
 from ..models.producto import Producto
@@ -141,6 +141,37 @@ def ventas_por_producto(producto_id: int, fecha: str = None, db: Session = Depen
     items = q.all()
     total_pesos = sum(float(i.subtotal) for i in items)
     return { "producto_id": producto_id, "fecha": fecha or str(dt.today()), "total_pesos": round(total_pesos, 2), "tickets": len(items) }
+
+@router.get("/mas-vendidos")
+def mas_vendidos(fecha: str = None, limite: int = 10, db: Session = Depends(get_db)):
+    from datetime import date as dt, time
+    from collections import defaultdict
+    if fecha:
+        try: d = date.fromisoformat(fecha)
+        except Exception: raise HTTPException(status_code=400, detail="fecha inválida")
+        desde = datetime.combine(d, time.min)
+        hasta = datetime.combine(d, time.max)
+    else:
+        hoy = dt.today()
+        desde = datetime.combine(hoy, time.min)
+        hasta = datetime.combine(hoy, time.max)
+    ventas_ids = [v.id for v in db.query(Venta).filter(
+        Venta.fecha >= desde, Venta.fecha <= hasta, Venta.estado == 'completada').all()]
+    if not ventas_ids:
+        return []
+    items = db.query(ItemVenta, Producto).join(
+        Producto, ItemVenta.producto_id == Producto.id
+    ).filter(ItemVenta.venta_id.in_(ventas_ids)).all()
+    totales = defaultdict(lambda: {'nombre':'', 'cantidad':0.0, 'total':0.0})
+    for item, prod in items:
+        totales[prod.id]['nombre'] = prod.nombre
+        totales[prod.id]['cantidad'] += float(item.cantidad)
+        totales[prod.id]['total'] += float(item.subtotal)
+    return sorted(
+        [{'producto_id':k,'nombre':v['nombre'],'cantidad':round(v['cantidad'],2),'total':round(v['total'],2)}
+         for k,v in totales.items()],
+        key=lambda x: x['total'], reverse=True
+    )[:limite]
 
 @router.get("/por-fecha")
 def ventas_por_fecha(fecha: str, db: Session = Depends(get_db)):

@@ -38,12 +38,16 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         return productosCache;
     }
 
-    // Similaridad por palabras clave (0 a 1)
-    function similaridad(query, nombre) {
-        const norm = s => s.toLowerCase()
-            .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i')
-            .replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
+    // Normaliza texto: minúsculas, sin tildes, solo alfanumérico
+    function norm(s) {
+        return (s||'').toLowerCase()
+            .replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i')
+            .replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/ñ/g,'n')
             .replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+    }
+
+    // Similaridad mejorada: tildes, abreviaturas, números
+    function similaridad(query, nombre) {
         const q = norm(query);
         const n = norm(nombre);
         if (q === n) return 1;
@@ -51,7 +55,8 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
         const wq = q.split(' ').filter(w => w.length > 1);
         const wn = n.split(' ').filter(w => w.length > 1);
         if (wq.length === 0) return 0;
-        const matches = wq.filter(w => wn.some(x => x.includes(w) || w.includes(x)));
+        // Coincidencia exacta de palabra O una contiene a la otra
+        const matches = wq.filter(w => wn.some(x => x === w || x.startsWith(w) || w.startsWith(x)));
         return matches.length / wq.length;
     }
 
@@ -213,6 +218,40 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                 properties: { mensaje: { type: "string", description: "Texto a enviar" } },
                 required: ["mensaje"]
             }
+        },
+        {
+            name: "comparar_ventas",
+            description: "Compara ventas de hoy vs ayer: totales, diferencia porcentual y desglose por método de pago",
+            input_schema: { type: "object", properties: {} }
+        },
+        {
+            name: "ver_cajera_turno",
+            description: "Ver qué cajera está en turno ahora, desde qué hora y el monto de apertura",
+            input_schema: { type: "object", properties: {} }
+        },
+        {
+            name: "ver_mas_vendidos",
+            description: "Productos más vendidos del día o una fecha específica, por monto total",
+            input_schema: {
+                type: "object",
+                properties: {
+                    fecha:  { type: "string", description: "Fecha YYYY-MM-DD, opcional (default hoy)" },
+                    limite: { type: "number", description: "Cantidad de productos, default 10" }
+                }
+            }
+        },
+        {
+            name: "registrar_pago_cliente",
+            description: "Registrar un pago de deuda de un cliente. Busca al cliente, muestra sus fiados pendientes y aplica el pago al más antiguo.",
+            input_schema: {
+                type: "object",
+                properties: {
+                    nombre: { type: "string", description: "Nombre del cliente" },
+                    monto:  { type: "number", description: "Monto pagado en pesos" },
+                    metodo: { type: "string", description: "Método de pago: efectivo, transferencia, mercadopago_qr, debito (default: efectivo)" }
+                },
+                required: ["nombre", "monto"]
+            }
         }
     ];
 
@@ -335,6 +374,62 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                     catch(_) { errores++; }
                 }
                 return { enviados, errores, total:contactos.length };
+            }
+            case "comparar_ventas": {
+                const r = await api('GET', `/caja/resumen-rapido?usuario_id=1`);
+                const d = r.data || {};
+                return {
+                    hoy:   { total: d.hoy?.total||0,  tickets: d.hoy?.cantidad||0,  efectivo: d.hoy?.efectivo||0 },
+                    ayer:  { total: d.ayer?.total||0, tickets: d.ayer?.cantidad||0, efectivo: d.ayer?.efectivo||0 },
+                    delta_pct: d.delta_pct || 0,
+                    semana: d.semana || 0
+                };
+            }
+            case "ver_cajera_turno": {
+                const r = await api('GET', `/caja/turnos-hoy`);
+                const turnos = r.data || [];
+                const activo = turnos.find(t => !t.cierre || t.estado === 'abierto');
+                if (!activo) return { estado: 'sin turno activo', turnos_hoy: turnos.length };
+                return {
+                    cajera:   activo.cajero,
+                    apertura: activo.apertura,
+                    vendido:  activo.total_vendido,
+                    estado:   'turno activo'
+                };
+            }
+            case "ver_mas_vendidos": {
+                const qs = [];
+                if (params.fecha)  qs.push(`fecha=${params.fecha}`);
+                if (params.limite) qs.push(`limite=${params.limite}`);
+                const r = await api('GET', `/ventas/mas-vendidos${qs.length ? '?'+qs.join('&') : ''}`);
+                return r.data || [];
+            }
+            case "registrar_pago_cliente": {
+                // 1. Buscar cliente
+                const rc = await api('GET', `/clientes/buscar?q=${encodeURIComponent(params.nombre)}`);
+                const clientes = rc.data || [];
+                if (!clientes.length) return { error: `No se encontró ningún cliente con nombre "${params.nombre}"` };
+                const cliente = clientes[0];
+                // 2. Ver fiados pendientes
+                const rf = await api('GET', `/fiados/cliente/${cliente.id}`);
+                const fiados = (rf.data || []).filter(f => f.estado === 'pendiente' && parseFloat(f.saldo) > 0);
+                if (!fiados.length) return { error: `${cliente.nombre} no tiene deudas pendientes` };
+                // 3. Aplicar pago al fiado más antiguo
+                const fiado = fiados[0];
+                const metodo = params.metodo || 'efectivo';
+                const rp = await api('POST', `/fiados/pagar`, {
+                    fiado_id:   fiado.id,
+                    usuario_id: 1,
+                    monto:      params.monto,
+                    metodo
+                });
+                if (rp.status !== 200) return { error: rp.data?.detail || 'Error al registrar pago' };
+                return {
+                    cliente: cliente.nombre,
+                    monto_pagado: params.monto,
+                    metodo,
+                    deuda_restante: parseFloat(cliente.deuda_actual) - params.monto
+                };
             }
             default: return { error: `Herramienta no implementada: ${nombre}` };
         }
