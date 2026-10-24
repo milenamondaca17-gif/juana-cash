@@ -167,6 +167,48 @@ async function enviarReporteDiario() {
 
 // ── Scheduler: revisa cada minuto si es hora del reporte ─────────────────────
 let reporteEnviadoHoy = null;
+let ultimoTurnoCerrado = null; // para detectar cierre de turno
+
+async function verificarCierreTurno() {
+    try {
+        const data = await new Promise((resolve, reject) => {
+            http.get({ hostname:'127.0.0.1', port:BACKEND_PORT, path:'/caja/turnos-hoy' }, (res) => {
+                let d = ''; res.on('data', c => d += c);
+                res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
+            }).on('error', reject);
+        });
+        const turnos = Array.isArray(data) ? data : [];
+        // Buscar el turno cerrado más reciente (tiene cierre no vacío)
+        const cerrados = turnos.filter(t => t.cierre && t.cierre !== '');
+        if (!cerrados.length) return;
+        const ultimo = cerrados[cerrados.length - 1];
+        const key = `${ultimo.cajero}-${ultimo.cierre}`;
+        if (key === ultimoTurnoCerrado) return; // ya lo notificamos
+        ultimoTurnoCerrado = key;
+        // Armar resumen
+        const ef  = (ultimo.desglose?.efectivo || 0).toLocaleString('es-AR');
+        const mp  = (ultimo.desglose?.mercadopago_qr || 0).toLocaleString('es-AR');
+        const deb = (ultimo.desglose?.debito || 0).toLocaleString('es-AR');
+        const trf = (ultimo.desglose?.transferencia || 0).toLocaleString('es-AR');
+        const fdo = (ultimo.desglose?.fiado || 0).toLocaleString('es-AR');
+        const tot = (ultimo.total_vendido || 0).toLocaleString('es-AR');
+        const gastos = (ultimo.total_gastos || 0).toLocaleString('es-AR');
+        const msg = `🔒 *Cierre de turno — ${ultimo.cajero}*\n` +
+            `⏰ ${ultimo.apertura} → ${ultimo.cierre}\n` +
+            `🧾 Tickets: ${ultimo.cantidad_ventas}\n\n` +
+            `💵 Efectivo: $${ef}\n` +
+            `📱 Mercado Pago: $${mp}\n` +
+            `💳 Débito: $${deb}\n` +
+            `🏦 Transferencia: $${trf}\n` +
+            `📝 Fiado: $${fdo}\n\n` +
+            `💰 *Total vendido: $${tot}*\n` +
+            `🧾 Gastos: $${gastos}`;
+        await enviarMensaje(REPORTE_TELEFONO, msg);
+        console.log(`📊 Resumen de cierre enviado: ${ultimo.cajero}`);
+    } catch(e) {
+        // silencioso si el backend no responde
+    }
+}
 
 function iniciarScheduler() {
     setInterval(() => {
@@ -180,6 +222,12 @@ function iniciarScheduler() {
             enviarReporteDiario();
         }
     }, 60 * 1000);
+
+    // Polling cada 2 min para detectar cierre de turno
+    setInterval(() => {
+        if (!clientReady) return;
+        verificarCierreTurno();
+    }, 2 * 60 * 1000);
 }
 
 // ── Endpoints HTTP ────────────────────────────────────────────────────────────

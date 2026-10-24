@@ -1,8 +1,8 @@
 {
-  "version": "4.10.61",
-  "desktop_version": "4.10.61",
+  "version": "4.10.62",
+  "desktop_version": "4.10.62",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.61/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.62/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.61 - Bot IA: comparar ventas, cajera en turno, más vendidos, registrar pago de clientes"
+  "notas": "v4.10.62 - Buscador de ventas por producto (bot + programa), auto-resumen al cierre de turno"
 }

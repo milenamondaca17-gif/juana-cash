@@ -47,8 +47,9 @@ class ReportesScreen(QWidget):
         """)
         outer.addWidget(self.tabs)
 
-        self.tabs.addTab(self._build_tab_ventas(),       "📋 Ventas")
+        self.tabs.addTab(self._build_tab_ventas(),        "📋 Ventas")
         self.tabs.addTab(self._build_tab_departamentos(), "🥩 Departamentos")
+        self.tabs.addTab(self._build_tab_buscar(),        "🔍 Buscar Producto")
 
     # ── TAB 1: VENTAS ────────────────────────────────────────────────────────
     def _build_tab_ventas(self):
@@ -696,6 +697,113 @@ class ReportesScreen(QWidget):
             QMessageBox.information(self, "PDF generado", f"Guardado en:\n{ruta}")
         except Exception as e:
             QMessageBox.critical(self, "Error al generar PDF", str(e))
+
+    # ── TAB 3: BUSCAR PRODUCTO ───────────────────────────────────────────────
+    def _build_tab_buscar(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(14)
+
+        titulo = QLabel("🔍 Buscar ventas por producto")
+        titulo.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT};")
+        layout.addWidget(titulo)
+
+        sub = QLabel("Escribí el nombre de un producto y ves en qué tickets se vendió, con fecha y hora.")
+        sub.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
+        layout.addWidget(sub)
+
+        busq_lay = QHBoxLayout()
+        self.buscar_prod_input = QLineEdit()
+        self.buscar_prod_input.setPlaceholderText("Ej: dulce de leche, coca cola, azúcar...")
+        self.buscar_prod_input.setFixedHeight(40)
+        self.buscar_prod_input.setStyleSheet(f"""
+            QLineEdit {{ background: {_CARD}; color: {_TXT}; border: 1.5px solid {_BOR};
+                border-radius: 8px; font-size: 14px; padding: 0 12px; }}
+            QLineEdit:focus {{ border-color: {_PRI}; }}
+        """)
+        self.buscar_prod_input.returnPressed.connect(self._buscar_ventas_producto)
+        busq_lay.addWidget(self.buscar_prod_input)
+
+        self.buscar_prod_dias = QLineEdit("30")
+        self.buscar_prod_dias.setFixedSize(60, 40)
+        self.buscar_prod_dias.setStyleSheet(f"background: {_CARD}; color: {_TXT}; border: 1.5px solid {_BOR}; border-radius: 8px; font-size: 13px; padding: 0 8px;")
+        self.buscar_prod_dias.setToolTip("Días hacia atrás a buscar")
+        busq_lay.addWidget(QLabel("días:", styleSheet=f"color: {_MUT}; font-size: 12px;"))
+        busq_lay.addWidget(self.buscar_prod_dias)
+
+        btn_buscar = QPushButton("Buscar")
+        btn_buscar.setFixedSize(100, 40)
+        btn_buscar.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_buscar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 8px; font-size: 14px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+        btn_buscar.clicked.connect(self._buscar_ventas_producto)
+        busq_lay.addWidget(btn_buscar)
+        layout.addLayout(busq_lay)
+
+        self.buscar_prod_lbl = QLabel("")
+        self.buscar_prod_lbl.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
+        layout.addWidget(self.buscar_prod_lbl)
+
+        self.tabla_buscar = QTableWidget()
+        self.tabla_buscar.setColumnCount(7)
+        self.tabla_buscar.setHorizontalHeaderLabels(["Producto", "Fecha", "Hora", "Ticket", "Cajera", "Cant.", "Total $"])
+        self.tabla_buscar.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        for i in range(1, 7):
+            self.tabla_buscar.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+        self.tabla_buscar.setStyleSheet("background: #16213e; color: white; gridline-color: #0f3460;")
+        self.tabla_buscar.setAlternatingRowColors(True)
+        self.tabla_buscar.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        layout.addWidget(self.tabla_buscar)
+
+        return w
+
+    def _buscar_ventas_producto(self):
+        nombre = self.buscar_prod_input.text().strip()
+        if not nombre:
+            return
+        try:
+            dias = int(self.buscar_prod_dias.text().strip() or "30")
+        except ValueError:
+            dias = 30
+
+        self.buscar_prod_lbl.setText("Buscando...")
+        self.tabla_buscar.setRowCount(0)
+
+        def _cargar():
+            try:
+                r = requests.get(f"{API_URL}/ventas/buscar-por-nombre",
+                                 params={"nombre": nombre, "dias": dias}, timeout=10)
+                return r.json() if r.status_code == 200 else None
+            except Exception:
+                return None
+
+        def _mostrar(data):
+            if data is None:
+                self.buscar_prod_lbl.setText("Error al conectar con el servidor.")
+                return
+            resultados = data.get("resultados", [])
+            total_tickets = data.get("total_tickets", 0)
+            self.buscar_prod_lbl.setText(
+                f"Se encontraron {total_tickets} ventas de '{nombre}' en los últimos {dias} días."
+            )
+            self.tabla_buscar.setRowCount(len(resultados))
+            for row, item in enumerate(resultados):
+                vals = [
+                    item.get("producto", ""),
+                    item.get("fecha", ""),
+                    item.get("hora", ""),
+                    str(item.get("ticket", "")),
+                    item.get("cajero", ""),
+                    f"{float(item.get('cantidad', 0)):g}",
+                    _p(item.get("subtotal", 0)),
+                ]
+                for col, val in enumerate(vals):
+                    cell = QTableWidgetItem(val)
+                    cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.tabla_buscar.setItem(row, col, cell)
+
+        threading.Thread(target=lambda: QTimer.singleShot(0, lambda: _mostrar(_cargar())), daemon=True).start()
 
     def showEvent(self, event):
         super().showEvent(event)

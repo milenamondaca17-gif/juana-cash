@@ -142,6 +142,39 @@ def ventas_por_producto(producto_id: int, fecha: str = None, db: Session = Depen
     total_pesos = sum(float(i.subtotal) for i in items)
     return { "producto_id": producto_id, "fecha": fecha or str(dt.today()), "total_pesos": round(total_pesos, 2), "tickets": len(items) }
 
+@router.get("/buscar-por-nombre")
+def buscar_ventas_por_nombre(nombre: str, dias: int = 30, db: Session = Depends(get_db)):
+    """Busca todos los tickets donde se vendió un producto por nombre (búsqueda parcial)."""
+    from datetime import date as dt, time, timedelta
+    desde = datetime.combine(dt.today() - timedelta(days=dias), time.min)
+    productos = db.query(Producto).filter(Producto.nombre.ilike(f'%{nombre}%')).all()
+    if not productos:
+        return {"nombre": nombre, "resultados": [], "total_tickets": 0}
+    ids = [p.id for p in productos]
+    items = db.query(ItemVenta, Venta, Producto).join(
+        Venta, ItemVenta.venta_id == Venta.id
+    ).join(
+        Producto, ItemVenta.producto_id == Producto.id
+    ).filter(
+        ItemVenta.producto_id.in_(ids),
+        Venta.fecha >= desde,
+        Venta.estado != 'anulada'
+    ).order_by(Venta.fecha.desc()).limit(100).all()
+    resultados = []
+    for item, venta, prod in items:
+        cajero = venta.usuario.nombre if venta.usuario else ""
+        resultados.append({
+            "ticket": venta.numero,
+            "fecha":  venta.fecha.strftime("%Y-%m-%d"),
+            "hora":   venta.fecha.strftime("%H:%M"),
+            "cajero": cajero,
+            "producto": prod.nombre,
+            "cantidad": float(item.cantidad),
+            "precio":   float(item.precio_unitario),
+            "subtotal": float(item.subtotal),
+        })
+    return {"nombre": nombre, "dias": dias, "total_tickets": len(resultados), "resultados": resultados}
+
 @router.get("/mas-vendidos")
 def mas_vendidos(fecha: str = None, limite: int = 10, db: Session = Depends(get_db)):
     from datetime import date as dt, time

@@ -241,6 +241,18 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
             }
         },
         {
+            name: "buscar_ventas_producto",
+            description: "Buscar en qué tickets se vendió un producto por nombre. Muestra fecha, hora, cajera, cantidad y precio de cada venta.",
+            input_schema: {
+                type: "object",
+                properties: {
+                    nombre: { type: "string", description: "Nombre o parte del nombre del producto" },
+                    dias:   { type: "number", description: "Días hacia atrás a buscar, default 30" }
+                },
+                required: ["nombre"]
+            }
+        },
+        {
             name: "registrar_pago_cliente",
             description: "Registrar un pago de deuda de un cliente. Busca al cliente, muestra sus fiados pendientes y aplica el pago al más antiguo.",
             input_schema: {
@@ -403,6 +415,11 @@ module.exports = function initBot(client, enviarMensaje, BACKEND_PORT, http) {
                 if (params.limite) qs.push(`limite=${params.limite}`);
                 const r = await api('GET', `/ventas/mas-vendidos${qs.length ? '?'+qs.join('&') : ''}`);
                 return r.data || [];
+            }
+            case "buscar_ventas_producto": {
+                const qs = `nombre=${encodeURIComponent(params.nombre)}${params.dias ? '&dias='+params.dias : ''}`;
+                const r = await api('GET', `/ventas/buscar-por-nombre?${qs}`);
+                return r.data;
             }
             case "registrar_pago_cliente": {
                 // 1. Buscar cliente
