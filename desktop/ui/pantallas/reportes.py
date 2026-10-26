@@ -803,7 +803,10 @@ class ReportesScreen(QWidget):
                     cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.tabla_buscar.setItem(row, col, cell)
 
-        threading.Thread(target=lambda: QTimer.singleShot(0, lambda: _mostrar(_cargar())), daemon=True).start()
+        def _fetch():
+            data = _cargar()
+            QTimer.singleShot(0, lambda: _mostrar(data))
+        threading.Thread(target=_fetch, daemon=True).start()
 
     def showEvent(self, event):
         super().showEvent(event)

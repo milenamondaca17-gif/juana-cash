@@ -1,8 +1,8 @@
 {
-  "version": "4.10.62",
-  "desktop_version": "4.10.62",
+  "version": "4.10.63",
+  "desktop_version": "4.10.63",
   "apk_version": "4.3.1",
-  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.62/JuanaCash_Setup.exe",
+  "installer_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.10.63/JuanaCash_Setup.exe",
   "apk_url": "https://github.com/milenamondaca17-gif/juana-cash/releases/download/v4.3.1-apk/JuanaCash.apk",
-  "notas": "v4.10.62 - Buscador de ventas por producto (bot + programa), auto-resumen al cierre de turno"
+  "notas": "v4.10.63 - Fix buscador de ventas por producto (threading UI)"
 }
