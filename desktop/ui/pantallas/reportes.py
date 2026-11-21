@@ -50,6 +50,7 @@ class ReportesScreen(QWidget):
         self.tabs.addTab(self._build_tab_ventas(),        "📋 Ventas")
         self.tabs.addTab(self._build_tab_departamentos(), "🥩 Departamentos")
         self.tabs.addTab(self._build_tab_buscar(),        "🔍 Buscar Producto")
+        self.tabs.addTab(self._build_tab_turnos(),        "📅 Turnos")
 
     # ── TAB 1: VENTAS ────────────────────────────────────────────────────────
     def _build_tab_ventas(self):
@@ -697,6 +698,186 @@ class ReportesScreen(QWidget):
             QMessageBox.information(self, "PDF generado", f"Guardado en:\n{ruta}")
         except Exception as e:
             QMessageBox.critical(self, "Error al generar PDF", str(e))
+
+    # ── TAB 4: TURNOS ────────────────────────────────────────────────────────
+    def _build_tab_turnos(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(14)
+
+        titulo = QLabel("📅 Ventas por Turno")
+        titulo.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        titulo.setStyleSheet(f"color: {_TXT};")
+        layout.addWidget(titulo)
+
+        sub = QLabel("Compará el turno mañana vs tarde en un rango de fechas. Podés filtrar por producto.")
+        sub.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
+        layout.addWidget(sub)
+
+        # Filtros
+        filtros = QHBoxLayout()
+        filtros.setSpacing(10)
+        _lbl = f"color: {_MUT}; font-size: 12px;"
+        _dte = f"background: {_CARD}; color: {_TXT}; border: 1.5px solid {_BOR}; border-radius: 6px; font-size: 12px; padding: 2px 6px;"
+
+        filtros.addWidget(QLabel("Desde:", styleSheet=_lbl))
+        self.turn_desde = QDateEdit(QDate(QDate.currentDate().year(), QDate.currentDate().month(), 1))
+        self.turn_desde.setCalendarPopup(True); self.turn_desde.setFixedHeight(34)
+        self.turn_desde.setStyleSheet(_dte)
+        filtros.addWidget(self.turn_desde)
+
+        filtros.addWidget(QLabel("Hasta:", styleSheet=_lbl))
+        self.turn_hasta = QDateEdit(QDate.currentDate())
+        self.turn_hasta.setCalendarPopup(True); self.turn_hasta.setFixedHeight(34)
+        self.turn_hasta.setStyleSheet(_dte)
+        filtros.addWidget(self.turn_hasta)
+
+        filtros.addWidget(QLabel("Producto (opcional):", styleSheet=_lbl))
+        self.turn_nombre = QLineEdit()
+        self.turn_nombre.setPlaceholderText("Ej: coca cola, carniceria...")
+        self.turn_nombre.setFixedHeight(34)
+        self.turn_nombre.setStyleSheet(f"background: {_CARD}; color: {_TXT}; border: 1.5px solid {_BOR}; border-radius: 6px; font-size: 13px; padding: 0 10px;")
+        self.turn_nombre.returnPressed.connect(self._cargar_turnos)
+        filtros.addWidget(self.turn_nombre, 1)
+
+        btn_buscar = QPushButton("Buscar")
+        btn_buscar.setFixedSize(90, 34)
+        btn_buscar.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_buscar.setStyleSheet(f"QPushButton {{ background: {_PRI}; color: white; border-radius: 6px; font-size: 13px; font-weight: bold; }} QPushButton:hover {{ background: {_T['primary_hover']}; }}")
+        btn_buscar.clicked.connect(self._cargar_turnos)
+        filtros.addWidget(btn_buscar)
+        layout.addLayout(filtros)
+
+        # Botones rápidos de turno
+        turno_lay = QHBoxLayout()
+        turno_lay.setSpacing(8)
+        _btn_t = f"QPushButton {{ background: {_T['primary_light']}; color: {_PRI}; border-radius: 6px; font-size: 12px; font-weight: bold; border: 1.5px solid {_PRI}; padding: 4px 16px; }} QPushButton:hover {{ background: {_PRI}; color: white; }}"
+        self.turn_filtro = "todos"
+        for texto, key in [("Todos", "todos"), ("☀️ Mañana", "mañana"), ("🌙 Tarde", "tarde")]:
+            btn = QPushButton(texto)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(_btn_t)
+            btn.clicked.connect(lambda _, k=key: self._set_turno_filtro(k))
+            turno_lay.addWidget(btn)
+        turno_lay.addStretch()
+        layout.addLayout(turno_lay)
+
+        # Cards resumen
+        cards_lay = QHBoxLayout()
+        cards_lay.setSpacing(12)
+        self.turn_card_man  = self._turn_card("☀️ TOTAL MAÑANA",  "$0", "#F59E0B")
+        self.turn_card_tard = self._turn_card("🌙 TOTAL TARDE",   "$0", "#6366F1")
+        self.turn_card_tot  = self._turn_card("💰 TOTAL GENERAL", "$0", "#10B981")
+        for card, _ in [self.turn_card_man, self.turn_card_tard, self.turn_card_tot]:
+            cards_lay.addWidget(card)
+        layout.addLayout(cards_lay)
+
+        self.turn_lbl_prod = QLabel("")
+        self.turn_lbl_prod.setStyleSheet(f"color: {_MUT}; font-size: 12px;")
+        layout.addWidget(self.turn_lbl_prod)
+
+        # Tabla
+        self.tabla_turnos = QTableWidget()
+        self.tabla_turnos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabla_turnos.setAlternatingRowColors(True)
+        self.tabla_turnos.setStyleSheet("background: #16213e; color: white; gridline-color: #0f3460;")
+        layout.addWidget(self.tabla_turnos)
+
+        return w
+
+    def _turn_card(self, titulo, valor, color):
+        f = QFrame()
+        f.setStyleSheet(f"background: #16213e; border-left: 4px solid {color}; border-radius: 8px;")
+        l = QVBoxLayout(f); l.setContentsMargins(16, 10, 16, 10)
+        l.addWidget(QLabel(titulo, styleSheet=f"color: {color}; font-size: 10px; font-weight: bold; background: transparent;"))
+        lbl = QLabel(valor)
+        lbl.setStyleSheet("color: white; font-size: 20px; font-weight: bold; background: transparent;")
+        l.addWidget(lbl)
+        return f, lbl
+
+    def _set_turno_filtro(self, key):
+        self.turn_filtro = key
+        self._cargar_turnos()
+
+    def _cargar_turnos(self):
+        desde = self.turn_desde.date().toString("yyyy-MM-dd")
+        hasta = self.turn_hasta.date().toString("yyyy-MM-dd")
+        nombre = self.turn_nombre.text().strip()
+        turno = self.turn_filtro
+
+        self.turn_lbl_prod.setText("Buscando...")
+        self.tabla_turnos.setRowCount(0)
+
+        def _fetch():
+            try:
+                params = {"desde": desde, "hasta": hasta}
+                if nombre: params["nombre"] = nombre
+                if turno != "todos": params["turno"] = turno
+                r = requests.get(f"{API_URL}/reportes/por-turno", params=params, timeout=10)
+                return r.json() if r.status_code == 200 else None
+            except Exception:
+                return None
+
+        def _mostrar(data):
+            if data is None:
+                self.turn_lbl_prod.setText("Error al conectar con el servidor.")
+                return
+            filas   = data.get("filas", [])
+            resumen = data.get("resumen", {})
+            nombre_b = data.get("nombre_buscado", "")
+            tiene_producto = bool(nombre_b)
+
+            # Actualizar cards
+            if tiene_producto:
+                self.turn_card_man[1].setText(_p(resumen.get("prod_manana", 0)))
+                self.turn_card_tard[1].setText(_p(resumen.get("prod_tarde", 0)))
+                self.turn_card_tot[1].setText(_p(resumen.get("prod_manana", 0) + resumen.get("prod_tarde", 0)))
+                self.turn_lbl_prod.setText(
+                    f"Mostrando ventas de '{nombre_b}' — {len(filas)} días con ventas"
+                )
+            else:
+                self.turn_card_man[1].setText(_p(resumen.get("manana", 0)))
+                self.turn_card_tard[1].setText(_p(resumen.get("tarde", 0)))
+                self.turn_card_tot[1].setText(_p(resumen.get("total", 0)))
+                self.turn_lbl_prod.setText(f"{len(filas)} registros encontrados")
+
+            # Configurar columnas según si hay filtro de producto
+            if tiene_producto:
+                cols = ["Fecha", "Turno", "Cajera", "Tickets", nombre_b.title(), "Total turno"]
+            else:
+                cols = ["Fecha", "Turno", "Cajera", "Tickets", "Carnicería", "Fiambrería", "Total"]
+
+            self.tabla_turnos.setColumnCount(len(cols))
+            self.tabla_turnos.setHorizontalHeaderLabels(cols)
+            self.tabla_turnos.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            self.tabla_turnos.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            for i in range(1, len(cols)):
+                if i != 2:
+                    self.tabla_turnos.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+
+            self.tabla_turnos.setRowCount(len(filas))
+            for row, f in enumerate(filas):
+                turno_txt = "☀️ Mañana" if f["turno"] == "mañana" else "🌙 Tarde"
+                color = QColor("#2d2a1a") if f["turno"] == "mañana" else QColor("#1a1a2d")
+
+                if tiene_producto:
+                    vals = [f["fecha"], turno_txt, f["cajera"], str(f["tickets"]),
+                            _p(f.get("producto_total") or 0), _p(f["total"])]
+                else:
+                    vals = [f["fecha"], turno_txt, f["cajera"], str(f["tickets"]),
+                            _p(f["carniceria"]), _p(f["fiambreria"]), _p(f["total"])]
+
+                for col, val in enumerate(vals):
+                    cell = QTableWidgetItem(val)
+                    cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    cell.setBackground(QBrush(color))
+                    self.tabla_turnos.setItem(row, col, cell)
+
+        def _run():
+            d = _fetch()
+            QTimer.singleShot(0, lambda: _mostrar(d))
+        threading.Thread(target=_run, daemon=True).start()
 
     # ── TAB 3: BUSCAR PRODUCTO ───────────────────────────────────────────────
     def _build_tab_buscar(self):

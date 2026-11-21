@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from ..database import get_db
 from ..models.venta import Venta, ItemVenta, Pago
 from ..models.producto import Producto, Categoria
@@ -205,6 +205,106 @@ def productos_por_fecha(desde: str, hasta: str, db: Session = Depends(get_db)):
         }
         for r in resultados
     ]
+
+@router.get("/por-turno")
+def reporte_por_turno(desde: str, hasta: str, nombre: str = None, turno: str = None, db: Session = Depends(get_db)):
+    """Ventas agrupadas por día y turno (mañana/tarde). Opcional: filtrar por nombre de producto."""
+    try:
+        desde_date = date.fromisoformat(desde)
+        hasta_date = date.fromisoformat(hasta)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Fecha inválida")
+
+    desde_dt = datetime.combine(desde_date, datetime.min.time())
+    hasta_dt  = datetime.combine(hasta_date, datetime.max.time())
+
+    # Traer todas las ventas del período
+    ventas = db.query(Venta).filter(
+        Venta.fecha >= desde_dt,
+        Venta.fecha <= hasta_dt,
+        Venta.estado == 'completada'
+    ).all()
+
+    # Ids de ventas para filtrar items
+    venta_ids = [v.id for v in ventas]
+    if not venta_ids:
+        return {'filas': [], 'resumen': {'manana': 0, 'tarde': 0, 'total': 0}, 'nombre_buscado': nombre or ''}
+
+    # Traer items con producto
+    items_q = db.query(ItemVenta, Producto).join(
+        Producto, ItemVenta.producto_id == Producto.id
+    ).filter(ItemVenta.venta_id.in_(venta_ids))
+    if nombre:
+        items_q = items_q.filter(Producto.nombre.ilike(f'%{nombre}%'))
+    items_rows = items_q.all()
+
+    # Mapa venta_id → items filtrados
+    from collections import defaultdict
+    items_por_venta = defaultdict(list)
+    for item, prod in items_rows:
+        items_por_venta[item.venta_id].append((item, prod))
+
+    # Acumular por (fecha, turno)
+    filas = defaultdict(lambda: {
+        'tickets': set(), 'total': 0.0,
+        'carniceria': 0.0, 'fiambreria': 0.0,
+        'producto_total': 0.0, 'cajeras': set()
+    })
+
+    for v in ventas:
+        t = 'mañana' if v.fecha.hour < 15 else 'tarde'
+        if turno and turno not in ('todos', '') and t != turno:
+            continue
+        key = (v.fecha.strftime('%Y-%m-%d'), t)
+
+        # Si hay filtro de nombre, solo registrar la venta si tiene ese producto
+        if nombre and not items_por_venta[v.id]:
+            continue
+
+        filas[key]['tickets'].add(v.id)
+        filas[key]['total'] += float(v.total)
+        if v.usuario:
+            filas[key]['cajeras'].add(v.usuario.nombre)
+
+        for item, prod in items_por_venta[v.id]:
+            if prod.id == 3:
+                filas[key]['carniceria'] += float(item.subtotal)
+            elif prod.id == 11:
+                filas[key]['fiambreria'] += float(item.subtotal)
+            if nombre:
+                filas[key]['producto_total'] += float(item.subtotal)
+
+    result = []
+    for (fecha, t), data in sorted(filas.items()):
+        if not data['tickets']:
+            continue
+        result.append({
+            'fecha':          fecha,
+            'turno':          t,
+            'cajera':         ', '.join(sorted(data['cajeras'])) or '-',
+            'tickets':        len(data['tickets']),
+            'carniceria':     round(data['carniceria'], 2),
+            'fiambreria':     round(data['fiambreria'], 2),
+            'total':          round(data['total'], 2),
+            'producto_total': round(data['producto_total'], 2) if nombre else None,
+        })
+
+    manana = sum(r['total'] for r in result if r['turno'] == 'mañana')
+    tarde  = sum(r['total'] for r in result if r['turno'] == 'tarde')
+    prod_manana = sum(r['producto_total'] or 0 for r in result if r['turno'] == 'mañana')
+    prod_tarde  = sum(r['producto_total'] or 0 for r in result if r['turno'] == 'tarde')
+
+    return {
+        'filas': result,
+        'resumen': {
+            'manana': round(manana, 2),
+            'tarde':  round(tarde,  2),
+            'total':  round(manana + tarde, 2),
+            'prod_manana': round(prod_manana, 2),
+            'prod_tarde':  round(prod_tarde,  2),
+        },
+        'nombre_buscado': nombre or ''
+    }
 
 @router.get("/stock-bajo")
 def stock_bajo(db: Session = Depends(get_db)):
